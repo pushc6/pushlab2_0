@@ -1,0 +1,46 @@
+# {{ ansible_managed }}
+# Proxy Cache Configuration for Traditional Mode
+
+# Cache path configuration
+proxy_cache_path /var/cache/nginx/proxy_cache 
+    levels=1:2 
+    keys_zone=proxy_cache_zone:10m 
+    max_size=1g 
+    inactive={{ traditional_proxy_config.cache_valid_time | default('1h') }}
+    use_temp_path=off;
+
+# Cache key configuration
+proxy_cache_key "$scheme$request_method$host$request_uri";
+
+# Cache methods
+proxy_cache_methods GET HEAD POST;
+
+# Minimum uses before caching
+proxy_cache_min_uses 2;
+
+# Cache lock settings to prevent thundering herd
+proxy_cache_lock on;
+proxy_cache_lock_timeout 5s;
+proxy_cache_lock_age 5s;
+
+# Cache revalidation
+proxy_cache_revalidate on;
+
+# Use stale cache in case of errors
+proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+
+# Background update of stale items
+proxy_cache_background_update on;
+
+# Bypass cache for specific conditions
+map $http_cache_control $cache_bypass {
+    default 0;
+    "~*no-cache" 1;
+    "~*no-store" 1;
+    "~*private" 1;
+}
+
+map $http_pragma $pragma_bypass {
+    default 0;
+    "no-cache" 1;
+}

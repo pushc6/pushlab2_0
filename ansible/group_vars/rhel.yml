@@ -1,0 +1,9 @@
+# RHEL-specific variables
+rhel_packages_to_install:
+  - dnf-plugins-core
+  - policycoreutils-python-utils
+
+# DNF update options
+dnf_update_cache_only: false
+dnf_exclude_packages: []
+dnf_security_updates_only: false

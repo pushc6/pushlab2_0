@@ -1,0 +1,149 @@
+---
+# Enhanced Proxy Deployment for Ansible Automation Platform (FIXED)
+# Supports both OAuth2-Proxy and Traditional Proxy modes
+
+- name: Deploy Proxy Configuration (OAuth2 or Traditional)
+  hosts: "{{ target_group | default('nginx_internal') }}"
+  become: yes
+  remote_user: ansible
+  gather_facts: yes
+
+  vars:
+    # AAP Survey variables (overridden by survey responses)
+    target_group: "nginx_internal"
+    deploy_all_services: "true"  # String from survey
+    target_services_input: ""     # Comma-separated service names
+    
+    # NEW: Proxy mode selection
+    proxy_mode: "oauth2"  # Options: "oauth2" or "traditional"
+    
+    # Service-level proxy mode override (optional)
+    service_proxy_overrides: {}
+    
+    # SELinux configuration
+    selinux_config:
+      auto_configure: true          
+      install_tools: true           
+      configure_booleans: true      
+      configure_ports: true         
+      verify_config: true           
+
+    # Deployment configuration
+    deployment_config:
+      validate_ssl_certificates: true
+      create_backup: true
+      test_nginx_config: true
+      enable_ssl_verification: true
+      restart_nginx: false
+      create_summary_report: true
+      
+    # SSL configuration validation
+    ssl_validation:
+      check_certificate_expiry: true
+      verify_certificate_paths: true
+      validate_dhparam: true
+      
+    # Traditional proxy specific settings
+    traditional_proxy_config:
+      enable_caching: false
+      cache_valid_time: "1h"
+      enable_gzip: true
+      enable_rate_limiting: false
+      rate_limit: "10r/s"
+      enable_access_logs: true
+      enable_error_logs: true
+      proxy_buffering: "off"
+      client_max_body_size: "100M"
+      proxy_timeout: "60s"
+
+  pre_tasks:
+    # Process service override string from survey
+    - name: Process service mode overrides from survey
+      set_fact:
+        service_proxy_overrides: |
+          {% set result = {} %}
+          {% if service_override_string is defined and service_override_string != '' %}
+            {% for item in service_override_string.split(',') %}
+              {% set parts = item.strip().split(':') %}
+              {% if parts|length == 2 %}
+                {% set _ = result.update({parts[0]: parts[1]}) %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ result }}
+      when: service_override_string is defined
+
+    # Include modular validation tasks
+    - name: Include deployment validation tasks
+      include_tasks: tasks/proxy_deployment_validation.yml
+      
+    # Include service filtering logic
+    - name: Include service filtering tasks  
+      include_tasks: tasks/proxy_service_filtering.yml
+      
+    # FIXED: Process services with proxy modes properly
+    - name: Add proxy mode to each service
+      set_fact:
+        services_with_proxy_modes: []
+
+    - name: Process each service with its proxy mode
+      set_fact:
+        services_with_proxy_modes: "{{ services_with_proxy_modes + [item | combine({'proxy_mode': service_proxy_overrides.get(item.name, proxy_mode)})] }}"
+      loop: "{{ filtered_oauth2_services | default(oauth2_services) }}"
+      when: oauth2_services is defined
+      
+    - name: Separate services by proxy mode
+      set_fact:
+        oauth2_protected_services: "{{ services_with_proxy_modes | selectattr('proxy_mode', 'eq', 'oauth2') | list }}"
+        traditional_proxy_services: "{{ services_with_proxy_modes | selectattr('proxy_mode', 'eq', 'traditional') | list }}"
+      when: services_with_proxy_modes is defined
+
+    - name: Display deployment parameters
+      debug:
+        msg:
+          - "Target group: {{ target_group }}"
+          - "Default proxy mode: {{ proxy_mode }}"
+          - "OAuth2-protected services: {{ oauth2_protected_services | map(attribute='name') | list }}"
+          - "Traditional proxy services: {{ traditional_proxy_services | map(attribute='name') | list }}"
+          - "OAuth2-Proxy endpoint: {{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}"
+          - "SSL validation enabled: {{ deployment_config.validate_ssl_certificates }}"
+          - "Backup enabled: {{ deployment_config.create_backup }}"
+
+  roles:
+    # Enhanced proxy role supporting both modes
+    - role: enhanced_proxy_nginx
+      vars:
+        proxy_role_config:
+          mode: "{{ proxy_mode }}"
+          validate_ssl: "{{ deployment_config.validate_ssl_certificates }}"
+          create_backup: "{{ deployment_config.create_backup }}"
+          test_config: "{{ deployment_config.test_nginx_config }}"
+          oauth2_services: "{{ oauth2_protected_services }}"
+          traditional_services: "{{ traditional_proxy_services }}"
+          service_overrides: "{{ service_proxy_overrides }}"
+        # Pass the processed services
+        services_with_proxy_modes: "{{ services_with_proxy_modes }}"
+
+  post_tasks:
+    # Include modular post-deployment tasks
+    - name: Include post-deployment verification
+      include_tasks: tasks/proxy_post_deployment.yml
+      
+    - name: Generate deployment report
+      template:
+        src: templates/enhanced_deployment_summary.j2
+        dest: "/var/log/nginx/deployment_{{ ansible_date_time.epoch }}.txt"
+      delegate_to: localhost
+      run_once: true
+      
+    - name: AAP deployment summary
+      debug:
+        msg:
+          - "✅ Proxy deployment completed via Ansible Automation Platform"
+          - "Target hosts: {{ ansible_play_hosts }}"
+          - "Proxy mode: {{ proxy_mode }}"
+          - "OAuth2-protected services: {{ oauth2_protected_services | length }}"
+          - "Traditional proxy services: {{ traditional_proxy_services | length }}"
+          - "Total services deployed: {{ services_with_proxy_modes | length }}"
+          - "SSL certificates validated: {{ deployment_config.validate_ssl_certificates }}"
+          - "Configuration backup created: {{ deployment_config.create_backup }}"

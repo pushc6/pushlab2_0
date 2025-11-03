@@ -1,0 +1,11 @@
+repos:
+  # Minimal, fast gate: secret scanning. Re-enable other linters incrementally.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.3
+    hooks:
+      - id: gitleaks
+        name: "gitleaks (protect: staged)"
+        # The pre-commit hook uses `gitleaks protect` under the hood.
+        # Only pass config; let the hook figure out staged files.
+        args: ["--config=.gitleaks.toml", "--no-banner"]
+        pass_filenames: false

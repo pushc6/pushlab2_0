@@ -1,0 +1,171 @@
+---
+# nginx_reverse_proxy.yml
+# Ansible playbook to configure NGINX as a reverse proxy on RHEL servers
+# Usage: ansible-playbook nginx_reverse_proxy.yml -e "proxy_sites='[{\"domain\":\"example.com\",\"backend\":\"http://backend1:8080\"},{\"domain\":\"another.example.com\",\"backend\":\"http://backend2:9000\"}]'"
+
+- name: Configure NGINX Reverse Proxy
+  hosts: all
+  become: yes
+  vars:
+    # Default proxy configuration - can be overridden with -e flag
+    proxy_sites:
+      - domain: example.com
+        backend: http://localhost:8080
+    
+    # NGINX settings
+    nginx_user: nginx
+    nginx_worker_processes: auto
+    nginx_worker_connections: 1024
+    nginx_client_max_body_size: 64M
+    nginx_proxy_timeout: 60s
+    
+    # SSL configuration (optional)
+    enable_ssl: false
+    ssl_cert_path: /etc/ssl/certs
+    ssl_key_path: /etc/ssl/private
+    
+    # SELinux settings
+    selinux_allow_http: true
+    
+  tasks:
+    - name: Check if EPEL is already installed
+      shell: rpm -qa | grep epel
+      register: epel_check
+      changed_when: false
+      failed_when: false
+      
+    - name: Set EPEL requirement fact
+      set_fact:
+        need_epel: false
+      
+    - name: Notify about EPEL installation status
+      debug:
+        msg: "EPEL is already installed. Will use it if needed for additional packages."
+      when: epel_check.rc == 0
+        
+    # We're only installing EPEL if explicitly needed for other packages
+    # For RHEL 9, we're using the standard nginx packages that don't require EPEL
+    - name: Install EPEL for RHEL 9 (only if needed for other packages)
+      dnf:
+        name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm"
+        state: present
+        disable_gpg_check: yes
+      when: 
+        - ansible_distribution == 'RedHat' 
+        - ansible_distribution_major_version == '9' 
+        - epel_check.rc != 0
+        - need_epel | bool
+      
+    - name: Enable CodeReady Builder repository for RHEL 9 (needed for some EPEL packages)
+      command: subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+      register: crb_result
+      changed_when: "'Repository enabled' in crb_result.stdout"
+      failed_when: false
+      when: 
+        - ansible_distribution == 'RedHat' 
+        - ansible_distribution_major_version == '9'
+        - need_epel | bool
+      
+    - name: Check existing NGINX installation
+      shell: rpm -qa | grep nginx
+      register: nginx_installed
+      changed_when: false
+      failed_when: false
+      
+    - name: Display existing NGINX packages
+      debug:
+        msg: "Found existing NGINX packages: {{ nginx_installed.stdout_lines }}"
+      when: nginx_installed.rc == 0
+      
+    - name: Install NGINX on RHEL 9 (standard repos)
+      dnf:
+        name:
+          - nginx
+          - nginx-core
+          - nginx-filesystem
+          - openssl
+        state: latest
+      when: ansible_distribution_major_version == '9' and (nginx_installed.rc != 0 or ansible_check_mode)
+        
+    - name: Install NGINX for other RHEL-family systems
+      dnf:
+        name:
+          - nginx
+          - openssl
+        state: latest
+      when: ansible_distribution_major_version != '9' and (nginx_installed.rc != 0 or ansible_check_mode)
+      
+    - name: Create NGINX configuration directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - /etc/nginx/conf.d
+        - /etc/nginx/sites-available
+        - /etc/nginx/sites-enabled
+    
+    - name: Configure main NGINX configuration
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart NGINX
+    
+    - name: Configure proxy sites
+      template:
+        src: templates/proxy-site.conf.j2
+        dest: "/etc/nginx/sites-available/{{ item.domain }}.conf"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ proxy_sites }}"
+      notify: Restart NGINX
+    
+    - name: Enable proxy sites
+      file:
+        src: "/etc/nginx/sites-available/{{ item.domain }}.conf"
+        dest: "/etc/nginx/sites-enabled/{{ item.domain }}.conf"
+        state: link
+      loop: "{{ proxy_sites }}"
+      notify: Restart NGINX
+    
+    - name: Remove default server configuration
+      file:
+        path: /etc/nginx/conf.d/default.conf
+        state: absent
+      notify: Restart NGINX
+    
+    - name: Configure SELinux for HTTP
+      seboolean:
+        name: httpd_can_network_connect
+        state: yes
+        persistent: yes
+      when: selinux_allow_http
+    
+    - name: Ensure NGINX service is enabled and started
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+    
+    - name: Configure firewall for HTTP and HTTPS
+      firewalld:
+        service: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop:
+        - http
+        - https
+      ignore_errors: yes
+
+  handlers:
+    - name: Restart NGINX
+      systemd:
+        name: nginx
+        state: restarted

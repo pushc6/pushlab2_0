@@ -1,0 +1,52 @@
+# {{ ansible_managed }}
+# OAuth2 authentication configuration for: {{ item }}
+
+{% if item == 'none' %}
+# No authentication required
+# This file intentionally left empty
+
+{% elif item == 'simple' %}
+# Simple OAuth2 authentication
+auth_request /oauth2/auth;
+error_page 401 = /oauth2/sign_in?rd=$scheme://$host$request_uri;
+
+# Extract and pass basic user information
+auth_request_set $user  $upstream_http_x_auth_request_user;
+auth_request_set $email $upstream_http_x_auth_request_email;
+proxy_set_header X-User  $user;
+proxy_set_header X-Email $email;
+
+{% elif item == 'groups' %}
+# OAuth2 authentication with group-based access control
+auth_request /oauth2/auth;
+error_page 401 = /oauth2/sign_in?rd=$scheme://$host$request_uri;
+
+# Extract user and group information
+auth_request_set $user   $upstream_http_x_auth_request_user;
+auth_request_set $email  $upstream_http_x_auth_request_email;
+auth_request_set $groups $upstream_http_x_auth_request_groups;
+
+# Pass user information to backend
+proxy_set_header X-User   $user;
+proxy_set_header X-Email  $email;
+proxy_set_header X-Groups $groups;
+
+{% elif item == 'roles' %}
+# OAuth2 authentication with role-based access control
+auth_request /oauth2/auth;
+error_page 401 = /oauth2/sign_in?rd=$scheme://$host$request_uri;
+
+# Extract user and role information
+auth_request_set $user   $upstream_http_x_auth_request_user;
+auth_request_set $email  $upstream_http_x_auth_request_email;
+auth_request_set $groups $upstream_http_x_auth_request_groups;
+auth_request_set $token  $upstream_http_x_auth_request_access_token;
+
+# Pass comprehensive user information to backend
+proxy_set_header X-User   $user;
+proxy_set_header X-Email  $email;
+proxy_set_header X-Groups $groups;
+proxy_set_header X-Roles  $groups;
+proxy_set_header X-Access-Token $token;
+
+{% endif %}

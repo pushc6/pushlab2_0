@@ -1,0 +1,298 @@
+# {{ ansible_managed }}
+# Shared OAuth2-Proxy Logout Configuration
+# This file is included in all OAuth2-protected sites
+# Usage: include {{ nginx_conf_d }}/oauth2-logout.conf;
+
+# Simple logout endpoint
+location /logout {
+    return 302 /oauth2/sign_out?rd=https://$server_name/logout-success;
+}
+
+# SSO logout endpoint with ID token extraction
+location /sso-logout {
+    try_files $uri @sso_logout_page;
+}
+
+# SSO logout page handler (shared across all domains)
+location @sso_logout_page {
+    add_header Content-Type text/html;
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Pragma "no-cache";
+    add_header Expires "0";
+    
+    return 200 '<!DOCTYPE html>
+<html>
+<head>
+    <title>Logging Out...</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8f9fa; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .message { color: #6c757d; margin: 20px 0; }
+        .fallback { margin-top: 30px; }
+        .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="spinner"></div>
+    <div class="message">Logging you out securely...</div>
+    <div class="fallback">
+        <p>If you are not redirected automatically:</p>
+        <a href="/logout" class="btn">Click here to logout</a>
+    </div>
+    <script>
+        (async function() {
+            try {
+                const userInfoResponse = await fetch("/oauth2/userinfo", {
+                    method: "GET",
+                    credentials: "include",
+                    headers: { 
+                        "Accept": "application/json", 
+                        "X-Requested-With": "XMLHttpRequest" 
+                    }
+                });
+
+                if (userInfoResponse.ok) {
+                    const userInfo = await userInfoResponse.json();
+                    const idToken = userInfo.id_token || userInfo.access_token || userInfo.token;
+                    
+                    if (idToken) {
+                        // Extract the base domain from current hostname
+                        const hostname = window.location.hostname;
+                        const domainParts = hostname.split(".");
+                        const baseDomain = domainParts.slice(-2).join(".");
+                        
+                        const keycloakUrl = new URL("https://auth." + baseDomain + "/realms/{{ logout_config.keycloak_realm | default("prod") }}/protocol/openid-connect/logout");
+                        keycloakUrl.searchParams.set("id_token_hint", idToken);
+                        keycloakUrl.searchParams.set("post_logout_redirect_uri", "https://" + baseDomain + "/logout-success");
+                        keycloakUrl.searchParams.set("client_id", "{{ logout_config.keycloak_client_id | default("oauth2-proxy-multi-domain") }}");
+                        
+                        const oauth2LogoutUrl = "/oauth2/sign_out?rd=" + encodeURIComponent(keycloakUrl.toString());
+                        window.location.href = oauth2LogoutUrl;
+                        return;
+                    }
+                }
+                
+                // Fallback to simple logout
+                window.location.href = "/logout";
+            } catch (error) {
+                console.error("Logout failed:", error);
+                window.location.href = "/logout";
+            }
+        })();
+    </script>
+</body>
+</html>';
+}
+
+# Force logout endpoint (bypasses token extraction)
+location /force-logout {
+    # Extract base domain dynamically
+    set $base_domain "";
+    if ($server_name ~ "^[^.]+\.(.+)$") {
+        set $base_domain $1;
+    }
+    if ($base_domain = "") {
+        set $base_domain $server_name;
+    }
+    
+    return 302 /oauth2/sign_out?rd=https://auth.$base_domain/realms/{{ logout_config.keycloak_realm | default("prod") }}/protocol/openid-connect/logout?client_id={{ logout_config.keycloak_client_id | default("oauth2-proxy-multi-domain") }}&post_logout_redirect_uri=https://$base_domain/logout-success;
+}
+
+# Logout success page (shared across all domains)
+location /logout-success {
+    add_header Content-Type text/html;
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Pragma "no-cache";
+    add_header Expires "0";
+    
+    return 200 '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logged Out Successfully</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { 
+            background: white;
+            padding: 3rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .success-icon { font-size: 3rem; color: #28a745; margin-bottom: 1rem; }
+        h1 { color: #333; margin-bottom: 1rem; font-size: 1.5rem; }
+        p { color: #666; margin-bottom: 1.5rem; line-height: 1.6; }
+        .btn { 
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: background 0.3s;
+            margin: 0.5rem;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #545b62; }
+        .domain { color: #007bff; font-weight: 600; }
+        .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>Successfully Logged Out</h1>
+        <p>You have been securely logged out from all services.</p>
+        <p>Your session with <span class="domain" id="current-domain"></span> and all associated services has been terminated.</p>
+        <div id="nav-buttons">
+            <a href="#" id="home-btn" class="btn">Return to Home</a>
+            <a href="#" id="service-btn" class="btn btn-secondary">Back to Service</a>
+        </div>
+        <div class="footer">
+            <p>You can now safely close this window.</p>
+        </div>
+    </div>
+    <script>
+        // Dynamically set domain information
+        const hostname = window.location.hostname;
+        const domainParts = hostname.split(".");
+        const baseDomain = domainParts.slice(-2).join(".");
+        const serviceName = domainParts[0];
+        
+        document.getElementById("current-domain").textContent = hostname;
+        document.getElementById("home-btn").href = "https://" + baseDomain;
+        document.getElementById("service-btn").href = "https://" + hostname;
+        document.getElementById("service-btn").textContent = "Back to " + serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
+    </script>
+</body>
+</html>';
+}
+
+# JavaScript logout handler (shared across all domains)
+location /logout-handler.js {
+    add_header Content-Type application/javascript;
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+    
+    return 200 '// Shared OAuth2-Proxy Logout Handler
+class OAuth2LogoutHandler {
+    constructor() {
+        this.baseUrl = window.location.origin;
+        this.hostname = window.location.hostname;
+        this.domainParts = this.hostname.split(".");
+        this.baseDomain = this.domainParts.slice(-2).join(".");
+        this.keycloakUrl = "https://auth." + this.baseDomain + "/realms/{{ logout_config.keycloak_realm | default("prod") }}/protocol/openid-connect/logout";
+        this.postLogoutRedirectUri = "https://" + this.baseDomain + "/logout-success";
+        this.clientId = "{{ logout_config.keycloak_client_id | default("oauth2-proxy-multi-domain") }}";
+    }
+
+    async getIdToken() {
+        try {
+            const userInfoResponse = await fetch("/oauth2/userinfo", {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            if (!userInfoResponse.ok) {
+                throw new Error("HTTP error! status: " + userInfoResponse.status);
+            }
+
+            const userInfo = await userInfoResponse.json();
+            return userInfo.id_token || userInfo.access_token || userInfo.token || null;
+        } catch (error) {
+            console.warn("Could not extract ID token:", error);
+            return null;
+        }
+    }
+
+    async simpleLogout() {
+        window.location.href = "/logout";
+    }
+
+    async ssoLogout() {
+        try {
+            const idToken = await this.getIdToken();
+            
+            if (idToken) {
+                const keycloakLogoutUrl = new URL(this.keycloakUrl);
+                keycloakLogoutUrl.searchParams.set("id_token_hint", idToken);
+                keycloakLogoutUrl.searchParams.set("post_logout_redirect_uri", this.postLogoutRedirectUri);
+                keycloakLogoutUrl.searchParams.set("client_id", this.clientId);
+                
+                const oauth2LogoutUrl = "/oauth2/sign_out?rd=" + encodeURIComponent(keycloakLogoutUrl.toString());
+                window.location.href = oauth2LogoutUrl;
+            } else {
+                console.warn("No ID token found, falling back to simple logout");
+                await this.simpleLogout();
+            }
+        } catch (error) {
+            console.error("SSO logout failed:", error);
+            await this.simpleLogout();
+        }
+    }
+
+    async forceLogout() {
+        const keycloakLogoutUrl = new URL(this.keycloakUrl);
+        keycloakLogoutUrl.searchParams.set("post_logout_redirect_uri", this.postLogoutRedirectUri);
+        keycloakLogoutUrl.searchParams.set("client_id", this.clientId);
+        
+        const oauth2LogoutUrl = "/oauth2/sign_out?rd=" + encodeURIComponent(keycloakLogoutUrl.toString());
+        window.location.href = oauth2LogoutUrl;
+    }
+}
+
+// Initialize the logout handler
+const logoutHandler = new OAuth2LogoutHandler();
+
+// Expose global functions for direct usage
+window.performSimpleLogout = function() { return logoutHandler.simpleLogout(); };
+window.performSSOLogout = function() { return logoutHandler.ssoLogout(); };
+window.performForceLogout = function() { return logoutHandler.forceLogout(); };
+
+// Auto-detect logout buttons and add click handlers
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll("[data-logout=simple]").forEach(function(button) {
+        button.addEventListener("click", function(e) {
+            e.preventDefault();
+            logoutHandler.simpleLogout();
+        });
+    });
+
+    document.querySelectorAll("[data-logout=sso]").forEach(function(button) {
+        button.addEventListener("click", function(e) {
+            e.preventDefault();
+            logoutHandler.ssoLogout();
+        });
+    });
+
+    document.querySelectorAll("[data-logout=force]").forEach(function(button) {
+        button.addEventListener("click", function(e) {
+            e.preventDefault();
+            logoutHandler.forceLogout();
+        });
+    });
+});
+
+console.log("OAuth2 Logout Handler loaded for " + window.location.hostname);
+';
+}

@@ -1,0 +1,47 @@
+# {{ ansible_managed }}
+# Modular SSL Configuration Template
+# Usage: {% include 'ssl-config.j2' %}
+
+{% set ssl_config = ssl_certificates[ssl_domain] %}
+
+# SSL Certificate Configuration
+ssl_certificate {{ ssl_config.cert_path }};
+ssl_certificate_key {{ ssl_config.key_path }};
+
+{% if ssl_config.dhparam_path is defined %}
+# Diffie-Hellman Parameters
+ssl_dhparam {{ ssl_config.dhparam_path }};
+{% endif %}
+
+# SSL Protocol and Cipher Configuration
+ssl_protocols {{ ssl_protocols | default('TLSv1.2 TLSv1.3') }};
+ssl_ciphers {{ ssl_ciphers | default('HIGH:!aNULL:!MD5') }};
+ssl_prefer_server_ciphers {{ ssl_prefer_server_ciphers | default('off') }};
+
+# SSL Session Configuration
+ssl_session_cache shared:SSL_{{ ssl_domain | replace('.', '_') | replace('-', '_') }}:10m;
+ssl_session_timeout {{ ssl_session_timeout | default('1d') }};
+ssl_session_tickets {{ ssl_session_tickets | default('off') }};
+
+# SSL Stapling (OCSP)
+{% if ssl_stapling_enabled | default(true) %}
+ssl_stapling on;
+ssl_stapling_verify on;
+{% if ssl_trusted_certificate is defined %}
+ssl_trusted_certificate {{ ssl_trusted_certificate }};
+{% endif %}
+resolver {{ ssl_resolver | default('8.8.8.8 8.8.4.4') }} valid=300s;
+resolver_timeout {{ ssl_resolver_timeout | default('5s') }};
+{% endif %}
+
+# Security Headers
+add_header Strict-Transport-Security "max-age={{ hsts_max_age | default('63072000') }}; includeSubDomains{{ '; preload' if hsts_preload | default(false) else '' }}";
+add_header X-Frame-Options {{ x_frame_options | default('DENY') }};
+add_header X-Content-Type-Options {{ x_content_type_options | default('nosniff') }};
+add_header X-XSS-Protection "{{ x_xss_protection | default('1; mode=block') }}";
+{% if referrer_policy is defined %}
+add_header Referrer-Policy "{{ referrer_policy }}";
+{% endif %}
+{% if content_security_policy is defined %}
+add_header Content-Security-Policy "{{ content_security_policy }}";
+{% endif %}

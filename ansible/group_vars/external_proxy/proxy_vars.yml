@@ -1,0 +1,23 @@
+# proxy_vars.yml
+# Example variables file for configuring multiple proxy sites
+
+proxy_sites:
+  - domain: api.example.com
+    backend: http://api-server:8080
+  
+  - domain: www.example.com
+    backend: http://web-server:3000
+  
+  - domain: docs.example.com
+    backend: http://documentation:4000
+
+# Enable SSL for all sites
+enable_ssl: true
+ssl_cert_path: /etc/ssl/certs
+ssl_key_path: /etc/ssl/private
+
+# NGINX performance tuning
+nginx_worker_processes: 4
+nginx_worker_connections: 2048
+nginx_client_max_body_size: 100M
+nginx_proxy_timeout: 120s

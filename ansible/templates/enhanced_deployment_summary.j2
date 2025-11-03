@@ -1,0 +1,73 @@
+OAuth2-Proxy Deployment Summary
+========================================
+
+Deployment Information:
+-----------------------
+Timestamp: {{ deployment_timestamp | default(ansible_date_time.iso8601_basic | default('UNKNOWN')) }}
+Target Host: {{ inventory_hostname | default('UNKNOWN_HOST') }}
+Ansible User: {{ ansible_user | default('ansible') }}
+Deployment Method: {{ deployment_method | default('Ansible Automation Platform (AAP)') }}
+
+OAuth2-Proxy Configuration:
+---------------------------
+Host: {{ oauth2_proxy_host | default('unset') }}
+Port: {{ oauth2_proxy_port | default('unset') }}
+Endpoint: {% if oauth2_proxy_host is defined and oauth2_proxy_port is defined %}http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}{% else %}UNSET{% endif %}
+
+Services Deployed:
+------------------
+{% if deployed_services is defined and deployed_services %}
+{% for service in deployed_services %}
+{{ loop.index }}. {{ (service.name | default('unnamed')) | upper }}
+   Domain: {{ service.domain | default('unset') }}
+   Backend: {{ service.backend_host | default('unset') }}:{{ service.backend_port | default('unset') }}
+   Auth Type: {{ service.auth_type | default('unset') }}
+   SSL Domain: {{ service.ssl_domain | default('unset') }}
+   Description: {{ service.description | default('') }}
+   {% if service.required_groups is defined and service.required_groups %}
+   Required Groups: {{ service.required_groups | join(', ') }}
+   {% endif %}
+   {% if service.required_roles is defined and service.required_roles %}
+   Required Roles: {{ service.required_roles | join(', ') }}
+   {% endif %}
+   Health Check: {{ service.health_check | default('/health') }}
+
+{% endfor %}
+{% else %}
+(No services were provided)
+{% endif %}
+
+Configuration Test Results:
+---------------------------
+{# Expect nginx_test_result from a registered command result #}
+Nginx Config Test: {% if nginx_test_result is defined and (nginx_test_result.rc is defined) %}{{ 'PASSED ✅' if nginx_test_result.rc == 0 else 'FAILED ❌' }}{% else %}NOT TESTED{% endif %}
+{% if nginx_test_result is defined and (nginx_test_result.rc | default(0)) != 0 and (nginx_test_result.stderr | default('')) %}
+Error Details: {{ nginx_test_result.stderr }}
+{% endif %}
+
+{# Expect oauth2_test_result from a registered uri result #}
+OAuth2-Proxy Connectivity: {% if oauth2_test_result is defined %}{{ 'OK ✅' if oauth2_test_result.status | default(0) == 200 else (oauth2_test_result.msg | default('FAILED ❌')) }}{% else %}NOT TESTED{% endif %}
+
+Access URLs:
+------------
+{% if deployed_services is defined and deployed_services %}
+{% for service in deployed_services %}
+{{ (service.name | default('unnamed')) | title }}: https://{{ service.domain | default('unset') }}
+{% endfor %}
+{% else %}
+(none)
+{% endif %}
+
+Logout URLs:
+------------
+{% if deployed_services is defined and deployed_services %}
+{% for service in deployed_services %}
+{{ (service.name | default('unnamed')) | title }} Simple Logout: https://{{ service.domain | default('unset') }}/logout
+{{ (service.name | default('unnamed')) | title }} SSO Logout: https://{{ service.domain | default('unset') }}/sso-logout
+{% endfor %}
+{% else %}
+(none)
+{% endif %}
+
+========================================
+Deployment completed successfully! 🎉

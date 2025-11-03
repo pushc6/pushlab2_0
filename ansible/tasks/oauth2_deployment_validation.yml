@@ -1,0 +1,72 @@
+---
+# tasks/oauth2_deployment_validation.yml
+# Modular validation tasks for OAuth2 deployment
+
+- name: Convert deploy_all_services to boolean
+  set_fact:
+    deploy_all_services_bool: "{{ deploy_all_services | string | lower == 'true' }}"
+
+- name: Debug raw survey variables
+  debug:
+    msg:
+      - "deploy_all_services (raw): '{{ deploy_all_services }}'"
+      - "target_services_input (raw): '{{ target_services_input }}'"
+      - "deploy_all_services_bool: {{ deploy_all_services_bool }}"
+  when: oauth2_debug_mode | default(false)
+
+- name: Validate required OAuth2 variables
+  assert:
+    that:
+      - oauth2_services is defined
+      - oauth2_services | length > 0
+      - oauth2_proxy_host is defined
+      - oauth2_proxy_port is defined
+      - ssl_certificates is defined
+    fail_msg: "Required OAuth2 variables are not properly defined. Check group_vars configuration."
+
+- name: Validate SSL certificate paths (when SSL validation enabled)
+  block:
+    - name: Check SSL certificate files exist
+      stat:
+        path: "{{ item.value.cert_path }}"
+      register: ssl_cert_check
+      loop: "{{ ssl_certificates | dict2items }}"
+      delegate_to: "{{ inventory_hostname }}"
+      
+    - name: Check SSL key files exist  
+      stat:
+        path: "{{ item.value.key_path }}"
+      register: ssl_key_check
+      loop: "{{ ssl_certificates | dict2items }}"
+      delegate_to: "{{ inventory_hostname }}"
+      
+    - name: Verify SSL files are readable
+      fail:
+        msg: "SSL certificate or key file not found for {{ item.item.key }}"
+      when: not item.stat.exists
+      loop: "{{ ssl_cert_check.results + ssl_key_check.results }}"
+      
+  when: 
+    - deployment_config.validate_ssl_certificates | default(true)
+    - ssl_validation.verify_certificate_paths | default(true)
+
+- name: Validate OAuth2 services configuration
+  assert:
+    that:
+      - item.name is defined
+      - item.domain is defined  
+      - item.backend_host is defined
+      - item.backend_port is defined
+      - item.ssl_domain is defined
+      - item.ssl_domain in ssl_certificates.keys()
+    fail_msg: "Service {{ item.name | default('unknown') }} has invalid configuration"
+  loop: "{{ oauth2_services }}"
+
+- name: Check nginx service status
+  systemd:
+    name: nginx
+  register: nginx_status
+  
+- name: Display nginx service status
+  debug:
+    msg: "Nginx service status: {{ nginx_status.status.ActiveState }}"

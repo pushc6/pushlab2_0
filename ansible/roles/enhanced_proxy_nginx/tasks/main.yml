@@ -1,0 +1,200 @@
+---
+# roles/enhanced_proxy_nginx/tasks/main.yml
+# Main tasks for Enhanced Proxy Nginx configuration (OAuth2 + Traditional)
+
+- name: Verify required variables are defined
+  assert:
+    that:
+      - oauth2_services is defined or traditional_proxy_services is defined
+      - proxy_role_config.mode is defined
+    fail_msg: "Required proxy variables are not properly defined"
+
+- name: Set proxy mode for all services if not using overrides
+  set_fact:
+    all_services: >-
+      {{
+        oauth2_services | map('combine', {'proxy_mode': proxy_role_config.mode}) | list
+        if service_proxy_overrides is not defined or service_proxy_overrides | length == 0
+        else services_with_proxy_modes
+      }}
+  when: oauth2_services is defined
+
+- name: Filter services if specified
+  set_fact:
+    filtered_services: >-
+      {{
+        all_services | selectattr('name', 'in', oauth2_services_filter) | list
+        if oauth2_services_filter | length > 0
+        else all_services
+      }}
+  when: all_services is defined
+
+- name: Separate services by proxy mode
+  set_fact:
+    oauth2_mode_services: "{{ filtered_services | selectattr('proxy_mode', 'eq', 'oauth2') | list | default([]) }}"
+    traditional_mode_services: "{{ filtered_services | selectattr('proxy_mode', 'eq', 'traditional') | list | default([]) }}"
+  when: filtered_services is defined
+
+- name: Display deployment information
+  debug:
+    msg:
+      - "Default Proxy Mode: {{ proxy_role_config.mode }}"
+      - "OAuth2-Proxy Host: {{ oauth2_proxy_host | default('Not configured') }}:{{ oauth2_proxy_port | default('4180') }}"
+      - "Services with OAuth2: {{ oauth2_mode_services | map(attribute='name') | list }}"
+      - "Services without OAuth2: {{ traditional_mode_services | map(attribute='name') | list }}"
+      - "Total services to deploy: {{ filtered_services | length }}"
+
+# SELinux configuration (needed for both modes)
+- name: Perform SELinux pre-deployment checks
+  include_tasks: selinux_pre_checks.yml
+  when: ansible_os_family == "RedHat"
+  tags: ['selinux', 'proxy_selinux', 'pre_check']
+
+- name: Configure SELinux for proxy backend ports
+  include_tasks: selinux_config.yml
+  when: ansible_os_family == "RedHat"
+  tags: ['selinux', 'proxy_selinux']
+
+# Common nginx setup
+- name: Create nginx configuration directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ nginx_sites_available | default('/etc/nginx/sites-available') }}"
+    - "{{ nginx_sites_enabled | default('/etc/nginx/sites-enabled') }}"
+    - "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}"
+    - "/var/log/nginx"
+
+# OAuth2-specific configuration (only if OAuth2 services exist)
+- name: OAuth2 proxy configuration block
+  when: oauth2_mode_services | length > 0
+  block:
+    - name: Generate OAuth2-Proxy location blocks
+      template:
+        src: oauth2-locations.conf.j2
+        dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/oauth2-locations.conf"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      notify: reload nginx
+
+    - name: Generate OAuth2 authentication includes
+      template:
+        src: oauth2-auth.conf.j2
+        dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/oauth2-auth-{{ item }}.conf"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      loop:
+        - "none"
+        - "simple"
+        - "groups"
+        - "roles"
+      notify: reload nginx
+
+    - name: Generate shared OAuth2 logout configuration
+      template:
+        src: oauth2-logout-shared.conf.j2
+        dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/oauth2-logout.conf"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      when: logout_config.enable_id_token_logout | default(true)
+      notify: reload nginx
+
+# Traditional proxy configuration (only if traditional services exist)
+- name: Traditional proxy configuration block
+  when: traditional_mode_services | length > 0
+  block:
+    - name: Generate traditional proxy common configuration
+      template:
+        src: traditional-proxy-common.conf.j2
+        dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/traditional-proxy-common.conf"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      notify: reload nginx
+      
+    - name: Generate cache configuration if enabled
+      template:
+        src: proxy-cache.conf.j2
+        dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/proxy-cache.conf"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      when: traditional_proxy_config.enable_caching | default(false)
+      notify: reload nginx
+
+# Generate site configurations for all services
+- name: Generate nginx site configurations (unified)
+  template:
+    src: nginx-site-unified.conf.j2
+    dest: "{{ nginx_sites_available | default('/etc/nginx/sites-available') }}/{{ item.domain }}.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  loop: "{{ filtered_services }}"
+  notify: reload nginx
+
+- name: Enable nginx sites
+  file:
+    src: "{{ nginx_sites_available | default('/etc/nginx/sites-available') }}/{{ item.domain }}.conf"
+    dest: "{{ nginx_sites_enabled | default('/etc/nginx/sites-enabled') }}/{{ item.domain }}.conf"
+    state: link
+  loop: "{{ filtered_services }}"
+  notify: reload nginx
+
+- name: Remove default nginx configurations
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ nginx_sites_enabled | default('/etc/nginx/sites-enabled') }}/default"
+    - "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/default.conf"
+  notify: reload nginx
+
+# Cleanup old configurations
+- name: Clean up old OAuth2-specific configs if not needed
+  file:
+    path: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/{{ item }}"
+    state: absent
+  loop:
+    - "oauth2-locations.conf"
+    - "oauth2-logout.conf"
+  when: oauth2_mode_services | length == 0
+  notify: reload nginx
+
+- name: Test nginx configuration
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Display nginx test results
+  debug:
+    msg: "Nginx configuration test: {{ 'PASSED' if nginx_test.rc == 0 else 'FAILED' }}"
+
+- name: Ensure nginx is running and enabled
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: Display deployment summary
+  debug:
+    msg:
+      - "✅ Proxy deployment completed successfully"
+      - "Deployment mode: Mixed (OAuth2 + Traditional)" 
+      - "OAuth2-protected services: {{ oauth2_mode_services | map(attribute='name') | list }}"
+      - "Traditional proxy services: {{ traditional_mode_services | map(attribute='name') | list }}"
+      - "Service domains configured: {{ filtered_services | map(attribute='domain') | list }}"
+      - "Total services deployed: {{ filtered_services | length }}"

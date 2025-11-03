@@ -1,0 +1,26 @@
+---
+# OAuth2-Proxy Deployment Playbook (Simplified)
+# Usage: ansible-playbook -i inventories/on_premise deploy_oauth2_proxy.yml
+
+- name: Deploy OAuth2-Proxy Configuration
+  hosts: nginx_internal
+  become: yes
+  remote_user: ansible
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Verify target hosts
+      debug:
+        msg: "Deploying OAuth2-proxy to {{ inventory_hostname }}"
+
+  roles:
+    - oauth2_proxy_nginx
+
+  post_tasks:
+    - name: Deployment completion message
+      debug:
+        msg:
+          - "OAuth2-Proxy deployment completed successfully!"
+          - "Services configured: {{ oauth2_services | length }}"
+          - "OAuth2-Proxy endpoint: {{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}"
+          - "Remember to restart nginx if needed: sudo systemctl restart nginx"

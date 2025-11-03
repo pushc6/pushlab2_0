@@ -1,0 +1,240 @@
+---
+# group_vars/nginx_internal/proxy_vars_enhanced.yml
+# Enhanced Proxy Configuration with OAuth2 and Traditional Mode Support
+
+# Default proxy mode for all services
+# Options: "oauth2" or "traditional"
+default_proxy_mode: "oauth2"
+
+# Service-specific proxy mode overrides
+# This allows you to mix OAuth2 and traditional proxy modes
+service_proxy_overrides:
+  dashboard: "traditional"     # No authentication for dashboard
+  truenas: "traditional"       # TrueNAS handles its own auth
+  grafana: "traditional"        # Grafana has built-in auth
+  # All other services will use the default_proxy_mode
+
+# OAuth2-Proxy server settings (used only for OAuth2 mode services)
+oauth2_proxy_host: "sso.push-lab.com"
+oauth2_proxy_port: "4180"
+
+# Traditional proxy configuration
+traditional_proxy_config:
+  # Caching settings
+  enable_caching: false
+  cache_valid_time: "1h"
+  cache_bypass_headers:
+    - "Cache-Control"
+    - "Pragma"
+  
+  # Performance settings
+  enable_gzip: true
+  gzip_level: 6
+  proxy_buffering: "off"
+  client_max_body_size: "100M"
+  proxy_timeout: "60s"
+  
+  # Rate limiting
+  enable_rate_limiting: false
+  rate_limit: "10r/s"
+  burst_limit: 20
+  
+  # Logging
+  enable_access_logs: true
+  enable_error_logs: true
+  log_format: "proxy_combined"
+  
+  # Security
+  hide_backend_headers: true
+  enable_status_page: false
+  custom_error_pages: false
+  
+  # Connection settings
+  keepalive_timeout: "65s"
+  keepalive_requests: 100
+
+# Enhanced SSL Certificate definitions
+ssl_certificates:
+  push-lab.com:
+    cert_path: "/etc/nginx/ssl/push-lab.com/push-lab.com.fullchain.cer"
+    key_path: "/etc/nginx/ssl/push-lab.com/push-lab.com.key"
+    dhparam_path: "/etc/nginx/ssl/push-lab.com/dhparams.pem"
+
+# Enhanced Service definitions with proxy mode support
+oauth2_services:
+  - name: "sonarr"
+    domain: "sonarr.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "8989"
+    auth_type: "simple"           # OAuth2 auth type (when proxy_mode is oauth2)
+    proxy_mode: "oauth2"           # Explicit mode (overrides default)
+    ssl_domain: "push-lab.com"
+    description: "Sonarr TV Series Management"
+    category: "media"
+    health_check: "/ping"
+    
+  - name: "radarr"
+    domain: "radarr.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "7878"
+    auth_type: "simple"
+    proxy_mode: "oauth2"           # OAuth2 protection
+    ssl_domain: "push-lab.com"
+    description: "Radarr Movie Management"
+    category: "media"
+    health_check: "/ping"
+  
+  - name: "code"
+    domain: "code.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "8443"
+    auth_type: "simple"
+    proxy_mode: "oauth2"           # OAuth2 protection
+    ssl_domain: "push-lab.com"
+    description: "VS Code"
+    category: "code"
+    health_check: "/ping"    
+
+  - name: "dashboard"
+    domain: "dashboard.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "3002"
+    auth_type: "none"              # No OAuth2 auth
+    proxy_mode: "traditional"       # Traditional proxy mode
+    ssl_domain: "push-lab.com"
+    description: "Homelab Dashboard"
+    category: "dashboard"
+    health_check: "/ping"
+    # Traditional proxy specific options
+    allowed_ips: []                # Empty = allow all
+    allow_http: false               # Force HTTPS
+    enable_caching: true            # Override default caching
+    cache_valid_time: "5m"          # Short cache for dashboard
+
+  - name: "truenas"
+    domain: "truenas.push-lab.com"
+    backend_host: "10.37.70.22"
+    backend_port: "80"
+    auth_type: "none"              # TrueNAS has its own auth
+    proxy_mode: "traditional"       # Traditional proxy mode
+    ssl_domain: "push-lab.com"
+    description: "TrueNAS"
+    category: "nas"
+    health_check: "/ping"
+    # IP whitelist for additional security
+    allowed_ips:
+      - "10.37.0.0/16"              # Internal network only
+      - "192.168.1.0/24"            # Management network
+    monitoring_ips:
+      - "127.0.0.1"
+      - "10.37.70.10"               # Monitoring server
+
+  - name: "grafana"
+    domain: "grafana.push-lab.com"
+    backend_host: "10.37.70.25"
+    backend_port: "3002"
+    auth_type: "none"              # Grafana has built-in auth
+    proxy_mode: "traditional"       # Traditional proxy mode
+    ssl_domain: "push-lab.com"
+    description: "Grafana Monitoring Dashboard"
+    category: "monitoring"
+    health_check: "/api/health"
+    custom_headers:
+      X-Service-Type: "monitoring"
+      X-Environment: "production"
+    # Traditional proxy with caching disabled for real-time data
+    enable_caching: false
+    
+  - name: "lidarr"
+    domain: "lidarr.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "8686"
+    auth_type: "simple"
+    proxy_mode: "oauth2"           # OAuth2 protection
+    ssl_domain: "push-lab.com"
+    description: "Lidarr Music Management"
+    category: "media"
+    health_check: "/ping"
+
+  - name: "dozzle"
+    domain: "dozzle.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "9999"
+    auth_type: "groups"            # Group-based OAuth2 auth
+    proxy_mode: "oauth2"           # OAuth2 protection
+    required_groups:
+      - "admin"
+      - "devops"
+    ssl_domain: "push-lab.com"
+    description: "Dozzle log aggregation"
+    category: "logs"
+    health_check: "/ping"
+
+  - name: "synology"
+    domain: "synology.push-lab.com"
+    backend_host: "10.37.20.4"
+    backend_port: "5000"
+    auth_type: "none"              # Synology has its own auth
+    proxy_mode: "traditional"       # Traditional proxy mode
+    ssl_domain: "push-lab.com"
+    description: "Synology NAS"
+    category: "storage"
+    health_check: "/ping"
+    # Allow from internal networks only
+    allowed_ips:
+      - "10.37.0.0/16"
+      - "192.168.0.0/16"
+
+# Nginx proxy settings (applies to both modes)
+nginx_config:
+  proxy_timeout: "60s"
+  client_max_body_size: "100M"
+  proxy_buffering: "off"
+  proxy_request_buffering: "off"
+  proxy_http_version: "1.1"
+  keepalive_timeout: "65s"
+  send_timeout: "60s"
+  read_timeout: "60s"
+
+# OAuth2-specific logout configuration
+logout_config:
+  enable_id_token_logout: true
+  enable_sso_logout: true
+  enable_force_logout: true
+  enable_logout_success_page: true
+  keycloak_realm: "prod"
+  keycloak_client_id: "oauth2-proxy-multi-domain"
+  logout_success_redirect: true
+
+# Rate limiting configuration (optional, for traditional proxy)
+rate_limiting:
+  enabled: false
+  zone_name: "proxy_limit"
+  zone_size: "10m"
+  rate: "10r/s"
+  burst: "20"
+  nodelay: true
+
+# Monitoring and alerting
+monitoring:
+  access_log_format: "proxy_combined"
+  error_log_level: "warn"
+  enable_metrics: false
+  metrics_endpoint: "/nginx_status"
+
+# Backup and maintenance
+maintenance:
+  backup_enabled: true
+  backup_retention_days: 30
+  config_validation: true
+  auto_reload: true
+
+# SELinux configuration
+selinux_config:
+  auto_configure: true
+  install_tools: true
+  configure_booleans: true
+  configure_ports: true
+  verify_config: true
+  force_reconfigure: false
+  skip_on_disabled: true

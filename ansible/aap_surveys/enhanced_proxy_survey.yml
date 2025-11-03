@@ -1,0 +1,307 @@
+---
+# AAP Survey Specification for Enhanced Proxy Deployment
+# This survey configuration can be imported into Ansible Automation Platform
+# to provide a user-friendly interface for proxy deployment
+
+survey_enabled: true
+survey_spec:
+  - question_name: "Target Host Group"
+    question_description: "Select the host group to deploy proxy configuration"
+    variable: target_group
+    type: multiplechoice
+    choices:
+      - nginx_internal
+      - nginx_external
+      - all_proxies
+    default: nginx_internal
+    required: true
+    min_length: 1
+    max_length: 50
+
+  - question_name: "Proxy Mode"
+    question_description: "Select the proxy mode for deployment"
+    variable: proxy_mode
+    type: multiplechoice
+    choices:
+      - label: "OAuth2 Proxy (with authentication)"
+        value: oauth2
+      - label: "Traditional Proxy (no authentication)"
+        value: traditional
+    default: oauth2
+    required: true
+
+  - question_name: "Deploy All Services"
+    question_description: "Deploy all configured services?"
+    variable: deploy_all_services
+    type: multiplechoice
+    choices:
+      - label: "Yes - Deploy all services"
+        value: "true"
+      - label: "No - Deploy specific services only"
+        value: "false"
+    default: "true"
+    required: true
+
+  - question_name: "Target Services"
+    question_description: "Enter comma-separated service names (only if not deploying all)"
+    variable: target_services_input
+    type: text
+    default: ""
+    required: false
+    min_length: 0
+    max_length: 500
+
+  - question_name: "Service Mode Overrides"
+    question_description: "Override proxy mode for specific services (format: service1:mode,service2:mode)"
+    variable: service_override_string
+    type: text
+    default: ""
+    required: false
+    min_length: 0
+    max_length: 500
+    hint: "Example: dashboard:traditional,grafana:traditional,sonarr:oauth2"
+
+  - question_name: "OAuth2 Proxy Host"
+    question_description: "OAuth2-Proxy server hostname (for OAuth2 mode)"
+    variable: oauth2_proxy_host
+    type: text
+    default: "sso.push-lab.com"
+    required: false
+    min_length: 0
+    max_length: 255
+
+  - question_name: "OAuth2 Proxy Port"
+    question_description: "OAuth2-Proxy server port (for OAuth2 mode)"
+    variable: oauth2_proxy_port
+    type: text
+    default: "4180"
+    required: false
+    min_length: 0
+    max_length: 5
+
+  - question_name: "Enable Caching"
+    question_description: "Enable caching for traditional proxy mode?"
+    variable: enable_traditional_caching
+    type: multiplechoice
+    choices:
+      - label: "Yes"
+        value: "true"
+      - label: "No"
+        value: "false"
+    default: "false"
+    required: false
+
+  - question_name: "Cache Valid Time"
+    question_description: "Cache validity duration (e.g., 1h, 30m, 10s)"
+    variable: cache_valid_time
+    type: text
+    default: "1h"
+    required: false
+    min_length: 0
+    max_length: 10
+
+  - question_name: "Enable Rate Limiting"
+    question_description: "Enable rate limiting for traditional proxy?"
+    variable: enable_rate_limiting
+    type: multiplechoice
+    choices:
+      - label: "Yes"
+        value: "true"
+      - label: "No"
+        value: "false"
+    default: "false"
+    required: false
+
+  - question_name: "Rate Limit"
+    question_description: "Rate limit (e.g., 10r/s, 100r/m)"
+    variable: rate_limit
+    type: text
+    default: "10r/s"
+    required: false
+    min_length: 0
+    max_length: 20
+
+  - question_name: "Enable GZIP Compression"
+    question_description: "Enable GZIP compression for responses?"
+    variable: enable_gzip
+    type: multiplechoice
+    choices:
+      - label: "Yes"
+        value: "true"
+      - label: "No"
+        value: "false"
+    default: "true"
+    required: false
+
+  - question_name: "Client Max Body Size"
+    question_description: "Maximum client request body size (e.g., 100M, 1G)"
+    variable: client_max_body_size
+    type: text
+    default: "100M"
+    required: false
+    min_length: 0
+    max_length: 10
+
+  - question_name: "SELinux Auto-Configure"
+    question_description: "Automatically configure SELinux for proxy ports?"
+    variable: selinux_auto_configure
+    type: multiplechoice
+    choices:
+      - label: "Yes"
+        value: "true"
+      - label: "No"
+        value: "false"
+    default: "true"
+    required: false
+
+  - question_name: "Create Configuration Backup"
+    question_description: "Create backup of existing configuration?"
+    variable: create_backup
+    type: multiplechoice
+    choices:
+      - label: "Yes"
+        value: "true"
+      - label: "No"
+        value: "false"
+    default: "true"
+    required: true
+
+  - question_name: "Test Configuration"
+    question_description: "Test nginx configuration before applying?"
+    variable: test_nginx_config
+    type: multiplechoice
+    choices:
+      - label: "Yes"
+        value: "true"
+      - label: "No"
+        value: "false"
+    default: "true"
+    required: true
+
+  - question_name: "Restart or Reload Nginx"
+    question_description: "How to apply configuration changes?"
+    variable: nginx_restart_mode
+    type: multiplechoice
+    choices:
+      - label: "Reload (no downtime)"
+        value: "reload"
+      - label: "Restart (brief downtime)"
+        value: "restart"
+    default: "reload"
+    required: true
+
+  - question_name: "Enable Debug Mode"
+    question_description: "Enable debug output for troubleshooting?"
+    variable: debug_mode
+    type: multiplechoice
+    choices:
+      - label: "Yes"
+        value: "true"
+      - label: "No"
+        value: "false"
+    default: "false"
+    required: false
+
+# Extra variables to be set based on survey responses
+# These are processed in the playbook pre_tasks
+extra_vars_processing: |
+  # Process service override string into dictionary
+  - name: Process service mode overrides from survey
+    set_fact:
+      service_proxy_overrides: |
+        {% set result = {} %}
+        {% if service_override_string is defined and service_override_string != '' %}
+          {% for item in service_override_string.split(',') %}
+            {% set parts = item.strip().split(':') %}
+            {% if parts|length == 2 %}
+              {% set _ = result.update({parts[0]: parts[1]}) %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {{ result }}
+    when: service_override_string is defined
+
+  # Process traditional proxy config from survey
+  - name: Set traditional proxy configuration from survey
+    set_fact:
+      traditional_proxy_config:
+        enable_caching: "{{ enable_traditional_caching | default('false') | bool }}"
+        cache_valid_time: "{{ cache_valid_time | default('1h') }}"
+        enable_rate_limiting: "{{ enable_rate_limiting | default('false') | bool }}"
+        rate_limit: "{{ rate_limit | default('10r/s') }}"
+        enable_gzip: "{{ enable_gzip | default('true') | bool }}"
+        client_max_body_size: "{{ client_max_body_size | default('100M') }}"
+        proxy_buffering: "off"
+        proxy_timeout: "60s"
+        enable_access_logs: true
+        enable_error_logs: true
+
+  # Process SELinux configuration from survey
+  - name: Set SELinux configuration from survey
+    set_fact:
+      selinux_config:
+        auto_configure: "{{ selinux_auto_configure | default('true') | bool }}"
+        install_tools: true
+        configure_booleans: true
+        configure_ports: true
+        verify_config: true
+
+  # Process deployment configuration from survey
+  - name: Set deployment configuration from survey
+    set_fact:
+      deployment_config:
+        validate_ssl_certificates: true
+        create_backup: "{{ create_backup | default('true') | bool }}"
+        test_nginx_config: "{{ test_nginx_config | default('true') | bool }}"
+        enable_ssl_verification: true
+        restart_nginx: "{{ true if nginx_restart_mode == 'restart' else false }}"
+        create_summary_report: true
+
+# Job template configuration recommendations
+job_template_config:
+  name: "Deploy Enhanced Proxy Configuration"
+  description: "Deploy nginx proxy with OAuth2 or traditional mode support"
+  job_type: "run"
+  inventory: "On-Premise Infrastructure"
+  project: "Infrastructure Automation"
+  playbook: "deploy_proxy_enhanced.yml"
+  credentials:
+    - "SSH Key - Ansible User"
+    - "Vault Password"
+  become_enabled: true
+  verbosity: "{{ 'debug' if debug_mode == 'true' else 'normal' }}"
+  extra_vars:
+    ansible_become_method: "sudo"
+    ansible_connection: "ssh"
+  survey_enabled: true
+  survey_spec: "# Use the survey_spec defined above"
+  allow_simultaneous: false
+  timeout: 1800
+  job_tags: ""
+  skip_tags: ""
+  limit: ""
+  diff_mode: false
+  job_slice_count: 1
+  webhook_service: ""
+  webhook_credential: null
+  prevent_instance_group_fallback: false
+  host_config_key: ""
+  ask_scm_branch_on_launch: false
+  ask_diff_mode_on_launch: false
+  ask_variables_on_launch: false
+  ask_limit_on_launch: true
+  ask_tags_on_launch: false
+  ask_skip_tags_on_launch: false
+  ask_job_type_on_launch: false
+  ask_verbosity_on_launch: false
+  ask_inventory_on_launch: false
+  ask_credential_on_launch: false
+  instance_groups: []
+  forks: 5
+  job_slice_number: 0
+  labels: 
+    - "proxy"
+    - "nginx"
+    - "oauth2"
+    - "infrastructure"
+  execution_environment: "Default execution environment"

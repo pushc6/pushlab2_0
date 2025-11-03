@@ -1,0 +1,5 @@
+# Example Terraform Cloud/Enterprise backend
+hostname     = "app.terraform.io"
+organization = "your-org"
+
+workspaces { name = "almalinux-vsphere" }

@@ -1,0 +1,7 @@
+---
+# Ubuntu-specific variables
+apt_cache_valid_time: 3600
+apt_upgrade_type: dist  # Options: yes, safe, full, dist
+apt_autoremove: true
+apt_autoclean: true
+apt_update_cache_only: false

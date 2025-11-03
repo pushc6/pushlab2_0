@@ -1,0 +1,8 @@
+---
+- name: Update RHEL systems
+  hosts: almalinux
+  become: true
+
+  roles:
+    - common
+    - rhel_updates

@@ -1,0 +1,13 @@
+---
+# Global variables for all environments
+
+# Common settings
+pre_update_tasks_enabled: true
+post_update_tasks_enabled: true
+enable_reboot: true
+reboot_timeout: 300
+post_reboot_delay: 30
+
+# Notification settings
+notification_enabled: true
+notification_email: ryan.pampush@gmail.com

@@ -1,0 +1,115 @@
+---
+# Playbook: Configure ansible user for Debian systems
+# Description: Adds ansible user to sudo group, configures passwordless sudo, and sets up SSH key authentication
+# Usage: Run via Ansible Automation Platform with Survey
+- name: Configure ansible user for Debian systems v2
+  hosts: "{{ target_host }}"
+  become: yes
+  become_method: sudo
+  become_user: root
+  # Remove the invalid line: become_ask_pass: no
+  gather_facts: yes
+  
+  vars:
+    ansible_user: "{{ initial_username }}"  # Will be provided by survey
+    ansible_password: "{{ initial_password }}"  # Will be provided by survey
+    ansible_become_password: "{{ sudo_password }}"  # Will be provided by survey
+    ssh_key_name: "ansible_automation_key"  # Name of the credential in AAP
+  
+  # Rest of your playbook tasks remain the same
+  tasks:
+    - name: Check if system is Debian based
+      fail:
+        msg: "This playbook is intended for Debian-based systems only"
+      when: ansible_os_family != "Debian"
+    
+    - name: Ensure sudo group exists
+      group:
+        name: sudo
+        state: present
+      
+    - name: Add ansible user to sudo group
+      user:
+        name: ansible
+        groups: sudo
+        append: yes
+        shell: /bin/bash
+        create_home: yes
+    
+    - name: Ensure /etc/sudoers.d directory exists
+      file:
+        path: /etc/sudoers.d
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+    
+    - name: Configure passwordless sudo for ansible user
+      lineinfile:
+        path: /etc/sudoers.d/ansible
+        line: 'ansible       ALL = (ALL) NOPASSWD: ALL'
+        state: present
+        create: yes
+        mode: '0440'
+        owner: root
+        group: root
+        validate: '/usr/sbin/visudo -cf %s'
+    
+    - name: Create .ssh directory for ansible user
+      file:
+        path: /home/ansible/.ssh
+        state: directory
+        mode: '0700'
+        owner: ansible
+        group: ansible
+
+    # Use the public key from the credential
+    - name: Add SSH public key for ansible user
+      authorized_key:
+        user: ansible
+        state: present
+        key: "{{ ansible_ssh_public_key }}"  # This comes from the credential injection
+        comment: "Added by Ansible Automation Platform"
+        
+    - name: Set correct permissions on authorized_keys
+      file:
+        path: /home/ansible/.ssh/authorized_keys
+        mode: '0600'
+        owner: ansible
+        group: ansible
+    
+    - name: Lock ansible user password
+      command: passwd -l ansible
+      register: lock_result
+      changed_when: lock_result.rc == 0
+      failed_when: lock_result.rc != 0
+    
+    - name: Verify ansible user is in sudo group
+      command: id ansible
+      register: id_output
+      changed_when: false
+    
+    - name: Verify sudo configuration
+      command: sudo -l -U ansible
+      register: sudo_output
+      changed_when: false
+    
+    - name: Verify user is locked
+      shell: passwd -S ansible | grep -q "L"
+      register: lock_check
+      changed_when: false
+      failed_when: false
+    
+    - name: Display verification results
+      debug:
+        msg:
+          - "User groups: {{ id_output.stdout }}"
+          - "Sudo privileges: {{ sudo_output.stdout_lines }}"
+          - "Account locked: {{ 'Yes' if lock_check.rc == 0 else 'No (issue detected)' }}"
+          - "SSH key installed for ansible user"
+    
+    - name: Restart SSH service (Debian/Ubuntu)
+      service:
+        name: ssh
+        state: restarted
+      when: ansible_os_family == "Debian"

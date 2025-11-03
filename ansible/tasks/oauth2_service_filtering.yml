@@ -1,0 +1,55 @@
+---
+# tasks/oauth2_service_filtering.yml
+# Modular service filtering logic for OAuth2 deployment
+
+- name: Initialize oauth2_services_filter
+  set_fact:
+    oauth2_services_filter: []
+
+- name: Parse target services from survey input
+  set_fact:
+    oauth2_services_filter: "{{ target_services_input.split(',') | map('trim') | reject('equalto', '') | list }}"
+  when: 
+    - target_services_input is defined
+    - target_services_input != ""
+    - deploy_all_services_bool == false
+
+- name: Validate requested services exist in configuration
+  block:
+    - name: Check if requested services are configured
+      set_fact:
+        invalid_services: "{{ oauth2_services_filter | difference(oauth2_services | map(attribute='name') | list) }}"
+        
+    - name: Fail if invalid services requested
+      fail:
+        msg: "Invalid services requested: {{ invalid_services }}. Available services: {{ oauth2_services | map(attribute='name') | list }}"
+      when: invalid_services | length > 0
+      
+  when: oauth2_services_filter | length > 0
+
+- name: Set filtered services list
+  set_fact:
+    filtered_oauth2_services: >-
+      {{
+        oauth2_services | selectattr('name', 'in', oauth2_services_filter) | list
+        if oauth2_services_filter | length > 0
+        else oauth2_services
+      }}
+
+- name: Debug parsed variables
+  debug:
+    msg:
+      - "Raw deploy_all_services: {{ deploy_all_services }}"
+      - "Boolean deploy_all_services_bool: {{ deploy_all_services_bool }}"
+      - "Raw target_services_input: '{{ target_services_input }}'"
+      - "Parsed oauth2_services_filter: {{ oauth2_services_filter | default([]) }}"
+      - "Filtered services count: {{ filtered_oauth2_services | length }}"
+      - "Filtered service names: {{ filtered_oauth2_services | map(attribute='name') | list }}"
+  when: oauth2_debug_mode | default(false)
+
+- name: Display service deployment plan
+  debug:
+    msg:
+      - "Services to be deployed:"
+      - "{{ filtered_oauth2_services | map(attribute='name') | list | join(', ') }}"
+      - "Total: {{ filtered_oauth2_services | length }} of {{ oauth2_services | length }} configured services"

@@ -1,0 +1,59 @@
+OAuth2-Proxy Deployment Summary
+========================================
+
+Deployment Information:
+-----------------------
+Timestamp: {{ deployment_timestamp }}
+Target Host: {{ inventory_hostname }}
+Ansible User: {{ ansible_user | default('ansible') }}
+Deployment Method: Ansible Automation Platform (AAP)
+
+OAuth2-Proxy Configuration:
+---------------------------
+Host: {{ oauth2_proxy_host }}
+Port: {{ oauth2_proxy_port }}
+Endpoint: http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}
+
+Services Deployed:
+------------------
+{% for service in deployed_services %}
+{{ loop.index }}. {{ service.name | upper }}
+   Domain: {{ service.domain }}
+   Backend: {{ service.backend_host }}:{{ service.backend_port }}
+   Auth Type: {{ service.auth_type }}
+   SSL Domain: {{ service.ssl_domain }}
+   Description: {{ service.description }}
+   {% if service.required_groups is defined %}
+   Required Groups: {{ service.required_groups | join(', ') }}
+   {% endif %}
+   {% if service.required_roles is defined %}
+   Required Roles: {{ service.required_roles | join(', ') }}
+   {% endif %}
+   Health Check: {{ service.health_check | default('/health') }}
+
+{% endfor %}
+
+Configuration Test Results:
+---------------------------
+Nginx Config Test: {% if nginx_test_result and nginx_test_result.get('rc') is defined %}{{ 'PASSED ✅' if nginx_test_result.rc == 0 else 'FAILED ❌' }}{% else %}NOT TESTED{% endif %}
+{% if nginx_test_result and nginx_test_result.get('rc', 0) != 0 and nginx_test_result.get('stderr') %}
+Error Details: {{ nginx_test_result.stderr }}
+{% endif %}
+
+OAuth2-Proxy Connectivity: {% if oauth2_test_result %}{{ 'OK ✅' if oauth2_test_result.get('status') == 200 else oauth2_test_result.get('msg', 'FAILED ❌') }}{% else %}NOT TESTED{% endif %}
+
+Access URLs:
+------------
+{% for service in deployed_services %}
+{{ service.name | title }}: https://{{ service.domain }}
+{% endfor %}
+
+Logout URLs:
+------------
+{% for service in deployed_services %}
+{{ service.name | title }} Simple Logout: https://{{ service.domain }}/logout
+{{ service.name | title }} SSO Logout: https://{{ service.domain }}/sso-logout
+{% endfor %}
+
+========================================
+Deployment completed successfully! 🎉

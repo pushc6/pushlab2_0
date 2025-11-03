@@ -1,0 +1,115 @@
+# {{ ansible_managed }}
+# OAuth2-Proxy Logout JavaScript Handler Include
+# Usage: include {{ nginx_conf_d }}/logout-javascript.conf;
+
+# Serve logout handler JavaScript
+location /logout-handler.js {
+    add_header Content-Type application/javascript;
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+    
+    return 200 '// OAuth2-Proxy Logout Handler for {{ item.domain }}
+class OAuth2LogoutHandler {
+    constructor() {
+        this.baseUrl = window.location.origin;
+        this.keycloakUrl = "https://auth.{{ item.ssl_domain }}/realms/{{ logout_config.keycloak_realm | default("prod") }}/protocol/openid-connect/logout";
+        this.postLogoutRedirectUri = "https://{{ item.ssl_domain }}/logout-success";
+        this.clientId = "{{ logout_config.keycloak_client_id | default("oauth2-proxy-multi-domain") }}";
+    }
+
+    async getIdToken() {
+        try {
+            const userInfoResponse = await fetch("/oauth2/userinfo", {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            if (!userInfoResponse.ok) {
+                throw new Error("HTTP error! status: " + userInfoResponse.status);
+            }
+
+            const userInfo = await userInfoResponse.json();
+            return userInfo.id_token || userInfo.access_token || userInfo.token || null;
+        } catch (error) {
+            console.warn("Could not extract ID token:", error);
+            return null;
+        }
+    }
+
+    async simpleLogout() {
+        window.location.href = "/logout";
+    }
+
+    async ssoLogout() {
+        try {
+            const idToken = await this.getIdToken();
+            
+            if (idToken) {
+                const keycloakLogoutUrl = new URL(this.keycloakUrl);
+                keycloakLogoutUrl.searchParams.set("id_token_hint", idToken);
+                keycloakLogoutUrl.searchParams.set("post_logout_redirect_uri", this.postLogoutRedirectUri);
+                keycloakLogoutUrl.searchParams.set("client_id", this.clientId);
+                
+                const oauth2LogoutUrl = "/oauth2/sign_out?rd=" + encodeURIComponent(keycloakLogoutUrl.toString());
+                window.location.href = oauth2LogoutUrl;
+            } else {
+                console.warn("No ID token found, falling back to simple logout");
+                await this.simpleLogout();
+            }
+        } catch (error) {
+            console.error("SSO logout failed:", error);
+            await this.simpleLogout();
+        }
+    }
+
+    async forceLogout() {
+        const keycloakLogoutUrl = new URL(this.keycloakUrl);
+        keycloakLogoutUrl.searchParams.set("post_logout_redirect_uri", this.postLogoutRedirectUri);
+        keycloakLogoutUrl.searchParams.set("client_id", this.clientId);
+        
+        const oauth2LogoutUrl = "/oauth2/sign_out?rd=" + encodeURIComponent(keycloakLogoutUrl.toString());
+        window.location.href = oauth2LogoutUrl;
+    }
+}
+
+// Initialize the logout handler
+const logoutHandler = new OAuth2LogoutHandler();
+
+// Expose global functions for direct usage
+window.performSimpleLogout = function() { return logoutHandler.simpleLogout(); };
+window.performSSOLogout = function() { return logoutHandler.ssoLogout(); };
+window.performForceLogout = function() { return logoutHandler.forceLogout(); };
+
+// Auto-detect logout buttons and add click handlers
+document.addEventListener("DOMContentLoaded", function() {
+    // Simple logout buttons
+    document.querySelectorAll("[data-logout=simple]").forEach(function(button) {
+        button.addEventListener("click", function(e) {
+            e.preventDefault();
+            logoutHandler.simpleLogout();
+        });
+    });
+
+    // SSO logout buttons
+    document.querySelectorAll("[data-logout=sso]").forEach(function(button) {
+        button.addEventListener("click", function(e) {
+            e.preventDefault();
+            logoutHandler.ssoLogout();
+        });
+    });
+
+    // Force logout buttons
+    document.querySelectorAll("[data-logout=force]").forEach(function(button) {
+        button.addEventListener("click", function(e) {
+            e.preventDefault();
+            logoutHandler.forceLogout();
+        });
+    });
+});
+
+console.log("OAuth2 Logout Handler loaded for {{ item.domain }}");
+';
+}

@@ -1,0 +1,81 @@
+---
+# OAuth2-Proxy Deployment for Ansible Automation Platform (Enhanced Modular Version)
+# Supports survey prompts for target selection and service filtering
+
+- name: Deploy OAuth2-Proxy Configuration (AAP Compatible - Modular)
+  hosts: "{{ target_group | default('nginx_internal') }}"
+  become: yes
+  remote_user: ansible
+  gather_facts: yes
+
+  vars:
+    # AAP Survey variables (overridden by survey responses)
+    target_group: "nginx_internal"
+    deploy_all_services: "true"  # String from survey
+    target_services_input: ""     # Comma-separated service names
+    
+    # SELinux configuration (can be overridden via survey or extra-vars)
+    selinux_config:
+      auto_configure: true          # Automatically configure SELinux
+      install_tools: true           # Install SELinux management tools
+      configure_booleans: true      # Enable httpd network booleans
+      configure_ports: true         # Add backend ports to http_port_t
+      verify_config: true           # Verify configuration after changes
+
+    # Deployment configuration (can be overridden via survey or extra-vars)
+    deployment_config:
+      validate_ssl_certificates: true
+      create_backup: true
+      test_nginx_config: true
+      enable_ssl_verification: true
+      restart_nginx: false  # Only reload by default
+      create_summary_report: true
+      
+    # SSL configuration validation
+    ssl_validation:
+      check_certificate_expiry: true
+      verify_certificate_paths: true
+      validate_dhparam: true
+
+  pre_tasks:
+    # Include modular validation tasks
+    - name: Include deployment validation tasks
+      include_tasks: tasks/oauth2_deployment_validation.yml
+      
+    # Include service filtering logic
+    - name: Include service filtering tasks  
+      include_tasks: tasks/oauth2_service_filtering.yml
+
+    - name: Display deployment parameters
+      debug:
+        msg:
+          - "Target group: {{ target_group }}"
+          - "Deploy all services: {{ deploy_all_services_bool }}"
+          - "Service filter: {{ oauth2_services_filter if oauth2_services_filter | length > 0 else 'All services' }}"
+          - "OAuth2-Proxy endpoint: {{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}"
+          - "SSL validation enabled: {{ deployment_config.validate_ssl_certificates }}"
+          - "Backup enabled: {{ deployment_config.create_backup }}"
+
+  roles:
+    # Main OAuth2 proxy role with enhanced configuration
+    - role: oauth2_proxy_nginx
+      vars:
+        oauth2_role_config:
+          validate_ssl: "{{ deployment_config.validate_ssl_certificates }}"
+          create_backup: "{{ deployment_config.create_backup }}"
+          test_config: "{{ deployment_config.test_nginx_config }}"
+
+  post_tasks:
+    # Include modular post-deployment tasks
+    - name: Include post-deployment verification
+      include_tasks: tasks/oauth2_post_deployment.yml
+      
+    - name: AAP deployment summary
+      debug:
+        msg:
+          - "✅ OAuth2-Proxy deployment completed via Ansible Automation Platform"
+          - "Target hosts: {{ ansible_play_hosts }}"
+          - "Services deployed: {{ oauth2_services_filter if oauth2_services_filter | length > 0 else 'All configured services' }}"
+          - "Total services available: {{ oauth2_services | length }}"
+          - "SSL certificates validated: {{ deployment_config.validate_ssl_certificates }}"
+          - "Configuration backup created: {{ deployment_config.create_backup }}"

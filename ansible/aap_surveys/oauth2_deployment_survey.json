@@ -1,0 +1,37 @@
+{
+  "name": "OAuth2-Proxy Deployment Survey (Simplified)",
+  "description": "Deploy OAuth2-proxy configurations with simplified service selection",
+  "spec": [
+    {
+      "question_name": "Target Group",
+      "question_description": "Select the target host group for deployment",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "target_group",
+      "choices": [
+        "nginx_internal",
+        "all_proxies", 
+        "internal_proxies",
+        "external_proxies"
+      ],
+      "default": "nginx_internal"
+    },
+    {
+      "question_name": "Deploy All Services",
+      "question_description": "Deploy all configured services or select specific ones",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "deploy_all_services",
+      "choices": ["true", "false"],
+      "default": "true"
+    },
+    {
+      "question_name": "Target Services",
+      "question_description": "Comma-separated service names to deploy (leave empty for all). Examples: sonarr,radarr,grafana",
+      "required": false,
+      "type": "text",
+      "variable": "target_services_input",
+      "default": ""
+    }
+  ]
+}

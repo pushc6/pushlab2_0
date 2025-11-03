@@ -1,0 +1,36 @@
+---
+# roles/oauth2_proxy_nginx/defaults/main.yml
+# Default values for OAuth2-Proxy Nginx role
+
+# Default OAuth2-Proxy settings
+oauth2_proxy_host: "localhost"
+oauth2_proxy_port: "4180"
+
+# Default nginx settings
+nginx_proxy_timeout: "60s"
+nginx_client_max_body_size: "100M"
+
+# Default paths
+nginx_sites_available: "/etc/nginx/sites-available"
+nginx_sites_enabled: "/etc/nginx/sites-enabled"
+nginx_conf_d: "/etc/nginx/conf.d"
+
+# Default authentication settings
+default_auth_type: "simple"
+default_ssl_domain: "localhost"
+
+# Service filtering (empty means all services)
+oauth2_services_filter: []
+
+# SSL settings
+ssl_protocols: "TLSv1.2 TLSv1.3"
+ssl_ciphers: "HIGH:!aNULL:!MD5"
+ssl_prefer_server_ciphers: "off"
+
+# ID Token Hint Logout Configuration
+enable_id_token_logout: true
+logout_success_page: true
+enable_sso_logout: true
+enable_force_logout: true
+keycloak_realm: "prod"
+keycloak_client_id: "oauth2-proxy-multi-domain"

@@ -1,0 +1,138 @@
+#cloud-config
+# AlmaLinux kickstart-style configuration
+# This uses cloud-init but with kickstart commands for AlmaLinux
+
+# Install type
+text
+cmdline
+reboot
+
+# Language and keyboard
+lang en_US.UTF-8
+keyboard us
+
+# Network configuration
+network --bootproto=dhcp --device=eth0 --onboot=yes --hostname=almalinux-template
+
+# Root password (pre-hashed)
+rootpw --iscrypted ${root_password}
+
+# SSH key for root
+sshkey --username=root "${ssh_key}"
+
+# Firewall configuration
+firewall --enabled --ssh
+
+# SELinux configuration
+selinux --enforcing
+
+# Timezone
+timezone UTC --utc
+
+# Bootloader
+bootloader --location=mbr --driveorder=sda --append="crashkernel=auto rhgb quiet"
+
+# Partitioning
+clearpart --all --initlabel --drives=sda
+autopart --type=lvm
+
+# Package selection
+%packages --ignoremissing --excludedocs
+@core
+@base
+curl
+wget
+vim
+tree
+unzip
+tar
+gzip
+net-tools
+bind-utils
+telnet
+traceroute
+rsyslog
+logrotate
+sudo
+firewalld
+which
+man-pages
+open-vm-tools
+chrony
+-NetworkManager-wifi
+-NetworkManager-wwan
+-aic94xx-firmware
+-alsa-firmware
+-ivtv-firmware
+-iwl100-firmware
+-iwl1000-firmware
+-iwl3945-firmware
+-iwl4965-firmware
+-iwl5000-firmware
+-iwl5150-firmware
+-iwl6000-firmware
+-iwl6000g2a-firmware
+-iwl6050-firmware
+%end
+
+# Post-installation script
+%post --log=/var/log/ks-post.log
+
+# Enable services
+systemctl enable sshd
+systemctl enable firewalld
+systemctl enable chronyd
+systemctl enable vmtoolsd
+
+# Configure firewall
+firewall-cmd --permanent --add-service=ssh
+firewall-cmd --reload
+
+# Update system
+dnf update -y
+
+# Clean up for template
+dnf clean all
+
+# Remove machine-specific configuration for template
+rm -f /etc/machine-id
+touch /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+ln -s /etc/machine-id /var/lib/dbus/machine-id
+
+# Clear network configuration for template
+rm -f /etc/NetworkManager/system-connections/*
+
+# Clear SSH host keys (will be regenerated on first boot)
+rm -f /etc/ssh/ssh_host_*
+
+# Clear logs
+find /var/log -type f -exec truncate -s 0 {} \;
+
+# Clear bash history
+rm -f /root/.bash_history
+rm -f /home/*/.bash_history
+
+# Zero out free space for better compression
+dd if=/dev/zero of=/zero bs=1M || true
+rm -f /zero
+
+# Create firstboot script to regenerate SSH keys
+cat > /etc/systemd/system/regenerate-ssh-keys.service << 'EOF'
+[Unit]
+Description=Regenerate SSH host keys
+Before=sshd.service
+ConditionFileNotEmpty=!/etc/ssh/ssh_host_rsa_key
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -A
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable regenerate-ssh-keys.service
+
+%end

@@ -1,0 +1,113 @@
+---
+# tasks/oauth2_post_deployment.yml  
+# Modular post-deployment verification tasks
+
+- name: Create deployment backup (if enabled)
+  block:
+    - name: Create backup directory
+      file:
+        path: "/etc/nginx/backups/{{ ansible_date_time.epoch }}"
+        state: directory
+        mode: '0755'
+      
+    - name: Backup nginx configuration files
+      copy:
+        src: "{{ item }}"
+        dest: "/etc/nginx/backups/{{ ansible_date_time.epoch }}/"
+        remote_src: yes
+        backup: yes
+      loop:
+        - "/etc/nginx/sites-available"
+        - "/etc/nginx/conf.d"
+      ignore_errors: yes
+      
+    - name: Display backup location
+      debug:
+        msg: "Configuration backup created at: /etc/nginx/backups/{{ ansible_date_time.epoch }}"
+        
+  when: deployment_config.create_backup | default(true)
+
+- name: Perform nginx configuration test
+  command: nginx -t
+  register: nginx_config_test
+  changed_when: false
+  failed_when: false
+  when: deployment_config.test_nginx_config | default(true)
+
+- name: Display nginx configuration test results
+  debug:
+    msg: 
+      - "Nginx configuration test: {{ 'PASSED ✅' if nginx_config_test.rc == 0 else 'FAILED ❌' }}"
+      - "{{ nginx_config_test.stderr if nginx_config_test.rc != 0 else 'Configuration is valid' }}"
+  when: deployment_config.test_nginx_config | default(true)
+
+- name: Fail deployment if nginx config is invalid
+  fail:
+    msg: "Nginx configuration test failed. Please check the configuration."
+  when: 
+    - deployment_config.test_nginx_config | default(true)
+    - nginx_config_test.rc != 0
+
+- name: Verify deployed configuration files
+  stat:
+    path: "{{ nginx_sites_available }}/{{ item.domain }}.conf"
+  register: deployed_configs
+  loop: "{{ filtered_oauth2_services }}"
+
+- name: Display deployment verification
+  debug:
+    msg:
+      - "Configuration files deployed:"
+      - "{{ deployed_configs.results | selectattr('stat.exists') | map(attribute='item.domain') | list }}"
+      - "Failed deployments:"
+      - "{{ deployed_configs.results | rejectattr('stat.exists') | map(attribute='item.domain') | list | default(['None']) }}"
+
+- name: Restart nginx if requested
+  systemd:
+    name: nginx
+    state: restarted
+  when: deployment_config.restart_nginx | default(false)
+
+- name: Reload nginx (default action)
+  systemd:
+    name: nginx
+    state: reloaded
+  when: not (deployment_config.restart_nginx | default(false))
+
+- name: Verify nginx is running
+  systemd:
+    name: nginx
+  register: final_nginx_status
+
+- name: Display final nginx status
+  debug:
+    msg: "Final nginx status: {{ final_nginx_status.status.ActiveState }}"
+
+- name: Test OAuth2-proxy connectivity
+  uri:
+    url: "http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}/ping"
+    method: GET
+    timeout: 10
+  register: oauth2_ping
+  failed_when: false
+  
+- name: Display OAuth2-proxy connectivity test
+  debug:
+    msg: >-
+      OAuth2-proxy connectivity: {{ 
+        'OK ✅' if (oauth2_ping is defined and oauth2_ping.status is defined and oauth2_ping.status == 200) 
+        else 'FAILED ❌ - ' ~ (oauth2_ping.msg | default('Connection failed')) if oauth2_ping is defined
+        else 'NOT CONFIGURED - OAuth2-proxy variables not set' 
+      }}
+      
+- name: Generate deployment summary report
+  template:
+    src: deployment_summary.j2
+    dest: "/tmp/oauth2_deployment_summary_{{ ansible_date_time.epoch }}.txt"
+    mode: '0644'
+  vars:
+    deployment_timestamp: "{{ ansible_date_time.iso8601 }}"
+    deployed_services: "{{ filtered_oauth2_services }}"
+    nginx_test_result: "{{ nginx_config_test }}"
+    oauth2_test_result: "{{ oauth2_ping }}"
+  when: deployment_config.create_summary_report | default(true)

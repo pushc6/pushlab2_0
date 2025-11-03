@@ -1,0 +1,23 @@
+title = "pushlab2_0 secret scanning"
+
+description = "Gitleaks config tuned for Terraform/Packer/Ansible repo"
+
+[allowlist]
+# Paths to ignore during scanning (generated or examples)
+paths = [
+  '''ansible/inventories/.*/hosts\.yml''',
+  '''packer/cloud-init/user-data\.yaml''',
+  '''MANUAL_INSTALL\.md''',
+  '''PACKER_APPROACH\.md''',
+]
+
+# Common file extensions to ignore (binaries, archives)
+regexes = [
+  '''(?i).*\.(jpg|jpeg|png|gif|bmp|ico|zip|tar|gz|tgz|7z|pdf|docx|xlsx|pptx)$''',
+]
+
+# Allow some obvious test values
+commits = []
+
+# You can add custom rules or tweak existing ones here if needed
+# See: https://github.com/gitleaks/gitleaks#configuration

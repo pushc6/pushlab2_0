@@ -1,0 +1,157 @@
+---
+# roles/oauth2_proxy_nginx/tasks/main.yml
+# Main tasks for OAuth2-Proxy Nginx configuration (Modular Version)
+
+- name: Verify required variables are defined
+  assert:
+    that:
+      - oauth2_services is defined
+      - oauth2_services | length > 0
+      - oauth2_proxy_host is defined
+      - oauth2_proxy_port is defined
+    fail_msg: "Required OAuth2 variables are not properly defined"
+
+- name: Filter services if specified
+  set_fact:
+    filtered_oauth2_services: >-
+      {{
+        oauth2_services | selectattr('name', 'in', oauth2_services_filter) | list
+        if oauth2_services_filter | length > 0
+        else oauth2_services
+      }}
+
+- name: Display deployment information
+  debug:
+    msg:
+      - "OAuth2-Proxy Host: {{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}"
+      - "Services to deploy: {{ filtered_oauth2_services | map(attribute='name') | list }}"
+      - "Total services: {{ filtered_oauth2_services | length }}"
+
+- name: Perform SELinux pre-deployment checks
+  include_tasks: selinux_pre_checks.yml
+  when: ansible_os_family == "RedHat"
+  tags: ['selinux', 'oauth2_selinux', 'pre_check']
+
+- name: Configure SELinux for OAuth2 backend ports
+  include_tasks: selinux_config.yml
+  when: ansible_os_family == "RedHat"
+  tags: ['selinux', 'oauth2_selinux']
+
+
+- name: Create nginx configuration directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ nginx_sites_available }}"
+    - "{{ nginx_sites_enabled }}"
+    - "{{ nginx_conf_d }}"
+    - "/var/log/nginx"
+
+- name: Generate OAuth2-Proxy location blocks
+  template:
+    src: oauth2-locations.conf.j2
+    dest: "{{ nginx_conf_d }}/oauth2-locations.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify: reload nginx
+
+- name: Generate OAuth2 authentication includes
+  template:
+    src: oauth2-auth.conf.j2
+    dest: "{{ nginx_conf_d }}/oauth2-auth-{{ item }}.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  loop:
+    - "none"
+    - "simple"
+    - "groups"
+    - "roles"
+  notify: reload nginx
+
+- name: Generate shared OAuth2 logout configuration
+  template:
+    src: oauth2-logout-shared.conf.j2
+    dest: "{{ nginx_conf_d }}/oauth2-logout.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  when: logout_config.enable_id_token_logout | default(true)
+  notify: reload nginx
+
+- name: Generate nginx site configurations (modular)
+  template:
+    src: nginx-site.conf.j2
+    dest: "{{ nginx_sites_available }}/{{ item.domain }}.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  loop: "{{ filtered_oauth2_services }}"
+  notify: reload nginx
+
+- name: Enable nginx sites
+  file:
+    src: "{{ nginx_sites_available }}/{{ item.domain }}.conf"
+    dest: "{{ nginx_sites_enabled }}/{{ item.domain }}.conf"
+    state: link
+  loop: "{{ filtered_oauth2_services }}"
+  notify: reload nginx
+
+- name: Remove default nginx configurations
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ nginx_sites_enabled }}/default"
+    - "{{ nginx_conf_d }}/default.conf"
+  notify: reload nginx
+
+- name: Clean up old per-domain logout includes (if any exist)
+  find:
+    paths: "{{ nginx_conf_d }}"
+    patterns: 
+      - "logout-pages-*.conf"
+      - "logout-success-*.conf" 
+      - "logout-javascript-*.conf"
+  register: old_logout_files
+
+- name: Remove old per-domain logout includes
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_logout_files.files }}"
+  notify: reload nginx
+  when: old_logout_files.files | length > 0
+
+- name: Test nginx configuration
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Display nginx test results
+  debug:
+    msg: "Nginx configuration test: {{ 'PASSED' if nginx_test.rc == 0 else 'FAILED' }}"
+
+- name: Ensure nginx is running and enabled
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: Display deployment summary
+  debug:
+    msg:
+      - "OAuth2-Proxy deployment completed successfully"
+      - "Configured services: {{ filtered_oauth2_services | map(attribute='name') | list }}"
+      - "Service domains: {{ filtered_oauth2_services | map(attribute='domain') | list }}"
+      - "Shared logout functionality: {{ 'Enabled' if logout_config.enable_id_token_logout | default(true) else 'Disabled' }}"
+      - "Logout config file: {{ nginx_conf_d }}/oauth2-logout.conf"

@@ -1,0 +1,10 @@
+---
+- name: Update all Linux systems
+  hosts: linux
+  become: true
+  remote_user: ansible
+
+  roles:
+    - common
+    - { role: rhel_updates, when: ansible_facts['os_family'] == "RedHat" }
+    - { role: debian_updates, when: ansible_facts['os_family'] == "Debian" }

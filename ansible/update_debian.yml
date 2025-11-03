@@ -1,0 +1,8 @@
+---
+- name: Update Debian/Ubuntu systems
+  hosts: debian
+  become: true
+
+  roles:
+    - common
+    - debian_updates

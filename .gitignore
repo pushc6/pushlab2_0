@@ -1,0 +1,54 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+# Common Terraform plan filenames
+tfplan
+tfplan.*
+.terraform/
+.terraform.lock.hcl
+
+# Sensitive configuration
+terraform.tfvars
+*.auto.tfvars
+*.auto.tfvars.json
+secrets.auto.tfvars
+secrets.auto.tfvars.local
+
+# Packer var files (secrets)
+*.pkrvars.hcl
+*.pkrvars.json
+packer/secrets.pkrvars.hcl
+
+# Packer outputs
+packer/output-*/
+packer/*.log
+packer/http/generated.ks
+packer/ssh_public_key.pub
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Ansible generated artifacts
+ansible/ssh_key
+ansible/inventories/*/hosts.yml
+
+# Logs
+*.log
+.gitleaks.cache
+
+# Temporary files
+*.tmp
+*.bak
+
+# Downloaded ISOs
+*.iso

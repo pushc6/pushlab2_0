@@ -1,0 +1,52 @@
+# templates/nginx.conf.j2
+# NGINX main configuration file for reverse proxy setup
+
+user {{ nginx_user }};
+worker_processes {{ nginx_worker_processes }};
+pid /run/nginx.pid;
+
+events {
+    worker_connections {{ nginx_worker_connections }};
+    multi_accept on;
+}
+
+http {
+    # Basic settings
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout {{ keepalive_timeout | default(65) }};
+    types_hash_max_size 2048;
+    server_tokens {{ server_tokens | default('off') }};
+    
+    {% if proxy_type is defined and proxy_type == 'external' %}
+    # External proxy specific settings
+    limit_conn_zone $binary_remote_addr zone=addr:10m;
+    limit_conn addr 100;
+    {% endif %}
+    
+    # Mime types
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    # Logging settings
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+    
+    # Gzip settings
+    gzip on;
+    gzip_disable "msie6";
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_buffers 16 8k;
+    gzip_http_version 1.1;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    
+    # Client settings
+    client_max_body_size {{ nginx_client_max_body_size }};
+    
+    # Virtual host configurations
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}

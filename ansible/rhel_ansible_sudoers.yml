@@ -1,0 +1,80 @@
+---
+# Playbook: Configure ansible user for RHEL systems
+# Description: Adds ansible user to wheel group, configures passwordless sudo, and locks the account
+# Usage: ansible-playbook -i inventory_file rhel_ansible_config.yml
+
+- name: Configure ansible user for RHEL systems
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  # Only run this playbook on RedHat family distributions
+  tasks:
+    - name: Check if system is RHEL based
+      fail:
+        msg: "This playbook is intended for RHEL-based systems only"
+      when: ansible_os_family != "RedHat"
+    
+    - name: Ensure wheel group exists
+      group:
+        name: wheel
+        state: present
+      
+    - name: Add ansible user to wheel group
+      user:
+        name: ansible
+        groups: wheel
+        append: yes
+    
+    - name: Ensure /etc/sudoers.d directory exists
+      file:
+        path: /etc/sudoers.d
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+    
+    - name: Configure passwordless sudo for ansible user
+      lineinfile:
+        path: /etc/sudoers.d/ansible
+        line: 'ansible       ALL = (ALL) NOPASSWD: ALL'
+        state: present
+        create: yes
+        mode: '0440'
+        owner: root
+        group: root
+        validate: '/usr/sbin/visudo -cf %s'
+    
+    - name: Lock ansible user password
+      command: passwd -l ansible
+      register: lock_result
+      changed_when: lock_result.rc == 0
+      failed_when: lock_result.rc != 0
+    
+    - name: Verify ansible user is in wheel group
+      command: id ansible
+      register: id_output
+      changed_when: false
+    
+    - name: Verify sudo configuration
+      command: sudo -l -U ansible
+      register: sudo_output
+      changed_when: false
+    
+    - name: Verify user is locked
+      shell: passwd -S ansible | grep -q "locked"
+      register: lock_check
+      changed_when: false
+      failed_when: false
+    
+    - name: Display verification results
+      debug:
+        msg:
+          - "User groups: {{ id_output.stdout }}"
+          - "Sudo privileges: {{ sudo_output.stdout_lines }}"
+          - "Account locked: {{ 'Yes' if lock_check.rc == 0 else 'No (issue detected)' }}"
+    
+    - name: Restart sshd service
+      service:
+        name: sshd
+        state: restarted
