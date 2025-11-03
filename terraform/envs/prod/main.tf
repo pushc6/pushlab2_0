@@ -40,7 +40,7 @@ module "vm" {
   data_mount_point  = each.value.data_mount_point
   data_fs_type      = each.value.data_fs_type
 
-  vm_ssh_user     = var.vm_ssh_user
+  vm_ssh_user = var.vm_ssh_user
 
   ssh_public_key  = var.ssh_public_key
   ssh_private_key = var.ssh_private_key

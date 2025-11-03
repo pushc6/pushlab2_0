@@ -18,4 +18,4 @@ data "vsphere_datastore" "ds" {
 }
 
 // Deprecated: this env-local module is no longer used. See ../../../../modules/vm
-  name          = var.cluster
+name = var.cluster

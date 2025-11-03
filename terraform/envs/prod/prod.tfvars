@@ -30,4 +30,4 @@ vms = {
   }
 }
 
-vm_ssh_user     = "root"
+vm_ssh_user = "root"

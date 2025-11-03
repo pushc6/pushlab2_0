@@ -7,9 +7,8 @@ timezone UTC --utc
 # Network
 network --bootproto=dhcp --device=link --onboot=yes --activate
 
-# Root account: lock password; SSH keys will provide access (set via generated KS)
+# Root account: lock password; SSH via injected pubkey (handled in %post)
 rootpw --lock
-sshkey --username=root "REPLACED_BY_RENDERER"
 
 # SELinux enforcing
 selinux --enforcing
@@ -47,6 +46,13 @@ curl
 
 # Post-install
 %post --log=/root/ks-post.log
+# Inject SSH public key from kernel cmdline (pubkey_b64=...)
+PUBKEY_B64=$(sed -n 's/.*pubkey_b64=\([^ ]*\).*/\1/p' /proc/cmdline)
+if [ -n "$PUBKEY_B64" ]; then
+	install -d -m 700 /root/.ssh
+	umask 077
+	echo "$PUBKEY_B64" | base64 -d >> /root/.ssh/authorized_keys || true
+fi
 systemctl enable vmtoolsd || true
 sed -i 's/^#\?UseDNS.*/UseDNS no/' /etc/ssh/sshd_config
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config

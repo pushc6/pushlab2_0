@@ -60,17 +60,22 @@ variable "alma_iso_url" {
   default     = "https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10.0-x86_64-boot.iso"
 }
 
-# New: Public key to embed into the template for key-based SSH
-variable "ssh_public_key" {
-  type        = string
-  description = "SSH public key to add to /root/.ssh/authorized_keys in the template (optional)"
-  default     = ""
-}
-
 variable "ssh_private_key_file" {
   type        = string
   description = "Path to the private key matching the SSH public key injected via kickstart. Used by Packer to connect."
   default     = ""
+}
+
+# Path to the SSH public key file to inject during OS install (no wrapper script required)
+variable "ssh_public_key_file" {
+  type        = string
+  description = "Path to the SSH public key file to add to /root/.ssh/authorized_keys via kickstart"
+  default     = ""
+}
+
+locals {
+  # Base64-encoded public key for safe transport on the kernel cmdline
+  ssh_public_key_b64 = var.ssh_public_key_file != "" ? base64encode(trimspace(file(var.ssh_public_key_file))) : ""
 }
 
 # Build configuration
@@ -124,11 +129,13 @@ source "vsphere-iso" "almalinux" {
     "<spacebar>",
     "inst.text",
     "<spacebar>",
-    "inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/generated.ks",
+    "inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/almalinux-10.vsphere-x86_64.ks",
     "<spacebar>",
     "ip=dhcp",
     "<spacebar>",
     "inst.ksdevice=link",
+    "<spacebar>",
+    "pubkey_b64=${local.ssh_public_key_b64}",
     "<leftCtrlOn>x<leftCtrlOff>",
   ]
 
@@ -162,22 +169,6 @@ build {
     destination = "/tmp/"
   }
 
-  # Install SSH public key into root authorized_keys if provided
-  provisioner "shell" {
-    environment_vars = [
-      "PUBKEY=${var.ssh_public_key}"
-    ]
-    inline = [
-      "set -euxo pipefail",
-      "if [ -n \"$PUBKEY\" ]; then",
-      "  install -d -m 700 /root/.ssh",
-      "  touch /root/.ssh/authorized_keys",
-      "  chmod 600 /root/.ssh/authorized_keys",
-      "  grep -qxF \"$PUBKEY\" /root/.ssh/authorized_keys || echo \"$PUBKEY\" >> /root/.ssh/authorized_keys",
-      "fi"
-    ]
-  }
-
   # Run cleanup and optimization scripts
   provisioner "shell" {
     scripts = [
@@ -190,20 +181,7 @@ build {
     execute_command = "chmod +x {{ .Path }}; {{ .Path }}"
   }
 
-  # Optionally harden SSH to key-only if a key was installed
-  provisioner "shell" {
-    environment_vars = [
-      "PUBKEY=${var.ssh_public_key}"
-    ]
-    inline = [
-      "set -euxo pipefail",
-      "if [ -n \"$PUBKEY\" ]; then",
-      "  sed -i -E 's/^#?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config",
-      "  sed -i -E 's/^#?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config",
-      "  systemctl restart sshd || true",
-      "fi"
-    ]
-  }
+  # SSH hardening handled in kickstart %post
 
   # Final cleanup
   provisioner "shell" {

@@ -14,7 +14,7 @@ Since you now have a VM running with the AlmaLinux 10 installer GUI:
 2. In the Installation Summary screen:
    - **Installation Destination**: Select the 40GB disk, choose "Automatic partitioning"
    - **Network & Host Name**: Enable the network interface and set hostname to `almalinux-template`
-   - **Root Password**: Set to `Falcon80!` (or use the hashed password from config)
+    - **Root Password**: Choose a strong password (or use a pre-hashed value you generate)
    - **User Creation**: Create a user or just use root
 
 ### 2. **Minimal Package Selection**
@@ -46,9 +46,9 @@ sudo systemctl enable sshd firewalld chronyd vmtoolsd
 sudo firewall-cmd --permanent --add-service=ssh
 sudo firewall-cmd --reload
 
-# Add your SSH key
+# Add your SSH key (replace with your own public key)
 mkdir -p ~/.ssh
-echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGQU02Rn0OZM9rdF3EV/gGKLYSZj0Nu2Iy49c5xS0E2Y alma-template-key" >> ~/.ssh/authorized_keys
+echo "ssh-ed25519 AAAA...your-public-key... comment" >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
 
 # Clean up for template

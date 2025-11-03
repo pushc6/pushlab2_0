@@ -1,0 +1,31 @@
+# Example lab environment variables (DO NOT COMMIT the real one)
+
+vsphere_user         = "<user>@vsphere.local"
+vsphere_password     = "<password>"
+vsphere_server       = "<vcenter-host-or-ip>"
+allow_unverified_ssl = true
+
+datacenter = "<datacenter-name>"
+cluster    = "<cluster-name>"
+datastore  = "<datastore-name>"
+network    = "VLAN 70 - DMZ"
+vm_folder  = "Templates/Lab"
+
+template_name    = "almalinux-10-minimal-template"
+vm_name          = "almalinux10-lab"
+cpu_count        = 2
+memory_mb        = 2048
+disk_size_gb     = 20
+thin_provisioned = true
+
+data_disk_size_gb = 10
+data_mount_point  = "/data"
+data_fs_type      = "ext4"
+
+vm_ssh_user = "root"
+# Key-only access recommended; avoid passwords. If needed for testing, set a strong temporary value.
+# vm_ssh_password = "<temporary-strong-password>"
+
+# Usage:
+#   cp lab.tfvars.example lab.tfvars
+#   terraform init && terraform apply -var-file=lab.tfvars

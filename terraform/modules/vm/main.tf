@@ -38,10 +38,10 @@ resource "vsphere_virtual_machine" "vm" {
   resource_pool_id = data.vsphere_compute_cluster.clu.resource_pool_id
   datastore_id     = data.vsphere_datastore.ds.id
 
-  num_cpus = var.cpu_count
-  memory   = var.memory_mb
-  guest_id = data.vsphere_virtual_machine.template.guest_id
-  firmware = data.vsphere_virtual_machine.template.firmware
+  num_cpus  = var.cpu_count
+  memory    = var.memory_mb
+  guest_id  = data.vsphere_virtual_machine.template.guest_id
+  firmware  = data.vsphere_virtual_machine.template.firmware
   scsi_type = data.vsphere_virtual_machine.template.scsi_type
 
   network_interface {
@@ -133,12 +133,12 @@ resource "null_resource" "configure_static_ip" {
   count = length(var.ipv4_address) > 0 ? 1 : 0
 
   triggers = {
-    vm_id         = vsphere_virtual_machine.vm.id
-    ipv4_address  = var.ipv4_address
-    ipv4_netmask  = var.ipv4_netmask
-    ipv4_gateway  = var.ipv4_gateway
-    dns_servers   = join(",", var.dns_server_list)
-    domain        = var.domain
+    vm_id        = vsphere_virtual_machine.vm.id
+    ipv4_address = var.ipv4_address
+    ipv4_netmask = var.ipv4_netmask
+    ipv4_gateway = var.ipv4_gateway
+    dns_servers  = join(",", var.dns_server_list)
+    domain       = var.domain
   }
 
   connection {
@@ -163,9 +163,9 @@ resource "null_resource" "configure_static_ip" {
       "if [ -n \"${join(",", var.dns_server_list)}\" ]; then nmcli connection modify \"$CONN\" ipv4.dns \"${join(",", var.dns_server_list)}\"; fi",
       # Avoid IPv6 interference if not used
       "nmcli connection modify \"$CONN\" ipv6.method ignore || true",
-  # Apply changes without dropping SSH if possible
-  "nmcli device reapply \"$PRIMARY_IF\" || nmcli connection reload || true",
-  # Wait for IP to be applied
+      # Apply changes without dropping SSH if possible
+      "nmcli device reapply \"$PRIMARY_IF\" || nmcli connection reload || true",
+      # Wait for IP to be applied
       "for i in $(seq 1 30); do ip -4 addr show dev \"$PRIMARY_IF\" | grep -q \"${var.ipv4_address}/\" && break || sleep 2; done",
       "ip -4 addr show dev \"$PRIMARY_IF\"",
     ]
