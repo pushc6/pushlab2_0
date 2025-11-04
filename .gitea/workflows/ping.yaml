@@ -1,0 +1,19 @@
+name: ping
+
+on:
+  push:
+    branches:
+      - orchestrate
+    tags:
+      - orchestrate-*
+
+jobs:
+  ping:
+    runs-on: [self-hosted, linux, x64, alma]
+    steps:
+      - name: Print context
+        run: |
+          echo "ref=${{ github.ref }} sha=${{ github.sha }} actor=${{ github.actor }}"
+      - name: Check runner labels
+        run: |
+          echo "labels: ${{ join(runner.labels, ',') }}"
