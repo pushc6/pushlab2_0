@@ -178,6 +178,7 @@ jobs:
           echo "PACKER_CHANGED=$CHANGED" >> "$GITHUB_OUTPUT"
 
       - name: Install Packer
+        if: env.PACKER_CHANGED == 'true'
         run: |
           curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
           unzip -o /tmp/packer.zip -d /usr/local/bin
@@ -190,11 +191,13 @@ jobs:
           fi
 
       - name: Generate ephemeral SSH key for template communicator
+        if: env.PACKER_CHANGED == 'true'
         run: |
           ssh-keygen -t ed25519 -N "" -C "ci@orchestrate" -f /tmp/ci_key
           echo "SSH_PUBLIC_KEY=$(cat /tmp/ci_key.pub)" >> $GITHUB_ENV
 
       - name: Packer build template (on change)
+        if: env.PACKER_CHANGED == 'true'
         env:
           VCENTER_SERVER: ${{ secrets.VCENTER_SERVER || vars.VCENTER_SERVER || vars.vcenter_server || secrets.VSPHERE_SERVER || vars.VSPHERE_SERVER || vars.vsphere_server }}
           VSPHERE_USER: ${{ secrets.VSPHERE_USER }}
