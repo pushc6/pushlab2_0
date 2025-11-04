@@ -155,8 +155,8 @@ source "vsphere-iso" "almalinux" {
 
   # SSH configuration for post-install
   ssh_username         = "root"
-  # Prefer SSH agent (e.g., 1Password) for key prompts; fall back to ssh_private_key_file when provided
-  ssh_agent_auth       = true
+  # Use explicit key file; disable SSH agent auth per user preference
+  ssh_agent_auth       = false
   ssh_private_key_file = var.ssh_private_key_file
   ssh_timeout          = "45m"
   ssh_port             = 22
