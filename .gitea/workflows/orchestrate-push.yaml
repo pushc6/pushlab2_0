@@ -107,6 +107,7 @@ jobs:
         env:
           TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
           TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} plan -var-file=${{ steps.envsel.outputs.TF_VARS }} -out=tfplan.out
 
@@ -114,6 +115,7 @@ jobs:
         env:
           TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
           TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           if [ "${APPLY}" != "true" ]; then
             echo "APPLY=false; skipping terraform apply"
