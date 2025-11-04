@@ -18,15 +18,21 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which
+
       - name: Install Terraform
         run: |
           curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
-          sudo unzip -o /tmp/terraform.zip -d /usr/local/bin
+          unzip -o /tmp/terraform.zip -d /usr/local/bin
           terraform -version
 
       - name: Terraform fmt/validate (lab)
@@ -44,7 +50,7 @@ jobs:
       - name: Install Packer
         run: |
           curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
-          sudo unzip -o /tmp/packer.zip -d /usr/local/bin
+          unzip -o /tmp/packer.zip -d /usr/local/bin
           packer -version
 
       - name: Packer init/validate
@@ -54,16 +60,22 @@ jobs:
 
   packer-build:
     if: ${{ github.event.inputs.build_packer == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
     needs: [validate]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which
+
       - name: Install Packer
         run: |
           curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
-          sudo unzip -o /tmp/packer.zip -d /usr/local/bin
+          unzip -o /tmp/packer.zip -d /usr/local/bin
 
       - name: Generate ephemeral SSH key for template communicator
         run: |
@@ -87,16 +99,22 @@ jobs:
             packer/alma-template.pkr.hcl
 
   terraform:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
     needs: [validate]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which
+
       - name: Install Terraform
         run: |
           curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
-          sudo unzip -o /tmp/terraform.zip -d /usr/local/bin
+          unzip -o /tmp/terraform.zip -d /usr/local/bin
 
       - name: Select environment paths
         id: envsel
@@ -130,10 +148,15 @@ jobs:
           terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} apply -auto-approve tfplan.out
 
   ansible-aap:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
     needs: [terraform]
     if: ${{ github.event.inputs.action == 'apply' }}
     steps:
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install curl jq ca-certificates
       - name: Trigger AAP Job Template
         env:
           AAP_URL: ${{ secrets.AAP_URL }}
