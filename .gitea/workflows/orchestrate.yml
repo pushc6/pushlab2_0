@@ -1,6 +1,7 @@
 name: orchestrate-infra
 
 on:
+  # Manual run from UI (if available in your Gitea version/UI)
   workflow_dispatch:
     inputs:
       environment:
@@ -15,6 +16,13 @@ on:
         description: "Build Packer template first (true|false)"
         required: true
         default: "false"
+  # Fallback triggers when manual Run button isn't visible
+  push:
+    branches:
+      - orchestrate
+      - orchestrate-apply
+    tags:
+      - orchestrate-*
 
 jobs:
   validate:
@@ -140,7 +148,11 @@ jobs:
           terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} plan -var-file=${{ steps.envsel.outputs.TF_VARS }} -out=tfplan.out
 
       - name: Terraform apply (conditional)
-        if: ${{ github.event.inputs.action == 'apply' }}
+        # Apply when:
+        # - Manually dispatched with action==apply, OR
+        # - Branch is orchestrate-apply, OR
+        # - Tag starts with orchestrate-apply
+        if: ${{ github.event.inputs.action == 'apply' || endsWith(github.ref, '/orchestrate-apply') || startsWith(github.ref, 'refs/tags/orchestrate-apply') }}
         env:
           TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
           TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
