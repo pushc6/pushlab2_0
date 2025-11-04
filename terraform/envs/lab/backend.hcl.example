@@ -1,0 +1,5 @@
+# Terraform Cloud/Enterprise backend for LAB
+hostname     = "app.terraform.io"
+organization = "your-org"
+
+workspaces { name = "almalinux-vsphere-lab" }
