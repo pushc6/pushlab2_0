@@ -54,4 +54,13 @@ variable "ssh_private_key" {
   type        = string
   sensitive   = true
   description = "Private key used by Terraform to SSH to the VM"
+  default     = ""
+}
+
+# Optional: path to a private key file. If provided, the file contents will be used
+# instead of ssh_private_key. This keeps secrets out of tfvars.
+variable "ssh_private_key_file" {
+  type        = string
+  description = "Path to the SSH private key file used by Terraform to SSH to the VM"
+  default     = ""
 }

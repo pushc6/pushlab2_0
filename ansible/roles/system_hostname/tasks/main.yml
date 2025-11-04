@@ -3,16 +3,16 @@
 
 - name: Determine desired hostname
   ansible.builtin.set_fact:
-    desired_hostname: "{{ system_hostname | default(inventory_hostname) }}"
+    desired_hostname: "{{ system_hostname | default(inventory_hostname, true) }}"
 
 - name: Set system hostname
   ansible.builtin.hostname:
     name: "{{ desired_hostname }}"
 
 - name: Ensure /etc/hostname reflects desired hostname
-  ansible.builtin.copy:
+  ansible.builtin.template:
+    src: hostname.j2
     dest: /etc/hostname
-    content: "{{ desired_hostname }}\n"
     owner: root
     group: root
     mode: "0644"

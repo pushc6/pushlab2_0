@@ -19,8 +19,9 @@ provider "vsphere" {
   allow_unverified_ssl = var.allow_unverified_ssl
 }
 
+# Resolve SSH private key material: prefer file path when provided
 locals {
-  effective_private_key = var.ssh_private_key_file != "" ? file(var.ssh_private_key_file) : var.ssh_private_key
+  effective_ssh_private_key = var.ssh_private_key_file != "" ? file(var.ssh_private_key_file) : var.ssh_private_key
 }
 
 module "vm" {
@@ -48,7 +49,7 @@ module "vm" {
   vm_ssh_user = var.vm_ssh_user
 
   ssh_public_key  = var.ssh_public_key
-  ssh_private_key = local.effective_private_key
+  ssh_private_key = local.effective_ssh_private_key
 
   # Optional static IP customization (if provided per-VM)
   ipv4_address    = try(each.value.ipv4_address, "")
@@ -60,7 +61,7 @@ module "vm" {
 
 // Write Ansible SSH private key material to ansible/ssh_key (0600)
 resource "local_file" "ansible_ssh_key" {
-  content              = local.effective_private_key
+  content              = local.effective_ssh_private_key
   filename             = "${path.module}/../../../ansible/ssh_key"
   file_permission      = "0600"
   directory_permission = "0755"
@@ -80,7 +81,7 @@ locals {
       children = {
         almalinux = {
           hosts = { for name, m in module.vm : name => {
-            ansible_host     = m.vm_ip
+            ansible_host     = (try(var.vms[name].ipv4_address, "") != "" ? var.vms[name].ipv4_address : m.vm_ip)
             ansible_user     = var.vm_ssh_user
             system_hostname  = try(var.vms[name].hostname, name)
             ansible_ssh_private_key_file = "../../ssh_key"

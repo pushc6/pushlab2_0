@@ -17,7 +17,7 @@ vms = {
     ipv4_address = "10.37.80.4"
     ipv4_netmask = 24
     ipv4_gateway = "10.37.80.1"
-    dns_servers  = []
+    dns_servers  = ["10.37.80.2"]
     domain       = "localdomain"
   }
 }

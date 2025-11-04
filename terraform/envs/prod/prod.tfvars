@@ -9,7 +9,7 @@ network    = "VLAN 70 - DMZ"
 vm_folder  = "Templates"
 
 # Template to clone
-template_name = "almalinux-10-minimal-template"
+template_name = "almalinux-10-minimal-template-20251104"
 
 # Per-VM definitions
 vms = {
@@ -25,7 +25,7 @@ vms = {
     ipv4_address = "10.37.70.42"
     ipv4_netmask = 24
     ipv4_gateway = "10.37.70.1"
-    dns_servers  = []
+      dns_servers  = ["10.37.80.2"]
     domain       = "localdomain"
   }
   # Gitea server VM (adjust IP/DNS to your environment)
@@ -44,7 +44,7 @@ vms = {
     ipv4_address = "10.37.80.4"
     ipv4_netmask = 24
     ipv4_gateway = "10.37.80.1"
-    dns_servers  = []
+    dns_servers  = ["10.37.80.2"]
     domain       = "localdomain"
   }
 }

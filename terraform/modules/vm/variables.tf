@@ -70,3 +70,16 @@ variable "domain" {
   description = "Domain name to set in guest customization (also used for DNS suffix)."
   default     = "localdomain"
 }
+
+# Optional: use vSphere Guest Customization instead of in-guest nmcli for static IP
+variable "use_vsphere_customization" {
+  type        = bool
+  description = "If true, sets static IP/DNS via vSphere guest customization at clone time. If false, in-guest nmcli is used."
+  default     = true
+}
+
+variable "use_cloud_init" {
+  type        = bool
+  description = "If true, pass cloud-init data via VMware guestinfo (metadata/userdata/networkconfig) to configure static IP and hostname. Recommended for modern Linux."
+  default     = true
+}

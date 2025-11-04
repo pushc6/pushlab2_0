@@ -37,6 +37,8 @@ services --enabled=NetworkManager,sshd
 @^minimal-environment
 @core
 open-vm-tools
+cloud-init
+perl
 openssh-server
 curl
 -net-tools
@@ -54,6 +56,15 @@ if [ -n "$PUBKEY_B64" ]; then
 	echo "$PUBKEY_B64" | base64 -d >> /root/.ssh/authorized_keys || true
 fi
 systemctl enable vmtoolsd || true
+# Enable cloud-init with VMware/OVF datasource
+cat > /etc/cloud/cloud.cfg.d/90_dpkg.cfg <<'EOF'
+datasource_list: [VMware, OVF, NoCloud]
+EOF
+systemctl enable cloud-init cloud-config cloud-final || true
+# Ensure VMware customization plugin exists (part of open-vm-tools). On some repos, it's provided by open-vm-tools; perl helps scripts.
+if [ ! -x /usr/libexec/vmware-imc/toolsDeployPkg ]; then
+	echo "WARN: toolsDeployPkg not present; guest customization may fail." >> /root/ks-post.log
+fi
 sed -i 's/^#\?UseDNS.*/UseDNS no/' /etc/ssh/sshd_config
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config

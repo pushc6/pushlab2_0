@@ -1,0 +1,27 @@
+---
+- name: Validate VM network configuration
+  hosts: gitea
+  gather_facts: false
+  vars:
+    expected_ip: "10.37.80.4"
+  tasks:
+    - name: Find primary interface
+      shell: "nmcli -t -f DEVICE,STATE device | awk -F: '$2==\"connected\"{print $1; exit}'"
+      register: primary_if
+      changed_when: false
+
+    - name: Show IPv4 address on primary interface
+      shell: "ip -4 -o addr show dev {{ primary_if.stdout | trim }} | awk '{print $4}'"
+      register: ip_cidr
+      changed_when: false
+
+    - name: Extract IPv4 address only
+      set_fact:
+        current_ip: "{{ (ip_cidr.stdout | trim).split('/')[0] }}"
+
+    - name: Assert expected IP is configured
+      assert:
+        that:
+          - current_ip == expected_ip
+        fail_msg: "Expected IP {{ expected_ip }} on {{ primary_if.stdout }}, got {{ current_ip }}"
+        success_msg: "IP {{ current_ip }} matches expected {{ expected_ip }}"

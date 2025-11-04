@@ -63,9 +63,9 @@
   ansible.builtin.template:
     src: app.ini.j2
     dest: /etc/gitea/app.ini
-    owner: root
+    owner: git
     group: git
-    mode: "0640"
+    mode: "0660"
 
 - name: Ensure Gitea data directory ownership
   ansible.builtin.file:

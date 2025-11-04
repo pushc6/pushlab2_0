@@ -1,6 +1,8 @@
 [Unit]
 Description=Gitea (Git with a cup of tea)
-After=network.target
+# Ensure network is fully up before starting
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 RestartSec=2s
