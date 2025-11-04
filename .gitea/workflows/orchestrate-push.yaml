@@ -197,15 +197,15 @@ jobs:
       - name: Packer build template (on change)
         env:
           VCENTER_SERVER: ${{ secrets.VCENTER_SERVER }}
-          VCENTER_USERNAME: ${{ secrets.VCENTER_USERNAME }}
-          VCENTER_PASSWORD: ${{ secrets.VCENTER_PASSWORD }}
+          VSPHERE_USER: ${{ secrets.VSPHERE_USER }}
+          VSPHERE_PASSWORD: ${{ secrets.VSPHERE_PASSWORD }}
           SSH_PUBLIC_KEY: ${{ env.SSH_PUBLIC_KEY }}
         run: |
           packer init packer
           packer build \
             -var "vcenter_server=${VCENTER_SERVER}" \
-            -var "vcenter_username=${VCENTER_USERNAME}" \
-            -var "vcenter_password=${VCENTER_PASSWORD}" \
+            -var "vcenter_username=${VSPHERE_USER}" \
+            -var "vcenter_password=${VSPHERE_PASSWORD}" \
             -var "ssh_public_key=${SSH_PUBLIC_KEY}" \
             -var "ssh_private_key_file=/tmp/ci_key" \
             packer/alma-template.pkr.hcl
