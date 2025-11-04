@@ -13,7 +13,7 @@ template_name = "almalinux-10-minimal-template"
 
 # Per-VM definitions
 vms = {
-  "almalinux10-prod-01" = {
+  "truenas-proxy" = {
     cpu_count         = 4
     memory_mb         = 8192
     disk_size_gb      = 60

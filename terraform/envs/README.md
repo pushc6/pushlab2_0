@@ -35,3 +35,36 @@ terraform -chdir=terraform/envs/lab plan -var-file=lab.tfvars
 terraform -chdir=terraform/envs/prod init -backend=false
 terraform -chdir=terraform/envs/prod plan -var-file=prod.tfvars
 ```
+
+## Remote backend (S3-compatible, e.g., Backblaze B2 S3, MinIO, TrueNAS)
+
+1. Create a non-secret backend config per env (commit this):
+    - `terraform/envs/<env>/backend.hcl` with values like:
+
+    ```hcl
+    # Example S3-compatible backend (commit-safe)
+    bucket              = "tf-state"
+    key                 = "<env>/terraform.tfstate"
+    region              = "us-east-1"          # required by provider
+    endpoint            = "https://s3.example.local"
+    force_path_style    = true
+    skip_credentials_validation = true
+    skip_requesting_account_id  = true
+    skip_region_validation      = true
+    ```
+
+2. Provide credentials OUTSIDE Git, either:
+    - As environment variables in your shell/CI:
+       - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, optionally `AWS_SESSION_TOKEN`
+    - Or via an ignored file:
+       - Copy `backend.s3.secrets.hcl.example` to `backend.s3.secrets.hcl` and fill
+
+3. Initialize with both files:
+
+    ```bash
+    terraform -chdir=terraform/envs/<env> init \
+       -backend-config=backend.hcl \
+       -backend-config=backend.s3.secrets.hcl
+    ```
+
+Note: S3 backend locking requires DynamoDB (or compatible). If you don’t have that, there’s no state locking—avoid concurrent applies. For full locking on‑prem, consider the Consul backend.

@@ -27,6 +27,10 @@ packer/*.log
 packer/http/generated.ks
 packer/ssh_public_key.pub
 
+# Terraform backend secret overlays (ignored)
+terraform/envs/**/backend.secrets.hcl
+terraform/envs/**/backend.s3.secrets.hcl
+
 # IDE files
 .vscode/
 .idea/
