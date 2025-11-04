@@ -74,7 +74,7 @@ jobs:
           packer validate packer/alma-template.pkr.hcl
 
   packer-build:
-    # Only available via manual dispatch; avoids referencing inputs on push events
+    # Only available via manual dispatch; no inputs referenced at parse time
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
@@ -93,11 +93,17 @@ jobs:
           curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
           unzip -o /tmp/packer.zip -d /usr/local/bin
 
-      - name: Respect build_packer input
+      - name: Respect build_packer input (runtime JSON)
         run: |
-          if [ "${{ github.event.inputs.build_packer }}" != "true" ]; then
-            echo "Skipping Packer build (build_packer != true)";
-            exit 0;
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
+            echo "Not a dispatch event; skipping Packer build guard"
+            exit 0
+          fi
+          VAL=$(jq -r '.inputs.build_packer // "false"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo false)
+          if [ "$VAL" != "true" ]; then
+            echo "Skipping Packer build (build_packer != true)"
+            exit 0
           fi
 
       - name: Generate ephemeral SSH key for template communicator
@@ -199,21 +205,27 @@ jobs:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     needs: [terraform]
-    # Only possible when dispatched with action==apply
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
+    # Only possible when manually dispatched; action check is in-shell to avoid input refs at parse time
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Prep tools (dnf)
         run: |
           dnf -y makecache
           dnf -y install curl jq ca-certificates
-      - name: Trigger AAP Job Template
+      - name: Trigger AAP Job Template (apply only)
         env:
           AAP_URL: ${{ secrets.AAP_URL }}
           AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
-          TARGET_ENV: ${{ github.event.inputs.environment }}
         run: |
+          set -euo pipefail
           if [ -z "$AAP_URL" ] || [ -z "$AAP_TOKEN" ] || [ -z "$AAP_JOB_TEMPLATE_ID" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
+          ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
+          TARGET_ENV=$(jq -r '.inputs.environment // "lab"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo lab)
+          if [ "$ACTION" != "apply" ]; then
+            echo "ACTION=$ACTION; skipping AAP trigger (apply only)"
+            exit 0
+          fi
           curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $AAP_TOKEN" \
