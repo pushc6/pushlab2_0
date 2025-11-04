@@ -3,10 +3,7 @@ name: orchestrate-push
 on:
   push:
     branches:
-      - orchestrate
-      - orchestrate-apply
-    tags:
-      - orchestrate-*
+      - main
 
 jobs:
   kickoff:
@@ -20,13 +17,15 @@ jobs:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Prep tools (dnf)
         run: |
           dnf -y makecache
-          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which
+          # Ensure Node.js is present for JavaScript-based actions (actions/checkout)
+          dnf -y module enable nodejs:20 || true
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which nodejs
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install Terraform
         run: |
@@ -51,13 +50,15 @@ jobs:
     container: almalinux:10
     needs: [validate]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Prep tools (dnf)
         run: |
           dnf -y makecache
-          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which
+          # Ensure Node.js is present for JavaScript-based actions (actions/checkout)
+          dnf -y module enable nodejs:20 || true
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which nodejs
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install Terraform
         run: |
