@@ -74,7 +74,8 @@ jobs:
           packer validate packer/alma-template.pkr.hcl
 
   packer-build:
-    if: ${{ github.event.inputs.build_packer == 'true' }}
+    # Only available via manual dispatch; avoids referencing inputs on push events
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     needs: [validate]
@@ -91,6 +92,13 @@ jobs:
         run: |
           curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
           unzip -o /tmp/packer.zip -d /usr/local/bin
+
+      - name: Respect build_packer input
+        run: |
+          if [ "${{ github.event.inputs.build_packer }}" != "true" ]; then
+            echo "Skipping Packer build (build_packer != true)";
+            exit 0;
+          fi
 
       - name: Generate ephemeral SSH key for template communicator
         run: |
@@ -131,11 +139,33 @@ jobs:
           curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
           unzip -o /tmp/terraform.zip -d /usr/local/bin
 
-      - name: Select environment paths
+      - name: Decide environment from ref (default lab)
         id: envsel
         run: |
-          ENV_INPUT='${{ github.event.inputs.environment }}'
-          if [ "$ENV_INPUT" = "prod" ]; then echo "TF_DIR=terraform/envs/prod" >> $GITHUB_OUTPUT; echo "TF_VARS=prod.tfvars" >> $GITHUB_OUTPUT; else echo "TF_DIR=terraform/envs/lab" >> $GITHUB_OUTPUT; echo "TF_VARS=lab.tfvars" >> $GITHUB_OUTPUT; fi
+          set -euo pipefail
+          REF="${GITHUB_REF}"
+          ENVIRONMENT="lab"
+          case "$REF" in
+            refs/heads/orchestrate-prod|refs/tags/orchestrate-prod*) ENVIRONMENT="prod" ;;
+            *) ENVIRONMENT="lab" ;;
+          esac
+          if [ "$ENVIRONMENT" = "prod" ]; then
+            echo "TF_DIR=terraform/envs/prod" >> "$GITHUB_OUTPUT"
+            echo "TF_VARS=prod.tfvars" >> "$GITHUB_OUTPUT"
+          else
+            echo "TF_DIR=terraform/envs/lab" >> "$GITHUB_OUTPUT"
+            echo "TF_VARS=lab.tfvars" >> "$GITHUB_OUTPUT"
+          fi
+          echo "ENVIRONMENT=$ENVIRONMENT" >> "$GITHUB_ENV"
+
+      - name: Decide whether to apply based on ref
+        run: |
+          set -euo pipefail
+          APPLY="false"
+          case "${GITHUB_REF}" in
+            refs/heads/orchestrate-apply|refs/tags/orchestrate-apply*) APPLY="true" ;;
+          esac
+          echo "APPLY=$APPLY" >> "$GITHUB_ENV"
 
       - name: Terraform init with S3-compatible backend
         env:
@@ -154,23 +184,23 @@ jobs:
         run: |
           terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} plan -var-file=${{ steps.envsel.outputs.TF_VARS }} -out=tfplan.out
 
-      - name: Terraform apply (conditional)
-        # Apply when:
-        # - Manually dispatched with action==apply, OR
-        # - Branch is orchestrate-apply, OR
-        # - Tag starts with orchestrate-apply
-        if: ${{ github.event.inputs.action == 'apply' || endsWith(github.ref, '/orchestrate-apply') || startsWith(github.ref, 'refs/tags/orchestrate-apply') }}
+      - name: Terraform apply (conditional in-shell)
         env:
           TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
           TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
         run: |
+          if [ "${APPLY}" != "true" ]; then
+            echo "APPLY=false; skipping terraform apply"
+            exit 0
+          fi
           terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} apply -auto-approve tfplan.out
 
   ansible-aap:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     needs: [terraform]
-    if: ${{ github.event.inputs.action == 'apply' }}
+    # Only possible when dispatched with action==apply
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
     steps:
       - name: Prep tools (dnf)
         run: |
