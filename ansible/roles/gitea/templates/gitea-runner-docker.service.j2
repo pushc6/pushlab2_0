@@ -1,0 +1,19 @@
+[Unit]
+Description=Gitea Actions Runner (Docker)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5s
+ExecStartPre=-/usr/bin/docker rm -f gitea-runner
+ExecStart=/usr/bin/docker run --name gitea-runner --rm \
+  --pull=always \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v {{ gitea_runner_data_dir }}:/data \
+  {{ gitea_runner_image }} --config /data/config.yaml daemon
+ExecStop=/usr/bin/docker stop gitea-runner
+
+[Install]
+WantedBy=multi-user.target

@@ -112,6 +112,7 @@ What the role does:
 - Enables internal SSH server on port 2222 and opens firewalld for 2222/tcp
 - Starts and enables `gitea` service
 - Creates an admin user via `gitea` CLI with `--work-path /var/lib/gitea`
+ - Optional: Installs a Gitea Actions runner (Docker-based by default)
 
 Run:
 
@@ -122,6 +123,28 @@ ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ansible/inventories/prod/hos
 Health checks:
 - HTTP: `http://10.37.80.4:3000/` should return 200.
 - SSH banner: `ssh -T -p 2222 git@10.37.80.4` should show Gitea’s “no shell access” greeting.
+
+### Gitea Actions runner (Docker)
+
+If you provide a registration token, the role will:
+- Install Docker Engine
+- Register a runner against `gitea_external_url`
+- Start the runner as a Docker container with systemd
+
+Variables (set in host_vars, e.g. `ansible/inventories/prod/host_vars/gitea/secrets.yml`):
+- `gitea_runner_registration_token`: required to register the runner
+- `gitea_runner_use_docker`: true (default)
+- `gitea_runner_name`: defaults to `runner-<inventory_hostname>`
+- `gitea_runner_labels`: defaults to `[self-hosted, linux, x64]`
+
+Runner data dir: `/opt/gitea-runner` (bind mounted into the container). The registration step creates `/opt/gitea-runner/config.yaml`. The service unit runs:
+
+```
+docker run --name gitea-runner --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /opt/gitea-runner:/data \
+  gitea/act_runner:latest --config /data/config.yaml daemon
+```
 
 ## Secrets and admin user
 
