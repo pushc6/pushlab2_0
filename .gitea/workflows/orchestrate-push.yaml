@@ -76,6 +76,10 @@ jobs:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     needs: [validate, packer-build]
+    outputs:
+      environment: ${{ steps.envsel.outputs.ENVIRONMENT }}
+      apply: ${{ steps.applysel.outputs.APPLY }}
+      ansible_changed: ${{ steps.tfchanges.outputs.ANSIBLE_CHANGED }}
     steps:
       - name: Prep tools (dnf)
         run: |
@@ -109,6 +113,7 @@ jobs:
           echo "PACKER_CHANGED=$PACKER_CHANGED" >> "$GITHUB_ENV"
           echo "TF_CHANGED=$TF_CHANGED" >> "$GITHUB_ENV"
           echo "ANSIBLE_CHANGED=$ANSIBLE_CHANGED" >> "$GITHUB_ENV"
+          echo "ANSIBLE_CHANGED=$ANSIBLE_CHANGED" >> "$GITHUB_OUTPUT"
 
       - name: Install Terraform
         run: |
@@ -133,8 +138,10 @@ jobs:
             echo "TF_VARS=lab.tfvars" >> "$GITHUB_OUTPUT"
           fi
           echo "ENVIRONMENT=$ENVIRONMENT" >> "$GITHUB_ENV"
+          echo "ENVIRONMENT=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
 
       - name: Decide whether to apply based on ref
+        id: applysel
         run: |
           set -euo pipefail
           APPLY="false"
@@ -146,6 +153,7 @@ jobs:
             APPLY="true"
           fi
           echo "APPLY=$APPLY" >> "$GITHUB_ENV"
+          echo "APPLY=$APPLY" >> "$GITHUB_OUTPUT"
 
   packer-build:
     runs-on: [self-hosted, linux, x64, alma]
@@ -231,6 +239,7 @@ jobs:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     needs: [terraform]
+    if: ${{ needs.terraform.outputs.apply == 'true' || needs.terraform.outputs.ansible_changed == 'true' }}
     steps:
       - name: Prep tools (dnf)
         run: |
@@ -241,74 +250,14 @@ jobs:
           AAP_URL: ${{ secrets.AAP_URL }}
           AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
-          ENVIRONMENT: ${{ env.ENVIRONMENT }}
-          APPLY: ${{ env.APPLY }}
-          ANSIBLE_CHANGED: ${{ env.ANSIBLE_CHANGED }}
+          ENVIRONMENT: ${{ needs.terraform.outputs.environment }}
         run: |
           set -euo pipefail
           if [ -z "${AAP_URL:-}" ] || [ -z "${AAP_TOKEN:-}" ] || [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
-          # Trigger when we applied infra or when only Ansible content changed
-          if [ "${APPLY}" = "true" ] || [ "${ANSIBLE_CHANGED}" = "true" ]; then
-            TARGET_ENV="${ENVIRONMENT:-lab}"
-            curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer $AAP_TOKEN" \
-              -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' | jq .
-          else
-            echo "No infra apply and no Ansible-only changes; skipping AAP trigger"
-          fi
+          TARGET_ENV="${ENVIRONMENT:-lab}"
+          curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $AAP_TOKEN" \
+            -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' | jq .
 
-      - name: Terraform init with S3-compatible backend
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: us-east-005
-          AWS_EC2_METADATA_DISABLED: "true"
-        run: |
-          set -euo pipefail
-          TF_DIR="${{ steps.envsel.outputs.TF_DIR }}"
-          if [ -f "$TF_DIR/backend.s3.secrets.hcl" ]; then
-            echo "Found local backend.s3.secrets.hcl; using it for init"
-            terraform -chdir="$TF_DIR" init \
-              -backend-config=backend.hcl \
-              -backend-config=backend.s3.secrets.hcl \
-              -reconfigure \
-              -input=false
-          else
-            echo "No local backend.s3.secrets.hcl; using CI-provided AWS_* secrets"
-            terraform -chdir="$TF_DIR" init \
-              -backend-config=backend.hcl \
-              -reconfigure \
-              -input=false
-          fi
-
-      - name: Terraform plan
-        env:
-          TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
-          TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
-          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: us-east-005
-          AWS_EC2_METADATA_DISABLED: "true"
-        run: |
-          terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} plan -var-file=${{ steps.envsel.outputs.TF_VARS }} -out=tfplan.out
-
-      - name: Terraform apply (conditional in-shell)
-        env:
-          TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
-          TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
-          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: us-east-005
-          AWS_EC2_METADATA_DISABLED: "true"
-        run: |
-          if [ "${APPLY}" != "true" ]; then
-            echo "APPLY=false; skipping terraform apply"
-            exit 0
-          fi
-          terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} apply -auto-approve tfplan.out
+      
