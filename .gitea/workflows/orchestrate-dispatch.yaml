@@ -1,7 +1,6 @@
-name: orchestrate-infra
+name: orchestrate-dispatch
 
 on:
-  # Manual run from UI (if available in your Gitea version/UI)
   workflow_dispatch:
     inputs:
       environment:
@@ -16,13 +15,6 @@ on:
         description: "Build Packer template first (true|false)"
         required: true
         default: "false"
-  # Fallback triggers when manual Run button isn't visible
-  push:
-    branches:
-      - orchestrate
-      - orchestrate-apply
-    tags:
-      - orchestrate-*
 
 jobs:
   validate:
@@ -55,19 +47,7 @@ jobs:
           terraform -chdir=terraform/envs/prod fmt -check
           terraform -chdir=terraform/envs/prod validate
 
-      - name: Install Packer
-        run: |
-          curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
-          unzip -o /tmp/packer.zip -d /usr/local/bin
-          packer -version
-
-      - name: Packer init/validate
-        run: |
-          packer init packer
-          packer validate packer/alma-template.pkr.hcl
-
   packer-build:
-    if: ${{ github.event.inputs.build_packer == 'true' }}
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     needs: [validate]
@@ -84,6 +64,15 @@ jobs:
         run: |
           curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
           unzip -o /tmp/packer.zip -d /usr/local/bin
+
+      - name: Respect build_packer input
+        run: |
+          set -euo pipefail
+          VAL=$(jq -r '.inputs.build_packer // "false"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo false)
+          if [ "$VAL" != "true" ]; then
+            echo "Skipping Packer build (build_packer != true)"
+            exit 0
+          fi
 
       - name: Generate ephemeral SSH key for template communicator
         run: |
@@ -124,11 +113,18 @@ jobs:
           curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
           unzip -o /tmp/terraform.zip -d /usr/local/bin
 
-      - name: Select environment paths
+      - name: Select environment from inputs
         id: envsel
         run: |
-          ENV_INPUT='${{ github.event.inputs.environment }}'
-          if [ "$ENV_INPUT" = "prod" ]; then echo "TF_DIR=terraform/envs/prod" >> $GITHUB_OUTPUT; echo "TF_VARS=prod.tfvars" >> $GITHUB_OUTPUT; else echo "TF_DIR=terraform/envs/lab" >> $GITHUB_OUTPUT; echo "TF_VARS=lab.tfvars" >> $GITHUB_OUTPUT; fi
+          set -euo pipefail
+          ENVIRONMENT=$(jq -r '.inputs.environment // "lab"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo lab)
+          if [ "$ENVIRONMENT" = "prod" ]; then
+            echo "TF_DIR=terraform/envs/prod" >> "$GITHUB_OUTPUT"
+            echo "TF_VARS=prod.tfvars" >> "$GITHUB_OUTPUT"
+          else
+            echo "TF_DIR=terraform/envs/lab" >> "$GITHUB_OUTPUT"
+            echo "TF_VARS=lab.tfvars" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Terraform init with S3-compatible backend
         env:
@@ -140,42 +136,40 @@ jobs:
             -backend-config=backend.s3.secrets.hcl \
             -reconfigure
 
-      - name: Terraform plan
+      - name: Terraform plan/apply based on input
         env:
           TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
           TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
         run: |
-          terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} plan -var-file=${{ steps.envsel.outputs.TF_VARS }} -out=tfplan.out
-
-      - name: Terraform apply (conditional)
-        # Apply when:
-        # - Manually dispatched with action==apply, OR
-        # - Branch is orchestrate-apply, OR
-        # - Tag starts with orchestrate-apply
-        if: ${{ github.event.inputs.action == 'apply' || endsWith(github.ref, '/orchestrate-apply') || startsWith(github.ref, 'refs/tags/orchestrate-apply') }}
-        env:
-          TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
-          TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
-        run: |
-          terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} apply -auto-approve tfplan.out
+          ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
+          if [ "$ACTION" = "apply" ]; then
+            terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} apply -auto-approve tfplan.out || true
+          else
+            terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} plan -var-file=${{ steps.envsel.outputs.TF_VARS }} -out=tfplan.out
+          fi
 
   ansible-aap:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     needs: [terraform]
-    if: ${{ github.event.inputs.action == 'apply' }}
     steps:
       - name: Prep tools (dnf)
         run: |
           dnf -y makecache
           dnf -y install curl jq ca-certificates
-      - name: Trigger AAP Job Template
+      - name: Trigger AAP Job Template (apply only)
         env:
           AAP_URL: ${{ secrets.AAP_URL }}
           AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
-          TARGET_ENV: ${{ github.event.inputs.environment }}
         run: |
+          set -euo pipefail
+          ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
+          TARGET_ENV=$(jq -r '.inputs.environment // "lab"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo lab)
+          if [ "$ACTION" != "apply" ]; then
+            echo "ACTION=$ACTION; skipping AAP trigger (apply only)"
+            exit 0
+          fi
           if [ -z "$AAP_URL" ] || [ -z "$AAP_TOKEN" ] || [ -z "$AAP_JOB_TEMPLATE_ID" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
           curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \

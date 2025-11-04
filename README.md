@@ -112,6 +112,7 @@ What the role does:
 - Enables internal SSH server on port 2222 and opens firewalld for 2222/tcp
 - Starts and enables `gitea` service
 - Creates an admin user via `gitea` CLI with `--work-path /var/lib/gitea`
+ - Optional: Installs a Gitea Actions runner (Docker-based by default)
 
 Run:
 
@@ -122,6 +123,28 @@ ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ansible/inventories/prod/hos
 Health checks:
 - HTTP: `http://10.37.80.4:3000/` should return 200.
 - SSH banner: `ssh -T -p 2222 git@10.37.80.4` should show Gitea’s “no shell access” greeting.
+
+### Gitea Actions runner (Docker)
+
+If you provide a registration token, the role will:
+- Install Docker Engine
+- Register a runner against `gitea_external_url`
+- Start the runner as a Docker container with systemd
+
+Variables (set in host_vars, e.g. `ansible/inventories/prod/host_vars/gitea/secrets.yml`):
+- `gitea_runner_registration_token`: required to register the runner
+- `gitea_runner_use_docker`: true (default)
+- `gitea_runner_name`: defaults to `runner-<inventory_hostname>`
+- `gitea_runner_labels`: defaults to `[self-hosted, linux, x64]`
+
+Runner data dir: `/opt/gitea-runner` (bind mounted into the container). The registration step creates `/opt/gitea-runner/config.yaml`. The service unit runs:
+
+```
+docker run --name gitea-runner --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /opt/gitea-runner:/data \
+  gitea/act_runner:latest --config /data/config.yaml daemon
+```
 
 ## Secrets and admin user
 
@@ -264,3 +287,29 @@ git push origin main --tags
 
 - The repo intentionally ignores secrets under inventory `host_vars`/`group_vars` via `.gitignore`.
 - Values like IP/DNS above match the current lab setup; adjust to your environment as needed.
+
+## Gitea Actions CI
+
+Workflows live under `.gitea/workflows/` and run on the self-hosted Docker runner (labels: `self-hosted, linux, x64, alma`). Job containers use `almalinux:10` for reproducibility.
+
+- `ping.yaml` and `ping-container.yaml`: canaries to verify events and containerized jobs.
+- `orchestrate-min.yaml`: minimal pipeline sanity check on push.
+- `orchestrate-push.yaml` (push-only):
+  - Triggers: push to branches like `orchestrate`, `orchestrate-*`.
+  - Actions: validate, then Terraform plan by default.
+  - To apply: push to a branch that signals apply (e.g., `orchestrate-apply`) or follow the branch naming convention documented in the workflow.
+- `orchestrate-dispatch.yaml` (manual run):
+  - Triggers: workflow_dispatch only (Run button in Gitea UI).
+  - Inputs at runtime (parsed via `jq` from `$GITHUB_EVENT_PATH`):
+    - `environment`: e.g., `prod`.
+    - `action`: `plan` or `apply`.
+    - `build_packer`: `true`/`false` to optionally build the template first.
+  - Performs: optional Packer build → Terraform (plan/apply) → optional AAP trigger.
+
+If the Gitea UI doesn’t show a manual Run option, use `orchestrate-push.yaml` by pushing an empty commit to the `orchestrate` branch:
+
+```sh
+git commit --allow-empty -m "ci(gitea): trigger orchestrate-push" && git push origin orchestrate
+```
+
+Tip: A single `origin` is configured with two push URLs, so `git push origin ...` updates both GitHub and Gitea.

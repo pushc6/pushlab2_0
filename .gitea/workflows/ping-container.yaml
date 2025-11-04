@@ -1,0 +1,17 @@
+name: ping-container
+
+on:
+  push:
+    branches:
+      - orchestrate
+
+jobs:
+  ping:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
+    steps:
+      - name: Print OS and runner
+        run: |
+          cat /etc/os-release || true
+          uname -a || true
+          echo "labels=${{ join(runner.labels, ',') }}"

@@ -140,6 +140,20 @@
     mode: "0600"
   when: (gitea_admin_username is defined and gitea_admin_password is defined) and (gitea_admin_exists.rc | default(1) != 0)
 
+# Ensure we have a runner registration token (generate instance-level token if not provided)
+- name: Generate runner registration token if not provided
+  ansible.builtin.shell: >-
+    set -euo pipefail &&
+    sudo -u git /usr/local/bin/gitea --work-path /var/lib/gitea -c /etc/gitea/app.ini actions generate-runner-token
+  register: gitea_generated_runner_token
+  changed_when: false
+  when: (gitea_runner_registration_token | default("") | length) == 0
+
+- name: Set runner registration token fact
+  ansible.builtin.set_fact:
+    gitea_runner_registration_token: "{{ (gitea_generated_runner_token.stdout | default('')) | trim }}"
+  when: (gitea_runner_registration_token | default("") | length) == 0
+
 # Optional: Install and register a Gitea Actions runner when token provided
 - name: Create actions-runner directory
   ansible.builtin.file:
@@ -155,14 +169,14 @@
     url: "{{ gitea_runner_download_url }}"
     dest: /opt/gitea-runner/actions-runner.tar.gz
     mode: "0644"
-  when: gitea_runner_registration_token | default("") | length > 0
+  when: (gitea_runner_registration_token | default("") | length > 0) and (not gitea_runner_use_docker)
 
 - name: Extract Gitea Actions runner
   ansible.builtin.unarchive:
     src: /opt/gitea-runner/actions-runner.tar.gz
     dest: /opt/gitea-runner
     remote_src: true
-  when: gitea_runner_registration_token | default("") | length > 0
+  when: (gitea_runner_registration_token | default("") | length > 0) and (not gitea_runner_use_docker)
 
 - name: Install Gitea Actions runner service
   ansible.builtin.template:
@@ -171,7 +185,7 @@
     owner: root
     group: root
     mode: "0644"
-  when: gitea_runner_registration_token | default("") | length > 0
+  when: (gitea_runner_registration_token | default("") | length > 0) and (not gitea_runner_use_docker)
 
 - name: Register runner
   ansible.builtin.shell: >-
@@ -185,7 +199,7 @@
     creates: /opt/gitea-runner/.runner
   environment:
     GITEA_INSTANCE_URL: "{{ gitea_external_url }}"
-  when: gitea_runner_registration_token | default("") | length > 0
+  when: (gitea_runner_registration_token | default("") | length > 0) and (not gitea_runner_use_docker)
 
 - name: Enable/start runner
   ansible.builtin.systemd:
@@ -193,4 +207,147 @@
     daemon_reload: true
     enabled: true
     state: started
-  when: gitea_runner_registration_token | default("") | length > 0
+  when: (gitea_runner_registration_token | default("") | length > 0) and (not gitea_runner_use_docker)
+
+# Docker-based Gitea Actions Runner (recommended)
+- name: Add Docker CE repo
+  ansible.builtin.yum_repository:
+    name: docker-ce-stable
+    description: Docker CE Stable - $basearch
+    baseurl: https://download.docker.com/linux/centos/$releasever/$basearch/stable
+    gpgcheck: true
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    enabled: true
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Install Docker Engine
+  ansible.builtin.package:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Enable and start containerd
+  ansible.builtin.systemd:
+    name: containerd
+    enabled: true
+    state: started
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Enable and start docker.socket
+  ansible.builtin.systemd:
+    name: docker.socket
+    enabled: true
+    state: started
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Enable and start Docker
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Wait for Docker to be responsive
+  ansible.builtin.shell: docker info >/dev/null 2>&1
+  register: docker_info
+  retries: 10
+  delay: 3
+  until: docker_info.rc == 0
+  changed_when: false
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Ensure runner data directory exists (docker)
+  ansible.builtin.file:
+    path: "{{ gitea_runner_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Stop runner service before force re-register (if requested)
+  ansible.builtin.systemd:
+    name: gitea-runner
+    state: stopped
+  when: (gitea_runner_use_docker) and (gitea_runner_force_reregister | default(false))
+
+- name: Remove existing runner sentinel to trigger re-registration
+  ansible.builtin.file:
+    path: "{{ gitea_runner_data_dir }}/.runner"
+    state: absent
+  when: (gitea_runner_use_docker) and (gitea_runner_force_reregister | default(false))
+
+- name: Pre-pull Actions runner image (to avoid long first-run)
+  ansible.builtin.shell: >-
+    /usr/bin/docker pull {{ gitea_runner_image }}
+  register: runner_image_pull
+  changed_when: "'Downloaded newer image' in runner_image_pull.stdout or 'Downloaded newer image' in runner_image_pull.stderr"
+  failed_when: false
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Pre-pull additional workflow container images (optional)
+  ansible.builtin.shell: >-
+    /usr/bin/docker pull {{ item }}
+  loop: "{{ gitea_runner_pull_images | default([]) }}"
+  register: extra_image_pull
+  changed_when: "'Downloaded newer image' in extra_image_pull.stdout or 'Downloaded newer image' in extra_image_pull.stderr"
+  failed_when: false
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0) and ((gitea_runner_pull_images | default([])) | length > 0)
+
+- name: Generate runner config.yaml (docker)
+  ansible.builtin.shell: >-
+    /usr/bin/docker run --entrypoint="" --rm \
+      -v {{ gitea_runner_data_dir }}:/data \
+      {{ gitea_runner_image }} act_runner generate-config > {{ gitea_runner_data_dir }}/config.yaml
+  args:
+    creates: "{{ gitea_runner_data_dir }}/config.yaml"
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Register Docker-based runner (one-time)
+  ansible.builtin.shell: >-
+    set -euo pipefail &&
+    timeout 180s /usr/bin/docker run --entrypoint="" --rm \
+      -w /data \
+      -e GITEA_INSTANCE_URL={{ gitea_external_url }} \
+      -e GITEA_RUNNER_REGISTRATION_TOKEN={{ gitea_runner_registration_token }} \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v {{ gitea_runner_data_dir }}:/data \
+      {{ gitea_runner_image }} act_runner register --no-interactive \
+        --instance {{ gitea_external_url }} \
+        --token {{ gitea_runner_registration_token }} \
+        --name {{ gitea_runner_name }} \
+        --labels {{ (gitea_runner_labels + (gitea_runner_labels_extra | default([]))) | unique | join(',') }}
+  args:
+    creates: "{{ gitea_runner_data_dir }}/.runner"
+  no_log: false
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Wait for runner registration to be persisted
+  ansible.builtin.wait_for:
+    path: "{{ gitea_runner_data_dir }}/.runner"
+    state: present
+    timeout: 120
+    sleep: 5
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Install Docker-based runner systemd unit
+  ansible.builtin.template:
+    src: gitea-runner-docker.service.j2
+    dest: /etc/systemd/system/gitea-runner.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Enable/start Docker-based runner
+  ansible.builtin.systemd:
+    name: gitea-runner
+    daemon_reload: true
+    enabled: true
+    state: started
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
