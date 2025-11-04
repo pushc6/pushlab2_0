@@ -94,9 +94,19 @@ jobs:
             echo "Missing required Packer inputs: VCENTER_SERVER, VSPHERE_USER, or VSPHERE_PASSWORD not set (check Gitea secrets/variables)." >&2
             exit 1
           fi
+          # Normalize vcenter_server: strip any scheme (http://, https://, or typos like http//) and any path (/sdk)
+          RAW_VC="$VCENTER_SERVER"
+          NORM_VC="${RAW_VC#http://}"; NORM_VC="${NORM_VC#https://}"
+          NORM_VC="${NORM_VC#http//}";  NORM_VC="${NORM_VC#https//}"
+          NORM_VC="${NORM_VC%%/*}"
+          if [ -z "$NORM_VC" ] || [ "$NORM_VC" = "http" ] || [ "$NORM_VC" = "https" ]; then
+            echo "VCENTER_SERVER value '$RAW_VC' is invalid after normalization; please set to just host or IP (e.g., 10.37.10.35)." >&2
+            exit 1
+          fi
+          echo "Using vCenter host: $NORM_VC"
           packer init packer
           packer build \
-            -var "vcenter_server=${VCENTER_SERVER}" \
+            -var "vcenter_server=${NORM_VC}" \
             -var "vcenter_username=${VSPHERE_USER}" \
             -var "vcenter_password=${VSPHERE_PASSWORD}" \
             -var "ssh_public_key=${SSH_PUBLIC_KEY}" \
