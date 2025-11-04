@@ -75,7 +75,7 @@ jobs:
   terraform:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
-    needs: [validate]
+    needs: [validate, packer-build]
     steps:
       - name: Prep tools (dnf)
         run: |
