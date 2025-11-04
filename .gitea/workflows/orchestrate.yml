@@ -25,6 +25,13 @@ on:
       - orchestrate-*
 
 jobs:
+  kickoff:
+    runs-on: [self-hosted, linux, x64, alma]
+    steps:
+      - name: Emit kickoff
+        run: |
+          echo "kickoff: ref=${{ github.ref }} sha=${{ github.sha }}"
+
   validate:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
