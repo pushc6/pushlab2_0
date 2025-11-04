@@ -27,6 +27,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect changes (paths)
+        id: changes
+        run: |
+          set -euo pipefail
+          BASE=$(jq -r '.before // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+            git fetch --depth=0 origin || true
+            git diff --name-only "$BASE" "$GITHUB_SHA" | sort -u > /tmp/changed.txt || true
+          else
+            git show --pretty="" --name-only "$GITHUB_SHA" | sort -u > /tmp/changed.txt || true
+          fi
+          touch /tmp/changed.txt
+          cat /tmp/changed.txt
+          has() { grep -E -q "$1" /tmp/changed.txt; }
+          PACKER_CHANGED=false
+          TF_CHANGED=false
+          ANSIBLE_CHANGED=false
+          WORKFLOW_CHANGED=false
+          if has '^packer/|\\.pkr\\.hcl$'; then PACKER_CHANGED=true; fi
+          if has '^terraform/'; then TF_CHANGED=true; fi
+          if has '^ansible/'; then ANSIBLE_CHANGED=true; fi
+          if has '^\\.gitea/workflows/'; then WORKFLOW_CHANGED=true; fi
+          echo "PACKER_CHANGED=$PACKER_CHANGED" | tee -a "$GITHUB_OUTPUT"
+          echo "TF_CHANGED=$TF_CHANGED" | tee -a "$GITHUB_OUTPUT"
+          echo "ANSIBLE_CHANGED=$ANSIBLE_CHANGED" | tee -a "$GITHUB_OUTPUT"
+          echo "WORKFLOW_CHANGED=$WORKFLOW_CHANGED" | tee -a "$GITHUB_OUTPUT"
+
       - name: Install Terraform
         run: |
           curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
@@ -60,6 +87,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect changes (paths)
+        id: tfchanges
+        run: |
+          set -euo pipefail
+          BASE=$(jq -r '.before // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+            git fetch --depth=0 origin || true
+            git diff --name-only "$BASE" "$GITHUB_SHA" | sort -u > /tmp/changed.txt || true
+          else
+            git show --pretty="" --name-only "$GITHUB_SHA" | sort -u > /tmp/changed.txt || true
+          fi
+          touch /tmp/changed.txt
+          has() { grep -E -q "$1" /tmp/changed.txt; }
+          PACKER_CHANGED=false
+          TF_CHANGED=false
+          ANSIBLE_CHANGED=false
+          if has '^packer/|\\.pkr\\.hcl$'; then PACKER_CHANGED=true; fi
+          if has '^terraform/'; then TF_CHANGED=true; fi
+          if has '^ansible/'; then ANSIBLE_CHANGED=true; fi
+          echo "PACKER_CHANGED=$PACKER_CHANGED" >> "$GITHUB_ENV"
+          echo "TF_CHANGED=$TF_CHANGED" >> "$GITHUB_ENV"
+          echo "ANSIBLE_CHANGED=$ANSIBLE_CHANGED" >> "$GITHUB_ENV"
+
       - name: Install Terraform
         run: |
           curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
@@ -91,7 +141,103 @@ jobs:
           case "${GITHUB_REF}" in
             refs/heads/orchestrate-apply|refs/tags/orchestrate-apply*) APPLY="true" ;;
           esac
+          # Auto-apply on lab when Terraform or Packer changes
+          if [ "${ENVIRONMENT}" = "lab" ] && { [ "${TF_CHANGED}" = "true" ] || [ "${PACKER_CHANGED}" = "true" ]; }; then
+            APPLY="true"
+          fi
           echo "APPLY=$APPLY" >> "$GITHUB_ENV"
+
+  packer-build:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
+    needs: [validate]
+    steps:
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install unzip curl jq git openssh-clients ca-certificates which
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changes (paths)
+        id: pkchanges
+        run: |
+          set -euo pipefail
+          BASE=$(jq -r '.before // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+          CHANGED=false
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+            git fetch --depth=0 origin || true
+            if git diff --name-only "$BASE" "$GITHUB_SHA" | grep -E '^packer/|\\.pkr\\.hcl$' -q; then CHANGED=true; fi
+          else
+            if git show --pretty="" --name-only "$GITHUB_SHA" | grep -E '^packer/|\\.pkr\\.hcl$' -q; then CHANGED=true; fi
+          fi
+          echo "PACKER_CHANGED=$CHANGED" >> "$GITHUB_ENV"
+          echo "PACKER_CHANGED=$CHANGED" >> "$GITHUB_OUTPUT"
+
+      - name: Install Packer
+        run: |
+          curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
+          unzip -o /tmp/packer.zip -d /usr/local/bin
+
+      - name: Skip if no packer changes
+        run: |
+          if [ "${PACKER_CHANGED}" != "true" ]; then
+            echo "No packer changes; skipping build"
+            exit 0
+          fi
+
+      - name: Generate ephemeral SSH key for template communicator
+        run: |
+          ssh-keygen -t ed25519 -N "" -C "ci@orchestrate" -f /tmp/ci_key
+          echo "SSH_PUBLIC_KEY=$(cat /tmp/ci_key.pub)" >> $GITHUB_ENV
+
+      - name: Packer build template (on change)
+        env:
+          VCENTER_SERVER: ${{ secrets.VCENTER_SERVER }}
+          VCENTER_USERNAME: ${{ secrets.VCENTER_USERNAME }}
+          VCENTER_PASSWORD: ${{ secrets.VCENTER_PASSWORD }}
+          SSH_PUBLIC_KEY: ${{ env.SSH_PUBLIC_KEY }}
+        run: |
+          packer init packer
+          packer build \
+            -var "vcenter_server=${VCENTER_SERVER}" \
+            -var "vcenter_username=${VCENTER_USERNAME}" \
+            -var "vcenter_password=${VCENTER_PASSWORD}" \
+            -var "ssh_public_key=${SSH_PUBLIC_KEY}" \
+            -var "ssh_private_key_file=/tmp/ci_key" \
+            packer/alma-template.pkr.hcl
+
+  ansible-aap:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
+    needs: [terraform]
+    steps:
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install curl jq ca-certificates
+      - name: Trigger AAP Job Template (apply or ansible-only change)
+        env:
+          AAP_URL: ${{ secrets.AAP_URL }}
+          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
+          AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          APPLY: ${{ env.APPLY }}
+          ANSIBLE_CHANGED: ${{ env.ANSIBLE_CHANGED }}
+        run: |
+          set -euo pipefail
+          if [ -z "${AAP_URL:-}" ] || [ -z "${AAP_TOKEN:-}" ] || [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
+          # Trigger when we applied infra or when only Ansible content changed
+          if [ "${APPLY}" = "true" ] || [ "${ANSIBLE_CHANGED}" = "true" ]; then
+            TARGET_ENV="${ENVIRONMENT:-lab}"
+            curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $AAP_TOKEN" \
+              -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' | jq .
+          else
+            echo "No infra apply and no Ansible-only changes; skipping AAP trigger"
+          fi
 
       - name: Terraform init with S3-compatible backend
         env:
