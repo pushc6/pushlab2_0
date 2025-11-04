@@ -287,3 +287,29 @@ git push origin main --tags
 
 - The repo intentionally ignores secrets under inventory `host_vars`/`group_vars` via `.gitignore`.
 - Values like IP/DNS above match the current lab setup; adjust to your environment as needed.
+
+## Gitea Actions CI
+
+Workflows live under `.gitea/workflows/` and run on the self-hosted Docker runner (labels: `self-hosted, linux, x64, alma`). Job containers use `almalinux:10` for reproducibility.
+
+- `ping.yaml` and `ping-container.yaml`: canaries to verify events and containerized jobs.
+- `orchestrate-min.yaml`: minimal pipeline sanity check on push.
+- `orchestrate-push.yaml` (push-only):
+  - Triggers: push to branches like `orchestrate`, `orchestrate-*`.
+  - Actions: validate, then Terraform plan by default.
+  - To apply: push to a branch that signals apply (e.g., `orchestrate-apply`) or follow the branch naming convention documented in the workflow.
+- `orchestrate-dispatch.yaml` (manual run):
+  - Triggers: workflow_dispatch only (Run button in Gitea UI).
+  - Inputs at runtime (parsed via `jq` from `$GITHUB_EVENT_PATH`):
+    - `environment`: e.g., `prod`.
+    - `action`: `plan` or `apply`.
+    - `build_packer`: `true`/`false` to optionally build the template first.
+  - Performs: optional Packer build → Terraform (plan/apply) → optional AAP trigger.
+
+If the Gitea UI doesn’t show a manual Run option, use `orchestrate-push.yaml` by pushing an empty commit to the `orchestrate` branch:
+
+```sh
+git commit --allow-empty -m "ci(gitea): trigger orchestrate-push" && git push origin orchestrate
+```
+
+Tip: A single `origin` is configured with two push URLs, so `git push origin ...` updates both GitHub and Gitea.
