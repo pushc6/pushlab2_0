@@ -11,6 +11,9 @@ terraform {
 }
 
 locals {
+  # Ensure we never shrink the OS disk below the template's base disk size (vSphere disallows shrinking on clone)
+  effective_os_disk_size_gb = max(var.disk_size_gb, try(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size_gb))
+
   cloud_init_extra = var.use_cloud_init && length(var.ipv4_address) > 0 ? {
     "guestinfo.metadata" = base64encode(yamlencode({
       local_hostname = var.vm_name,
@@ -106,7 +109,7 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     label            = "osdisk"
-    size             = var.disk_size_gb
+    size             = local.effective_os_disk_size_gb
     thin_provisioned = var.thin_provisioned
   }
 
