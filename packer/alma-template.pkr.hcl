@@ -45,7 +45,7 @@ variable "datastore" {
 variable "network" {
   type        = string
   description = "vSphere network"
-  default     = "VLAN 70 - DMZ"
+  default     = "VLAN 80 - App"
 }
 
 variable "template_name" {
@@ -155,6 +155,8 @@ source "vsphere-iso" "almalinux" {
 
   # SSH configuration for post-install
   ssh_username         = "root"
+  # Prefer SSH agent (e.g., 1Password) for key prompts; fall back to ssh_private_key_file when provided
+  ssh_agent_auth       = true
   ssh_private_key_file = var.ssh_private_key_file
   ssh_timeout          = "45m"
   ssh_port             = 22

@@ -1,0 +1,33 @@
+---
+# Set system hostname and update basic /etc/hosts mapping
+
+- name: Determine desired hostname
+  ansible.builtin.set_fact:
+    desired_hostname: "{{ system_hostname | default(inventory_hostname) }}"
+
+- name: Set system hostname
+  ansible.builtin.hostname:
+    name: "{{ desired_hostname }}"
+
+- name: Ensure /etc/hostname reflects desired hostname
+  ansible.builtin.copy:
+    dest: /etc/hostname
+    content: "{{ desired_hostname }}\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Get primary IP used by Ansible
+  ansible.builtin.set_fact:
+    primary_ip: "{{ hostvars[inventory_hostname].ansible_host | default(ansible_default_ipv4.address | default('127.0.1.1')) }}"
+
+- name: Ensure /etc/hosts has hostname mapping
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^{{ primary_ip | regex_escape() }}\s+'
+    line: "{{ primary_ip }} {{ desired_hostname }} {{ desired_hostname.split('.')[0] }}"
+    state: present
+    create: yes
+    owner: root
+    group: root
+    mode: "0644"

@@ -1,0 +1,35 @@
+# Gitea main configuration
+# Reference: https://docs.gitea.com/next/administration/config-cheat-sheet
+
+[server]
+DOMAIN = {{ gitea_domain | default(ansible_host) }}
+HTTP_PORT = {{ gitea_http_port }}
+ROOT_URL = {{ gitea_external_url }}
+DISABLE_SSH = false
+START_SSH_SERVER = false
+LFS_START_SERVER = true
+
+[database]
+DB_TYPE  = sqlite3
+PATH     = /var/lib/gitea/data/gitea.db
+LOG_SQL  = false
+
+[repository]
+ROOT = /var/lib/gitea/data/repositories
+
+[log]
+MODE      = file
+LEVEL     = info
+ROOT_PATH = /var/log/gitea
+
+[security]
+INSTALL_LOCK = true
+
+[service]
+REGISTER_EMAIL_CONFIRM = false
+DISABLE_REGISTRATION   = true
+DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+
+[actions]
+ENABLED = true
+

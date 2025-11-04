@@ -27,6 +27,10 @@ variable "vms" {
     data_disk_size_gb = number
     data_mount_point  = string
     data_fs_type      = string
+    # Optional override for vSphere network (defaults to root var.network)
+    network = optional(string)
+    # Optional desired hostname inside the guest (defaults to VM key)
+    hostname = optional(string)
     # Static IP settings (when ipv4_address is non-empty)
     ipv4_address = string
     ipv4_netmask = number

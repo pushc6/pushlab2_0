@@ -1,0 +1,11 @@
+---
+- name: Install and configure Gitea server
+  hosts: gitea
+  become: true
+  vars:
+    # Optionally override domain to a real FQDN
+    # gitea_domain: git.example.com
+    gitea_http_port: 3000
+  roles:
+    - system_hostname
+    - gitea

@@ -1,0 +1,182 @@
+---
+# Install and configure Gitea on AlmaLinux 10
+# Defaults assume SQLite, HTTP on :3000, Actions enabled.
+
+- name: Ensure required packages are installed
+  ansible.builtin.package:
+    name:
+      - curl
+      - tar
+      - git
+      - firewalld
+    state: present
+
+- name: Ensure firewalld is running
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Open Gitea HTTP port
+  ansible.posix.firewalld:
+    port: "{{ gitea_http_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Create git user and directories
+  ansible.builtin.user:
+    name: git
+    system: true
+    shell: /bin/bash
+    create_home: true
+
+- name: Create Gitea directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('git') }}"
+    group: "{{ item.group | default('git') }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop:
+    - { path: "/etc/gitea", owner: root, group: root, mode: "0755" }
+    - { path: "/var/lib/gitea", owner: git, group: git, mode: "0755" }
+    - { path: "/var/lib/gitea/data", owner: git, group: git, mode: "0755" }
+    - { path: "/var/lib/gitea/custom", owner: git, group: git, mode: "0755" }
+    - { path: "/var/log/gitea", owner: git, group: git, mode: "0755" }
+
+- name: Download Gitea binary
+  ansible.builtin.get_url:
+    url: "{{ gitea_download_url }}"
+    dest: /usr/local/bin/gitea
+    mode: "0755"
+
+- name: Install systemd unit for Gitea
+  ansible.builtin.template:
+    src: gitea.service.j2
+    dest: /etc/systemd/system/gitea.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Render Gitea config
+  ansible.builtin.template:
+    src: app.ini.j2
+    dest: /etc/gitea/app.ini
+    owner: root
+    group: git
+    mode: "0640"
+
+- name: Ensure Gitea data directory ownership
+  ansible.builtin.file:
+    path: /var/lib/gitea
+    state: directory
+    owner: git
+    group: git
+    recurse: true
+
+- name: Reload systemd and enable/start Gitea
+  ansible.builtin.systemd:
+    name: gitea
+    daemon_reload: true
+    enabled: true
+    state: started
+
+# Optional: Create initial admin user if credentials provided
+- name: Wait for Gitea HTTP to be reachable
+  ansible.builtin.uri:
+    url: "{{ gitea_external_url }}"
+    method: GET
+    status_code: 200,302
+    validate_certs: false
+  register: gitea_http
+  retries: 20
+  delay: 3
+  until: gitea_http is succeeded
+  when: gitea_admin_username is defined and gitea_admin_password is defined
+
+- name: Check if admin user exists
+  ansible.builtin.shell: >-
+    set -euo pipefail &&
+    sudo -u git /usr/local/bin/gitea -c /etc/gitea/app.ini admin user list | awk '{print $2}' | grep -x {{ gitea_admin_username | quote }}
+  register: gitea_admin_exists
+  changed_when: false
+  failed_when: false
+  when: gitea_admin_username is defined and gitea_admin_password is defined
+
+- name: Create admin user
+  ansible.builtin.shell: >-
+    set -euo pipefail &&
+    sudo -u git /usr/local/bin/gitea -c /etc/gitea/app.ini admin user create \
+      --username {{ gitea_admin_username }} \
+      --password {{ gitea_admin_password }} \
+      --email {{ gitea_admin_email | default('admin@local') }} \
+      --admin
+  args:
+    creates: "/var/lib/gitea/data/created_admin_{{ gitea_admin_username }}"
+  register: create_admin
+  when: (gitea_admin_username is defined and gitea_admin_password is defined) and (gitea_admin_exists.rc | default(1) != 0)
+
+- name: Mark admin user creation
+  ansible.builtin.file:
+    path: "/var/lib/gitea/data/created_admin_{{ gitea_admin_username }}"
+    state: touch
+    owner: git
+    group: git
+    mode: "0600"
+  when: (gitea_admin_username is defined and gitea_admin_password is defined) and (gitea_admin_exists.rc | default(1) != 0)
+
+# Optional: Install and register a Gitea Actions runner when token provided
+- name: Create actions-runner directory
+  ansible.builtin.file:
+    path: /opt/gitea-runner
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: gitea_runner_registration_token | default("") | length > 0
+
+- name: Download Gitea Actions runner
+  ansible.builtin.get_url:
+    url: "{{ gitea_runner_download_url }}"
+    dest: /opt/gitea-runner/actions-runner.tar.gz
+    mode: "0644"
+  when: gitea_runner_registration_token | default("") | length > 0
+
+- name: Extract Gitea Actions runner
+  ansible.builtin.unarchive:
+    src: /opt/gitea-runner/actions-runner.tar.gz
+    dest: /opt/gitea-runner
+    remote_src: true
+  when: gitea_runner_registration_token | default("") | length > 0
+
+- name: Install Gitea Actions runner service
+  ansible.builtin.template:
+    src: gitea-runner.service.j2
+    dest: /etc/systemd/system/gitea-runner.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: gitea_runner_registration_token | default("") | length > 0
+
+- name: Register runner
+  ansible.builtin.shell: >-
+    set -euo pipefail &&
+    /opt/gitea-runner/act_runner register --no-interactive \
+      --instance {{ gitea_external_url }} \
+      --token {{ gitea_runner_registration_token }} \
+      --name {{ gitea_runner_name }} \
+      --labels {{ gitea_runner_labels | join(',') }}
+  args:
+    creates: /opt/gitea-runner/.runner
+  environment:
+    GITEA_INSTANCE_URL: "{{ gitea_external_url }}"
+  when: gitea_runner_registration_token | default("") | length > 0
+
+- name: Enable/start runner
+  ansible.builtin.systemd:
+    name: gitea-runner
+    daemon_reload: true
+    enabled: true
+    state: started
+  when: gitea_runner_registration_token | default("") | length > 0

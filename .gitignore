@@ -26,6 +26,7 @@ packer/output-*/
 packer/*.log
 packer/http/generated.ks
 packer/ssh_public_key.pub
+packer/ssh_private_key
 
 # Terraform backend secret overlays (ignored)
 terraform/envs/**/backend.secrets.hcl
@@ -45,6 +46,8 @@ Thumbs.db
 # Ansible generated artifacts
 ansible/ssh_key
 ansible/inventories/*/hosts.yml
+ansible/roles/gitea/files/
+ansible/roles/gitea/tmp/
 
 # Logs
 *.log

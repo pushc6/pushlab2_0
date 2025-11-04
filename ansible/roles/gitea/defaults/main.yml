@@ -1,0 +1,26 @@
+---
+# Default variables for Gitea role
+
+# Version of Gitea to install
+gitea_version: "1.22.3"
+# Binary download URL
+gitea_download_url: "https://dl.gitea.com/gitea/{{ gitea_version }}/gitea-{{ gitea_version }}-linux-amd64"
+
+# HTTP port and external URL
+gitea_http_port: 3000
+# If you have DNS, set gitea_domain to the FQDN; else this defaults to ansible_host
+# gitea_domain: "git.example.com"
+# Build external URL from domain or IP
+gitea_external_url: "http://{{ (gitea_domain | default(ansible_host)) }}:{{ gitea_http_port }}"
+
+# Actions runner settings (optional)
+act_runner_version: "0.2.10"
+gitea_runner_download_url: "https://dl.gitea.com/act_runner/{{ act_runner_version }}/act_runner-{{ act_runner_version }}-linux-amd64.tar.gz"
+# Provide a registration token to auto-register a runner
+# gitea_runner_registration_token: ""
+# Runner name and labels
+gitea_runner_name: "runner-{{ inventory_hostname }}"
+gitea_runner_labels:
+  - "self-hosted"
+  - "linux"
+  - "x64"
