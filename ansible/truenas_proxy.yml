@@ -1,0 +1,10 @@
+---
+- name: Configure NFS client on truenas-proxy
+  hosts: truenas-proxy
+  become: true
+  vars:
+    nfs_server: 10.37.70.22
+    nfs_export_path: /mnt/tank/VMStorage
+    nfs_mount_point: /mnt/backupstorage
+  roles:
+    - nfs_client

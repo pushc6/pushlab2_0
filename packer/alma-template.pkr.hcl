@@ -73,9 +73,18 @@ variable "ssh_public_key_file" {
   default     = ""
 }
 
+# Optional: alternatively provide the SSH public key content directly
+variable "ssh_public_key" {
+  type        = string
+  description = "SSH public key content to inject if not using ssh_public_key_file"
+  default     = null
+}
+
 locals {
   # Base64-encoded public key for safe transport on the kernel cmdline
-  ssh_public_key_b64 = var.ssh_public_key_file != "" ? base64encode(trimspace(file(var.ssh_public_key_file))) : ""
+  ssh_public_key_b64 = var.ssh_public_key_file != "" ? base64encode(trimspace(file(var.ssh_public_key_file))) : (
+    var.ssh_public_key != null && var.ssh_public_key != "" ? base64encode(trimspace(var.ssh_public_key)) : ""
+  )
 }
 
 # Build configuration
@@ -140,7 +149,7 @@ source "vsphere-iso" "almalinux" {
   ]
 
   # HTTP server for serving kickstart file
-  http_directory = "http"
+  http_directory = "${path.root}/http"
   http_port_min  = 8080
   http_port_max  = 8080
 
@@ -165,18 +174,18 @@ build {
 
   # Upload additional files
   provisioner "file" {
-    source      = "scripts/"
+    source      = "${path.root}/scripts/"
     destination = "/tmp/"
   }
 
   # Run cleanup and optimization scripts
   provisioner "shell" {
     scripts = [
-      "scripts/update-system.sh",
-      "scripts/install-packages.sh",
-      "scripts/configure-services.sh",
-      "scripts/cleanup-template.sh",
-      "scripts/validate-template.sh"
+      "${path.root}/scripts/update-system.sh",
+      "${path.root}/scripts/install-packages.sh",
+      "${path.root}/scripts/configure-services.sh",
+      "${path.root}/scripts/cleanup-template.sh",
+      "${path.root}/scripts/validate-template.sh"
     ]
     execute_command = "chmod +x {{ .Path }}; {{ .Path }}"
   }
