@@ -98,11 +98,22 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
         run: |
-          terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} init \
-            -backend-config=backend.hcl \
-            -backend-config=backend.s3.secrets.hcl \
-            -reconfigure \
-            -input=false
+          set -euo pipefail
+          TF_DIR="${{ steps.envsel.outputs.TF_DIR }}"
+          if [ -f "$TF_DIR/backend.s3.secrets.hcl" ]; then
+            echo "Found local backend.s3.secrets.hcl; using it for init"
+            terraform -chdir="$TF_DIR" init \
+              -backend-config=backend.hcl \
+              -backend-config=backend.s3.secrets.hcl \
+              -reconfigure \
+              -input=false
+          else
+            echo "No local backend.s3.secrets.hcl; using CI-provided AWS_* secrets"
+            terraform -chdir="$TF_DIR" init \
+              -backend-config=backend.hcl \
+              -reconfigure \
+              -input=false
+          fi
 
       - name: Terraform plan
         env:
