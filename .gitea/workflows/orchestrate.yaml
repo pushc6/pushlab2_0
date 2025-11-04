@@ -1,0 +1,190 @@
+name: orchestrate-infra
+
+on:
+  # Manual run from UI (if available in your Gitea version/UI)
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (lab|prod)"
+        required: true
+        default: "lab"
+      action:
+        description: "terraform action (plan|apply)"
+        required: true
+        default: "plan"
+      build_packer:
+        description: "Build Packer template first (true|false)"
+        required: true
+        default: "false"
+  # Fallback triggers when manual Run button isn't visible
+  push:
+    branches:
+      - orchestrate
+      - orchestrate-apply
+    tags:
+      - orchestrate-*
+
+jobs:
+  kickoff:
+    runs-on: [self-hosted, linux, x64, alma]
+    steps:
+      - name: Emit kickoff
+        run: |
+          echo "kickoff: ref=${{ github.ref }} sha=${{ github.sha }}"
+
+  validate:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which
+
+      - name: Install Terraform
+        run: |
+          curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
+          unzip -o /tmp/terraform.zip -d /usr/local/bin
+          terraform -version
+
+      - name: Terraform fmt/validate (lab)
+        run: |
+          terraform -chdir=terraform/envs/lab init -backend=false
+          terraform -chdir=terraform/envs/lab fmt -check
+          terraform -chdir=terraform/envs/lab validate
+
+      - name: Terraform fmt/validate (prod)
+        run: |
+          terraform -chdir=terraform/envs/prod init -backend=false
+          terraform -chdir=terraform/envs/prod fmt -check
+          terraform -chdir=terraform/envs/prod validate
+
+      - name: Install Packer
+        run: |
+          curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
+          unzip -o /tmp/packer.zip -d /usr/local/bin
+          packer -version
+
+      - name: Packer init/validate
+        run: |
+          packer init packer
+          packer validate packer/alma-template.pkr.hcl
+
+  packer-build:
+    if: ${{ github.event.inputs.build_packer == 'true' }}
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
+    needs: [validate]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which
+
+      - name: Install Packer
+        run: |
+          curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
+          unzip -o /tmp/packer.zip -d /usr/local/bin
+
+      - name: Generate ephemeral SSH key for template communicator
+        run: |
+          ssh-keygen -t ed25519 -N "" -C "ci@orchestrate" -f /tmp/ci_key
+          echo "SSH_PUBLIC_KEY=$(cat /tmp/ci_key.pub)" >> $GITHUB_ENV
+
+      - name: Packer build template
+        env:
+          VCENTER_SERVER: ${{ secrets.VCENTER_SERVER }}
+          VCENTER_USERNAME: ${{ secrets.VCENTER_USERNAME }}
+          VCENTER_PASSWORD: ${{ secrets.VCENTER_PASSWORD }}
+          SSH_PUBLIC_KEY: ${{ env.SSH_PUBLIC_KEY }}
+        run: |
+          packer init packer
+          packer build \
+            -var "vcenter_server=${VCENTER_SERVER}" \
+            -var "vcenter_username=${VCENTER_USERNAME}" \
+            -var "vcenter_password=${VCENTER_PASSWORD}" \
+            -var "ssh_public_key=${SSH_PUBLIC_KEY}" \
+            -var "ssh_private_key_file=/tmp/ci_key" \
+            packer/alma-template.pkr.hcl
+
+  terraform:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
+    needs: [validate]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which
+
+      - name: Install Terraform
+        run: |
+          curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
+          unzip -o /tmp/terraform.zip -d /usr/local/bin
+
+      - name: Select environment paths
+        id: envsel
+        run: |
+          ENV_INPUT='${{ github.event.inputs.environment }}'
+          if [ "$ENV_INPUT" = "prod" ]; then echo "TF_DIR=terraform/envs/prod" >> $GITHUB_OUTPUT; echo "TF_VARS=prod.tfvars" >> $GITHUB_OUTPUT; else echo "TF_DIR=terraform/envs/lab" >> $GITHUB_OUTPUT; echo "TF_VARS=lab.tfvars" >> $GITHUB_OUTPUT; fi
+
+      - name: Terraform init with S3-compatible backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+        run: |
+          terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} init \
+            -backend-config=backend.hcl \
+            -backend-config=backend.s3.secrets.hcl \
+            -reconfigure
+
+      - name: Terraform plan
+        env:
+          TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
+          TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+        run: |
+          terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} plan -var-file=${{ steps.envsel.outputs.TF_VARS }} -out=tfplan.out
+
+      - name: Terraform apply (conditional)
+        # Apply when:
+        # - Manually dispatched with action==apply, OR
+        # - Branch is orchestrate-apply, OR
+        # - Tag starts with orchestrate-apply
+        if: ${{ github.event.inputs.action == 'apply' || endsWith(github.ref, '/orchestrate-apply') || startsWith(github.ref, 'refs/tags/orchestrate-apply') }}
+        env:
+          TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
+          TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+        run: |
+          terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} apply -auto-approve tfplan.out
+
+  ansible-aap:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
+    needs: [terraform]
+    if: ${{ github.event.inputs.action == 'apply' }}
+    steps:
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          dnf -y install curl jq ca-certificates
+      - name: Trigger AAP Job Template
+        env:
+          AAP_URL: ${{ secrets.AAP_URL }}
+          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
+          AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
+          TARGET_ENV: ${{ github.event.inputs.environment }}
+        run: |
+          if [ -z "$AAP_URL" ] || [ -z "$AAP_TOKEN" ] || [ -z "$AAP_JOB_TEMPLATE_ID" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
+          curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $AAP_TOKEN" \
+            -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' | jq .
