@@ -6,7 +6,11 @@ DOMAIN = {{ gitea_domain | default(ansible_host) }}
 HTTP_PORT = {{ gitea_http_port }}
 ROOT_URL = {{ gitea_external_url }}
 DISABLE_SSH = false
-START_SSH_SERVER = false
+START_SSH_SERVER = true
+SSH_PORT = {{ gitea_ssh_port }}
+SSH_DOMAIN = {{ gitea_domain | default(ansible_host) }}
+SSH_LISTEN_HOST = 0.0.0.0
+SSH_LISTEN_PORT = {{ gitea_ssh_port }}
 LFS_START_SERVER = true
 
 [database]

@@ -49,6 +49,10 @@ ansible/inventories/*/hosts.yml
 ansible/roles/gitea/files/
 ansible/roles/gitea/tmp/
 
+# Ansible environment secrets (do not commit)
+ansible/inventories/**/host_vars/**/secrets.yml
+ansible/inventories/**/group_vars/**/secrets.yml
+
 # Logs
 *.log
 .gitleaks.cache

@@ -13,6 +13,10 @@ gitea_http_port: 3000
 # Build external URL from domain or IP
 gitea_external_url: "http://{{ (gitea_domain | default(ansible_host)) }}:{{ gitea_http_port }}"
 
+# SSH settings for Gitea
+# We'll run the internal SSH server on a high port (22 requires root).
+gitea_ssh_port: 2222
+
 # Actions runner settings (optional)
 act_runner_version: "0.2.10"
 gitea_runner_download_url: "https://dl.gitea.com/act_runner/{{ act_runner_version }}/act_runner-{{ act_runner_version }}-linux-amd64.tar.gz"
