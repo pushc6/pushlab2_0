@@ -141,7 +141,6 @@ jobs:
             -backend-config=backend.hcl \
             -backend-config=backend.s3.secrets.hcl \
             -reconfigure \
-            -migrate-state \
             -input=false
 
       - name: Terraform plan/apply based on input
