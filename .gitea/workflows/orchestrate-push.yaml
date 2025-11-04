@@ -155,7 +155,9 @@ jobs:
       - name: Prep tools (dnf)
         run: |
           dnf -y makecache
-          dnf -y install unzip curl jq git openssh-clients ca-certificates which
+          # Ensure Node.js is present for JavaScript-based actions (actions/checkout)
+          dnf -y module enable nodejs:20 || true
+          dnf -y install unzip curl jq git openssh-clients ca-certificates which nodejs
 
       - name: Checkout
         uses: actions/checkout@v4
