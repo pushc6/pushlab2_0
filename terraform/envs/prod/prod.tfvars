@@ -25,17 +25,17 @@ vms = {
     ipv4_address = "10.37.70.42"
     ipv4_netmask = 24
     ipv4_gateway = "10.37.70.1"
-      dns_servers  = ["10.37.80.2"]
+    dns_servers  = ["10.37.80.2"]
     domain       = "localdomain"
   }
   # Gitea server VM (adjust IP/DNS to your environment)
   "gitea" = {
     network          = "VLAN 80 - App"
     hostname         = "gitea"
-    cpu_count         = 4
-    memory_mb         = 6144
-    disk_size_gb      = 40
-    thin_provisioned  = true
+    cpu_count        = 4
+    memory_mb        = 6144
+    disk_size_gb     = 40
+    thin_provisioned = true
     # Optional separate data disk mounted at /var/lib/gitea
     data_disk_size_gb = 50
     data_mount_point  = "/var/lib/gitea"

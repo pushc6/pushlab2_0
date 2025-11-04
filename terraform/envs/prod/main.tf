@@ -32,8 +32,8 @@ module "vm" {
   cluster    = var.cluster
   datastore  = var.datastore
   # Prefer per-VM network override when provided; fall back to root var.network
-  network    = coalesce(try(each.value.network, null), var.network)
-  vm_folder  = var.vm_folder
+  network   = coalesce(try(each.value.network, null), var.network)
+  vm_folder = var.vm_folder
 
   template_name    = var.template_name
   vm_name          = each.key
@@ -81,9 +81,9 @@ locals {
       children = {
         almalinux = {
           hosts = { for name, m in module.vm : name => {
-            ansible_host     = (try(var.vms[name].ipv4_address, "") != "" ? var.vms[name].ipv4_address : m.vm_ip)
-            ansible_user     = var.vm_ssh_user
-            system_hostname  = try(var.vms[name].hostname, name)
+            ansible_host                 = (try(var.vms[name].ipv4_address, "") != "" ? var.vms[name].ipv4_address : m.vm_ip)
+            ansible_user                 = var.vm_ssh_user
+            system_hostname              = try(var.vms[name].hostname, name)
             ansible_ssh_private_key_file = "../../ssh_key"
           } }
         }

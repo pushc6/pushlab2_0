@@ -12,10 +12,10 @@ terraform {
 
 locals {
   cloud_init_extra = var.use_cloud_init && length(var.ipv4_address) > 0 ? {
-    "guestinfo.metadata"              = base64encode(yamlencode({
+    "guestinfo.metadata" = base64encode(yamlencode({
       local_hostname = var.vm_name,
       network = {
-        version   = 2,
+        version = 2,
         ethernets = {
           eth0 = {
             dhcp4       = false,
@@ -26,13 +26,13 @@ locals {
         }
       }
     })),
-    "guestinfo.metadata.encoding"     = "base64",
-    "guestinfo.userdata"              = base64encode(join("\n", [
+    "guestinfo.metadata.encoding" = "base64",
+    "guestinfo.userdata" = base64encode(join("\n", [
       "#cloud-config",
       "fqdn: ${var.vm_name}.${var.domain}",
       "manage_etc_hosts: true"
     ])),
-    "guestinfo.userdata.encoding"     = "base64"
+    "guestinfo.userdata.encoding" = "base64"
   } : {}
 }
 
@@ -94,8 +94,8 @@ resource "vsphere_virtual_machine" "vm" {
             ipv4_netmask = var.ipv4_netmask
           }
 
-          ipv4_gateway     = var.ipv4_gateway
-          dns_server_list  = var.dns_server_list
+          ipv4_gateway    = var.ipv4_gateway
+          dns_server_list = var.dns_server_list
         }
       }
     }

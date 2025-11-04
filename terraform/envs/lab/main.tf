@@ -60,9 +60,9 @@ locals {
         almalinux = {
           hosts = {
             "${module.vm.vm_name}" = {
-              ansible_host = module.vm.vm_ip
-              ansible_user = var.vm_ssh_user
-              system_hostname = module.vm.vm_name
+              ansible_host                 = module.vm.vm_ip
+              ansible_user                 = var.vm_ssh_user
+              system_hostname              = module.vm.vm_name
               ansible_ssh_private_key_file = "../../ssh_key"
             }
           }
