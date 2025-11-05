@@ -1,5 +1,17 @@
 # AlmaLinux 10 on vSphere — IaC Project
 
+This README is a brief overview. For the full, step-by-step guide to bootstrap this environment, see the new docs:
+
+- docs/overview.md — high-level picture
+- docs/prerequisites.md — access, tools, and required secrets
+- docs/setup-secrets.md — where to put secrets (CI vs local)
+- docs/packer.md — how the vSphere template is built
+- docs/terraform.md — how VMs are cloned and configured
+- docs/ansible.md — what the Gitea role does and key variables
+- docs/ci-cd.md — workflows, gating, and triggers (includes AAP skip reason logging)
+- docs/bootstrapping.md — from zero to running, step-by-step
+- docs/troubleshooting.md — common issues and fixes
+
 This repo manages a full image lifecycle with IaC:
 
 - packer/: builds the minimal AlmaLinux 10 template in vSphere
