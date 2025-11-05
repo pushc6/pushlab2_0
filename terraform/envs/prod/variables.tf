@@ -24,9 +24,9 @@ variable "vms" {
     memory_mb         = number
     disk_size_gb      = number
     thin_provisioned  = bool
-  data_disk_size_gb = optional(number)
-  data_mount_point  = optional(string)
-  data_fs_type      = optional(string)
+    data_disk_size_gb = optional(number)
+    data_mount_point  = optional(string)
+    data_fs_type      = optional(string)
     # Optional override for vSphere network (defaults to root var.network)
     network = optional(string)
     # Optional desired hostname inside the guest (defaults to VM key)
