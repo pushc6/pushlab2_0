@@ -61,7 +61,19 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
-resource "vsphere_virtual_machine" "vm" {
+# State moves to keep addresses stable across refactors and when toggling protection
+# 1) Migrate from legacy single resource (vm) to the new unprotected resource name
+moved {
+  from = vsphere_virtual_machine.vm
+  to   = vsphere_virtual_machine.vm_unprotected[0]
+}
+
+# 2) One-time toggle (unprotected -> protected) to avoid replacement when enabling protection
+# Note: Instance-specific moves are defined at the root (env) to avoid affecting
+# other VMs that remain unprotected.
+
+resource "vsphere_virtual_machine" "vm_unprotected" {
+  count            = var.prevent_destroy ? 0 : 1
   name             = var.vm_name
   folder           = var.vm_folder
   resource_pool_id = data.vsphere_compute_cluster.clu.resource_pool_id
@@ -125,16 +137,103 @@ resource "vsphere_virtual_machine" "vm" {
 
   wait_for_guest_net_timeout = 600
   wait_for_guest_ip_timeout  = 600
+
+  lifecycle {
+    # Prevent unnecessary replacement when the source template changes
+    # for already-cloned VMs. The VM exists and changing the template
+    # would force a replace, which we do not want.
+    ignore_changes = [clone]
+  }
+}
+
+resource "vsphere_virtual_machine" "vm_protected" {
+  count            = var.prevent_destroy ? 1 : 0
+  name             = var.vm_name
+  folder           = var.vm_folder
+  resource_pool_id = data.vsphere_compute_cluster.clu.resource_pool_id
+  datastore_id     = data.vsphere_datastore.ds.id
+
+  num_cpus  = var.cpu_count
+  memory    = var.memory_mb
+  guest_id  = data.vsphere_virtual_machine.template.guest_id
+  firmware  = data.vsphere_virtual_machine.template.firmware
+  scsi_type = data.vsphere_virtual_machine.template.scsi_type
+
+  network_interface {
+    network_id   = data.vsphere_network.net.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+  }
+
+  dynamic "clone" {
+    for_each = [1]
+    content {
+      template_uuid = data.vsphere_virtual_machine.template.id
+
+      dynamic "customize" {
+        for_each = var.use_vsphere_customization && !var.use_cloud_init && (length(var.ipv4_address) > 0 || length(var.dns_server_list) > 0) ? [1] : []
+        content {
+          timeout = 600
+          linux_options {
+            host_name = var.vm_name
+            domain    = var.domain
+          }
+
+          network_interface {
+            ipv4_address = var.ipv4_address
+            ipv4_netmask = var.ipv4_netmask
+          }
+
+          ipv4_gateway    = var.ipv4_gateway
+          dns_server_list = var.dns_server_list
+        }
+      }
+    }
+  }
+
+  # Cloud-init guestinfo data (if enabled)
+  extra_config = local.cloud_init_extra
+
+  disk {
+    label            = "osdisk"
+    size             = local.effective_os_disk_size_gb
+    thin_provisioned = var.thin_provisioned
+  }
+
+  dynamic "disk" {
+    for_each = var.data_disk_size_gb > 0 ? [1] : []
+    content {
+      label            = "datadisk"
+      size             = var.data_disk_size_gb
+      thin_provisioned = var.thin_provisioned
+      unit_number      = 1
+    }
+  }
+
+  wait_for_guest_net_timeout = 600
+  wait_for_guest_ip_timeout  = 600
+
+  lifecycle {
+    prevent_destroy = true
+    # Prevent unnecessary replacement when the source template changes
+    # for already-cloned VMs. The VM exists and changing the template
+    # would force a replace, which we explicitly want to avoid.
+    ignore_changes = [clone]
+  }
+}
+
+locals {
+  vm_id = var.prevent_destroy ? vsphere_virtual_machine.vm_protected[0].id : vsphere_virtual_machine.vm_unprotected[0].id
+  vm_default_ip = var.prevent_destroy ? vsphere_virtual_machine.vm_protected[0].default_ip_address : vsphere_virtual_machine.vm_unprotected[0].default_ip_address
 }
 
 resource "null_resource" "mount_data_disk" {
   count = var.data_disk_size_gb > 0 ? 1 : 0
 
-  triggers = { vm_id = vsphere_virtual_machine.vm.id }
+  triggers = { vm_id = local.vm_id }
 
   connection {
     type        = "ssh"
-    host        = vsphere_virtual_machine.vm.default_ip_address
+  host        = local.vm_default_ip
     user        = var.vm_ssh_user
     private_key = var.ssh_private_key
     timeout     = "10m"
@@ -211,7 +310,7 @@ resource "null_resource" "configure_static_ip" {
   count = length(var.ipv4_address) > 0 && !var.use_vsphere_customization && !var.use_cloud_init ? 1 : 0
 
   triggers = {
-    vm_id        = vsphere_virtual_machine.vm.id
+    vm_id        = local.vm_id
     ipv4_address = var.ipv4_address
     ipv4_netmask = var.ipv4_netmask
     ipv4_gateway = var.ipv4_gateway
@@ -221,7 +320,7 @@ resource "null_resource" "configure_static_ip" {
 
   connection {
     type        = "ssh"
-    host        = vsphere_virtual_machine.vm.default_ip_address
+  host        = local.vm_default_ip
     user        = var.vm_ssh_user
     private_key = var.ssh_private_key
     timeout     = "10m"
@@ -243,7 +342,8 @@ resource "null_resource" "configure_static_ip" {
   }
 
   depends_on = [
-    vsphere_virtual_machine.vm,
+    vsphere_virtual_machine.vm_unprotected,
+    vsphere_virtual_machine.vm_protected,
     null_resource.mount_data_disk
   ]
 }

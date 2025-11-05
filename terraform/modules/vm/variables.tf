@@ -83,3 +83,10 @@ variable "use_cloud_init" {
   description = "If true, pass cloud-init data via VMware guestinfo (metadata/userdata/networkconfig) to configure static IP and hostname. Recommended for modern Linux."
   default     = true
 }
+
+# Safety brake to prevent accidental destroy/recreate of critical VMs.
+variable "prevent_destroy" {
+  type        = bool
+  description = "If true, set lifecycle.prevent_destroy on the VM resource to block destroy/recreate operations."
+  default     = false
+}

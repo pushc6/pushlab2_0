@@ -24,13 +24,15 @@ variable "vms" {
     memory_mb         = number
     disk_size_gb      = number
     thin_provisioned  = bool
-    data_disk_size_gb = number
-    data_mount_point  = string
-    data_fs_type      = string
+  data_disk_size_gb = optional(number)
+  data_mount_point  = optional(string)
+  data_fs_type      = optional(string)
     # Optional override for vSphere network (defaults to root var.network)
     network = optional(string)
     # Optional desired hostname inside the guest (defaults to VM key)
     hostname = optional(string)
+    # Optional safety brake: block destroy/recreate of this VM
+    prevent_destroy = optional(bool)
     # Static IP settings (when ipv4_address is non-empty)
     ipv4_address = string
     ipv4_netmask = number

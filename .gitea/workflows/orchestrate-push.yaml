@@ -155,6 +155,52 @@ jobs:
           echo "APPLY=$APPLY" >> "$GITHUB_ENV"
           echo "APPLY=$APPLY" >> "$GITHUB_OUTPUT"
 
+      - name: Terraform init with S3-compatible backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: us-east-005
+          AWS_EC2_METADATA_DISABLED: "true"
+        run: |
+          set -euo pipefail
+          TF_DIR="${{ steps.envsel.outputs.TF_DIR }}"
+          if [ -f "$TF_DIR/backend.s3.secrets.hcl" ]; then
+            echo "Found local backend.s3.secrets.hcl; using it for init"
+            terraform -chdir="$TF_DIR" init \
+              -backend-config=backend.hcl \
+              -backend-config=backend.s3.secrets.hcl \
+              -reconfigure \
+              -input=false
+          else
+            echo "No local backend.s3.secrets.hcl; using CI-provided AWS_* secrets"
+            terraform -chdir="$TF_DIR" init \
+              -backend-config=backend.hcl \
+              -reconfigure \
+              -input=false
+          fi
+
+      - name: Terraform plan/apply
+        env:
+          TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
+          TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: us-east-005
+          AWS_EC2_METADATA_DISABLED: "true"
+        run: |
+          set -euo pipefail
+          TF_DIR="${{ steps.envsel.outputs.TF_DIR }}"
+          TF_VARS_FILE="${{ steps.envsel.outputs.TF_VARS }}"
+          terraform -chdir="$TF_DIR" plan -var-file="$TF_VARS_FILE" -out=tfplan.out
+          if [ "${{ steps.applysel.outputs.APPLY }}" = "true" ]; then
+            terraform -chdir="$TF_DIR" apply -auto-approve tfplan.out
+          else
+            echo "APPLY=false; plan only"
+          fi
+
   packer-build:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10

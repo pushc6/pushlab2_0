@@ -19,6 +19,12 @@ provider "vsphere" {
   allow_unverified_ssl = var.allow_unverified_ssl
 }
 
+# One-time state move to protect existing gitea VM without replacement
+moved {
+  from = module.vm["gitea"].vsphere_virtual_machine.vm_unprotected[0]
+  to   = module.vm["gitea"].vsphere_virtual_machine.vm_protected[0]
+}
+
 # Resolve SSH private key material: prefer file path when provided
 locals {
   effective_ssh_private_key = var.ssh_private_key_file != "" ? file(var.ssh_private_key_file) : var.ssh_private_key
@@ -42,9 +48,9 @@ module "vm" {
   disk_size_gb     = each.value.disk_size_gb
   thin_provisioned = each.value.thin_provisioned
 
-  data_disk_size_gb = each.value.data_disk_size_gb
-  data_mount_point  = each.value.data_mount_point
-  data_fs_type      = each.value.data_fs_type
+  data_disk_size_gb = coalesce(try(each.value.data_disk_size_gb, null), 0)
+  data_mount_point  = coalesce(try(each.value.data_mount_point, null), "/data")
+  data_fs_type      = coalesce(try(each.value.data_fs_type, null), "ext4")
 
   vm_ssh_user = var.vm_ssh_user
 
@@ -57,6 +63,9 @@ module "vm" {
   ipv4_gateway    = try(each.value.ipv4_gateway, "")
   dns_server_list = try(each.value.dns_servers, [])
   domain          = try(each.value.domain, "localdomain")
+
+  # Safety: allow per-VM prevent_destroy lifecycle
+  prevent_destroy = coalesce(try(each.value.prevent_destroy, null), false)
 }
 
 // Write Ansible SSH private key material to ansible/ssh_key (0600)
