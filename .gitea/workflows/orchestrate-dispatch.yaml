@@ -15,6 +15,10 @@ on:
         description: "Build Packer template first (true|false)"
         required: true
         default: "false"
+      packer_force:
+        description: "Force rebuild existing template (true|false)"
+        required: false
+        default: "false"
 
 jobs:
   validate:
@@ -70,20 +74,25 @@ jobs:
           unzip -o /tmp/packer.zip -d /usr/local/bin
 
       - name: Respect build_packer input
+        id: gate
         run: |
           set -euo pipefail
           VAL=$(jq -r '.inputs.build_packer // "false"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo false)
-          if [ "$VAL" != "true" ]; then
+          if [ "$VAL" = "true" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
             echo "Skipping Packer build (build_packer != true)"
-            exit 0
           fi
 
       - name: Generate ephemeral SSH key for template communicator
+        if: ${{ steps.gate.outputs.should_build == 'true' }}
         run: |
           ssh-keygen -t ed25519 -N "" -C "ci@orchestrate" -f /tmp/ci_key
           echo "SSH_PUBLIC_KEY=$(cat /tmp/ci_key.pub)" >> $GITHUB_ENV
 
       - name: Packer build template
+        if: ${{ steps.gate.outputs.should_build == 'true' }}
         env:
           VCENTER_SERVER: ${{ secrets.VCENTER_SERVER || vars.VCENTER_SERVER || vars.vcenter_server || secrets.VSPHERE_SERVER || vars.VSPHERE_SERVER || vars.vsphere_server }}
           VSPHERE_USER: ${{ secrets.VSPHERE_USER }}
@@ -104,8 +113,11 @@ jobs:
             exit 1
           fi
           echo "Using vCenter host: $NORM_VC"
+          FORCE=$(jq -r '.inputs.packer_force // "false"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo false)
+          EXTRA=""
+          if [ "$FORCE" = "true" ]; then EXTRA="-force"; fi
           packer init packer
-          packer build \
+          packer build $EXTRA \
             -var "vcenter_server=${NORM_VC}" \
             -var "vcenter_username=${VSPHERE_USER}" \
             -var "vcenter_password=${VSPHERE_PASSWORD}" \
