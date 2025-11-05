@@ -135,9 +135,15 @@ jobs:
             --arg url "$RUN_URL" \
             '{routing_key:$rk, event_action:"trigger", dedup_key:$dedup, payload:{summary:$summary, severity:"warning", source:"gitea-actions", timestamp:$now, component:"terraform", group:"prod", class:"drift"}, links:[{href:$url, text:"Gitea run"}]}' \
             > /tmp/pd.json
-          curl -s -X POST https://events.pagerduty.com/v2/enqueue \
-            -H 'Content-Type: application/json' \
-            --data-binary @/tmp/pd.json
+          echo "PD_TRIGGER_DEDUP=$DEDUP"
+          HTTP=$(curl -sS -o /tmp/pd_resp.json -w "%{http_code}" -X POST https://events.pagerduty.com/v2/enqueue \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            --data-binary @/tmp/pd.json)
+          echo "PagerDuty trigger HTTP=$HTTP"; cat /tmp/pd_resp.json || true
+          if [ "$HTTP" != "202" ]; then
+            echo "Warning: PagerDuty trigger returned non-202 (no incident created)."
+            exit 0
+          fi
 
       - name: PagerDuty resolve when no drift
         if: ${{ steps.plan.outputs.DRIFT != 'true' }}
@@ -150,6 +156,12 @@ jobs:
           fi
           DEDUP="tf-drift-prod-${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}"; DEDUP=${DEDUP//\//-}
           jq -n --arg rk "$PD_ROUTING_KEY" --arg dk "$DEDUP" '{routing_key:$rk, event_action:"resolve", dedup_key:$dk}' > /tmp/pd-resolve.json
-          curl -s -X POST https://events.pagerduty.com/v2/enqueue \
-            -H 'Content-Type: application/json' \
-            --data-binary @/tmp/pd-resolve.json
+          echo "PD_RESOLVE_DEDUP=$DEDUP"
+          HTTP=$(curl -sS -o /tmp/pd_res_resp.json -w "%{http_code}" -X POST https://events.pagerduty.com/v2/enqueue \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            --data-binary @/tmp/pd-resolve.json)
+          echo "PagerDuty resolve HTTP=$HTTP"; cat /tmp/pd-res_resp.json || true
+          if [ "$HTTP" != "202" ]; then
+            echo "Warning: PagerDuty resolve returned non-202 (incident may remain open)."
+            exit 0
+          fi
