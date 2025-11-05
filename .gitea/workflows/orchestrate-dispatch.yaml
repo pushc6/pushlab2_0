@@ -206,6 +206,97 @@ jobs:
             echo "ACTION=$ACTION; plan only"
           fi
 
+      - name: Snapshot IaC after prod apply
+        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: us-east-005
+          AWS_EC2_METADATA_DISABLED: "true"
+          TF_SNAPSHOT_BUCKET: ${{ secrets.TF_SNAPSHOT_BUCKET || vars.TF_SNAPSHOT_BUCKET }}
+          AWS_S3_ENDPOINT: ${{ secrets.AWS_S3_ENDPOINT }}
+        run: |
+          set -euo pipefail
+          dnf -y install awscli jq tar >/dev/null 2>&1 || true
+          TF_DIR=terraform/envs/prod
+          SHORT=$(echo "${GITHUB_SHA:-$GITEA_SHA}" | cut -c1-7)
+          VERSION="iac-prod-$(date -u +%Y%m%d-%H%M)-$SHORT"
+          SNAPDIR="/tmp/iac-snap/$VERSION"
+          mkdir -p "$SNAPDIR"
+          terraform -chdir="$TF_DIR" state pull > "$SNAPDIR/terraform.tfstate"
+          cp "$TF_DIR/prod.tfvars" "$SNAPDIR/" 2>/dev/null || true
+          terraform -chdir="$TF_DIR" output -json > "$SNAPDIR/outputs.json" || true
+          jq -n --arg ver "$VERSION" --arg sha "${GITHUB_SHA:-$GITEA_SHA}" \
+               --arg repo "${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}" \
+               --arg when "$(date -u +%FT%TZ)" '{version:$ver,sha:$sha,repo:$repo,when:$when,env:"prod"}' \
+               > "$SNAPDIR/manifest.json"
+          tar -C /tmp/iac-snap -czf "/tmp/${VERSION}.tgz" "$VERSION"
+          echo "SNAP_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload IaC snapshot artifact
+        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: iac-snapshot-prod
+          path: /tmp/iac-prod-*.tgz
+          retention-days: 30
+
+      - name: Copy IaC snapshot to S3 (optional)
+        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' && (secrets.TF_SNAPSHOT_BUCKET != '' || vars.TF_SNAPSHOT_BUCKET != '') }}
+        env:
+          TF_SNAPSHOT_BUCKET: ${{ secrets.TF_SNAPSHOT_BUCKET || vars.TF_SNAPSHOT_BUCKET }}
+          AWS_S3_ENDPOINT: ${{ secrets.AWS_S3_ENDPOINT }}
+        run: |
+          set -euo pipefail
+          FILE="/tmp/${SNAP_VERSION}.tgz"
+          DEST="s3://${TF_SNAPSHOT_BUCKET}/iac-snapshots/prod/${SNAP_VERSION}/"
+          ARGS=(); 
+          if [ -n "${AWS_S3_ENDPOINT:-}" ]; then 
+            ARGS+=(--endpoint-url "$AWS_S3_ENDPOINT"); 
+            aws configure set default.s3.addressing_style path || true
+          fi
+          aws "${ARGS[@]}" s3 cp "$FILE" "$DEST"
+
+      - name: Create Gitea Release (API, optional)
+        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' && secrets.GITEA_TOKEN != '' }}
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+          GITEA_SERVER_URL: ${{ secrets.GITEA_SERVER_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GITEA_SERVER_URL:-}" ]; then echo "No GITEA_SERVER_URL; skipping release"; exit 0; fi
+          OWNER=$(echo "${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}" | cut -d/ -f1)
+          REPO=$(echo "${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}" | cut -d/ -f2)
+          TAG="$SNAP_VERSION"
+          NAME="IaC snapshot: $SNAP_VERSION"
+          BODY="Automated IaC snapshot for prod apply at ${SNAP_VERSION}."
+          HTTP=$(curl -sS -o /tmp/release.json -w "%{http_code}" -X POST "${GITEA_SERVER_URL}/api/v1/repos/${OWNER}/${REPO}/releases" \
+            -H "Authorization: token ${GITEA_TOKEN}" -H 'Content-Type: application/json' \
+            -d @- <<EOF
+          {"tag_name":"${TAG}","target_commitish":"${GITHUB_SHA:-$GITEA_SHA}","name":"${NAME}","body":"${BODY}"}
+EOF
+          )
+          echo "Create release HTTP=$HTTP"; cat /tmp/release.json || true
+          REL_ID=$(jq -r '.id // empty' /tmp/release.json || true)
+          if [ -n "$REL_ID" ]; then
+            FILE="/tmp/${SNAP_VERSION}.tgz"; NAME_FILE="${SNAP_VERSION}.tgz"
+            UP_HTTP=$(curl -sS -o /tmp/asset.json -w "%{http_code}" -X POST "${GITEA_SERVER_URL}/api/v1/repos/${OWNER}/${REPO}/releases/${REL_ID}/assets?name=${NAME_FILE}" \
+              -H "Authorization: token ${GITEA_TOKEN}" \
+              -F "attachment=@${FILE}")
+            echo "Upload asset HTTP=$UP_HTTP"; cat /tmp/asset.json || true
+          fi
+
+      - name: Fallback tag push (optional)
+        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' && secrets.GITEA_TOKEN == '' }}
+        run: |
+          set -euo pipefail
+          # Best-effort: create an annotated tag locally; push may depend on runner credentials
+          git config user.name "ci"
+          git config user.email "ci@local"
+          git tag -a "$SNAP_VERSION" -m "IaC snapshot prod apply $SNAP_VERSION" || true
+          git push origin "$SNAP_VERSION" || true
+
   ansible-aap:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
