@@ -15,6 +15,9 @@ on:
         description: "Build Packer template first (true|false)"
         required: true
         default: "false"
+  push:
+    tags:
+      - "dispatch-*"
 
 jobs:
   validate:
@@ -72,7 +75,16 @@ jobs:
       - name: Respect build_packer input
         run: |
           set -euo pipefail
-          VAL=$(jq -r '.inputs.build_packer // "false"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo false)
+          EVENT="${GITHUB_EVENT_NAME:-}"
+          VAL=false
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            VAL=$(jq -r '.inputs.build_packer // "false"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo false)
+          elif [ "$EVENT" = "push" ]; then
+            TAG="${GITHUB_REF##*/}"
+            case "$TAG" in
+              dispatch-*-*-pack*|dispatch-*-*-packer*) VAL=true ;;
+            esac
+          fi
           if [ "$VAL" != "true" ]; then
             echo "Skipping Packer build (build_packer != true)"
             exit 0
@@ -137,7 +149,16 @@ jobs:
         id: envsel
         run: |
           set -euo pipefail
-          ENVIRONMENT=$(jq -r '.inputs.environment // "lab"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo lab)
+          EVENT="${GITHUB_EVENT_NAME:-}"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            ENVIRONMENT=$(jq -r '.inputs.environment // "lab"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo lab)
+          else
+            TAG="${GITHUB_REF##*/}"
+            # Expected tag formats: dispatch-<env>-<action>[-pack]
+            ENVIRONMENT="${TAG#dispatch-}"
+            ENVIRONMENT="${ENVIRONMENT%%-*}"
+            if [ "$ENVIRONMENT" != "lab" ] && [ "$ENVIRONMENT" != "prod" ]; then ENVIRONMENT="lab"; fi
+          fi
           if [ "$ENVIRONMENT" = "prod" ]; then
             echo "TF_DIR=terraform/envs/prod" >> "$GITHUB_OUTPUT"
             echo "TF_VARS=prod.tfvars" >> "$GITHUB_OUTPUT"
@@ -182,7 +203,17 @@ jobs:
           AWS_REGION: us-east-005
           AWS_EC2_METADATA_DISABLED: "true"
         run: |
-          ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
+          EVENT="${GITHUB_EVENT_NAME:-}"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
+          else
+            TAG="${GITHUB_REF##*/}"
+            # dispatch-<env>-<action>[-pack]
+            ACTION_PART="${TAG#dispatch-}"
+            ACTION_PART="${ACTION_PART#*-}"
+            ACTION="${ACTION_PART%%-*}"
+            if [ "$ACTION" != "apply" ]; then ACTION="plan"; fi
+          fi
           if [ "$ACTION" = "apply" ]; then
             terraform -chdir=${{ steps.envsel.outputs.TF_DIR }} apply -auto-approve tfplan.out || true
           else
@@ -205,8 +236,20 @@ jobs:
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
         run: |
           set -euo pipefail
-          ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
-          TARGET_ENV=$(jq -r '.inputs.environment // "lab"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo lab)
+          EVENT="${GITHUB_EVENT_NAME:-}"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
+            TARGET_ENV=$(jq -r '.inputs.environment // "lab"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo lab)
+          else
+            TAG="${GITHUB_REF##*/}"
+            # dispatch-<env>-<action>[-pack]
+            PART="${TAG#dispatch-}"
+            TARGET_ENV="${PART%%-*}"
+            PART="${PART#*-}"
+            ACTION="${PART%%-*}"
+            if [ "$TARGET_ENV" != "lab" ] && [ "$TARGET_ENV" != "prod" ]; then TARGET_ENV="lab"; fi
+            if [ "$ACTION" != "apply" ]; then ACTION="plan"; fi
+          fi
           if [ "$ACTION" != "apply" ]; then
             echo "ACTION=$ACTION; skipping AAP trigger (apply only)"
             exit 0

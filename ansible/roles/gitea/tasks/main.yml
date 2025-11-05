@@ -52,11 +52,95 @@
     - { path: "/var/lib/gitea/custom", owner: git, group: git, mode: "0755" }
     - { path: "/var/log/gitea", owner: git, group: git, mode: "0755" }
 
-- name: Download Gitea binary
-  ansible.builtin.get_url:
-    url: "{{ gitea_download_url }}"
-    dest: /usr/local/bin/gitea
+# Discover installed Gitea version (if any)
+- name: Check if Gitea binary exists
+  ansible.builtin.stat:
+    path: "{{ gitea_binary_path }}"
+  register: gitea_bin_stat
+
+- name: Get installed Gitea version
+  ansible.builtin.command: "{{ gitea_binary_path }} --version"
+  register: gitea_version_cmd
+  changed_when: false
+  failed_when: false
+  when: gitea_bin_stat.stat.exists
+
+- name: Parse installed Gitea version
+  ansible.builtin.set_fact:
+    gitea_installed_version: '{{ (gitea_version_cmd.stdout | default("") | regex_search("([0-9]+\\.[0-9]+\\.[0-9]+)")) | default("") }}'
+  when: gitea_bin_stat.stat.exists
+
+# Optionally resolve latest version from API
+- name: Resolve latest Gitea version from API
+  ansible.builtin.uri:
+    url: "{{ gitea_release_api_url }}"
+    method: GET
+    return_content: true
+    status_code: 200
+    validate_certs: true
+  register: gitea_release_api
+  failed_when: false
+  when: (gitea_auto_update | bool) or (gitea_version | string | lower == 'latest')
+
+- name: Set effective Gitea version (from API when requested)
+  ansible.builtin.set_fact:
+    gitea_effective_version: "{{
+      (
+        ((gitea_release_api.content | from_json).tag_name | regex_replace('^v',''))
+      )
+      if (
+        ((gitea_auto_update | bool) or (gitea_version | lower == 'latest')) and
+        (gitea_release_api is defined) and (gitea_release_api.status | default(0)) == 200 and
+        (gitea_release_api.content | default('')) | length > 0
+      ) else gitea_version
+    }}"
+
+- name: Build effective download URL
+  ansible.builtin.set_fact:
+    gitea_effective_download_url: "https://dl.gitea.com/gitea/{{ gitea_effective_version }}/gitea-{{ gitea_effective_version }}-linux-amd64"
+
+- name: Decide if Gitea update is needed
+  ansible.builtin.set_fact:
+    gitea_update_needed: "{{ (not gitea_bin_stat.stat.exists) or (gitea_installed_version | default('') != gitea_effective_version) }}"
+
+- name: Ensure backup directory exists (when backup enabled)
+  ansible.builtin.file:
+    path: "{{ gitea_backup_dir }}"
+    state: directory
+    owner: root
+    group: root
     mode: "0755"
+  when: (gitea_backup_before_upgrade | bool) and (gitea_update_needed | bool)
+
+- name: Stop Gitea service before upgrade
+  ansible.builtin.systemd:
+    name: gitea
+    state: stopped
+  when: gitea_update_needed | bool
+
+- name: Backup Gitea config and data (tar.gz)
+  ansible.builtin.shell: >-
+    tar -C / -czf {{ gitea_backup_dir }}/gitea-backup-{{ ansible_date_time.epoch }}.tar.gz {{ gitea_backup_include | join(' ') }}
+  args:
+    creates: "{{ gitea_backup_dir }}/gitea-backup-{{ ansible_date_time.epoch }}.tar.gz"
+  when: (gitea_backup_before_upgrade | bool) and (gitea_update_needed | bool)
+
+- name: Backup existing Gitea binary before update
+  ansible.builtin.copy:
+    src: "{{ gitea_binary_path }}"
+    dest: "{{ gitea_binary_path }}.bak-{{ gitea_installed_version | default('unknown') }}-{{ ansible_date_time.epoch }}"
+    remote_src: true
+    mode: "0755"
+  when: gitea_bin_stat.stat.exists and (gitea_update_needed | bool)
+
+- name: Download Gitea binary (effective)
+  ansible.builtin.get_url:
+    url: "{{ gitea_effective_download_url }}"
+    dest: "{{ gitea_binary_path }}"
+    mode: "0755"
+    force: true
+  register: gitea_binary_download
+  when: gitea_update_needed | bool
 
 - name: Install systemd unit for Gitea
   ansible.builtin.template:
@@ -95,6 +179,12 @@
     name: gitea
     state: restarted
   when: gitea_config_result is changed
+
+- name: Restart Gitea when binary was updated
+  ansible.builtin.systemd:
+    name: gitea
+    state: restarted
+  when: (gitea_binary_download is defined) and (gitea_binary_download.changed | default(false))
 
 # Optional: Create initial admin user if credentials provided
 - name: Wait for Gitea HTTP to be reachable

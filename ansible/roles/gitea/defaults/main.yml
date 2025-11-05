@@ -1,10 +1,28 @@
 ---
 # Default variables for Gitea role
 
-# Version of Gitea to install
-gitea_version: "1.22.3"
-# Binary download URL
+# Version of Gitea to install. Set to a specific version (e.g., "1.22.3") or "latest" to auto-resolve.
+gitea_version: "1.24.6"
+
+# If true, the role will look up the latest stable release via API and upgrade if needed.
+# When gitea_version == "latest", this is implicitly enabled.
+gitea_auto_update: false
+
+# Release API endpoint to discover the latest version (no auth required)
+gitea_release_api_url: "https://api.github.com/repos/go-gitea/gitea/releases/latest"
+
+# Path to install the gitea binary
+gitea_binary_path: "/usr/local/bin/gitea"
+
+# Binary download URL (effective URL may be overridden when auto-updating)
 gitea_download_url: "https://dl.gitea.com/gitea/{{ gitea_version }}/gitea-{{ gitea_version }}-linux-amd64"
+
+# Optional backup settings when upgrading
+gitea_backup_before_upgrade: true
+gitea_backup_dir: "/var/backups"
+gitea_backup_include:
+  - "/etc/gitea"
+  - "/var/lib/gitea"
 
 # HTTP port and external URL
 gitea_http_port: 3000
