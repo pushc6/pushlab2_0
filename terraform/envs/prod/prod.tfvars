@@ -1,12 +1,12 @@
 # Production environment
-vsphere_server       = "10.37.10.35"
+vsphere_server = "10.37.10.35"
 allow_unverified_ssl = true
 
 datacenter = "Push Datacenter"
-cluster    = "Lab Cluster"
-datastore  = "ssd-local"
-network    = "VLAN 70 - DMZ"
-vm_folder  = "Templates"
+cluster = "Lab Cluster"
+datastore = "ssd-local"
+network = "VLAN 70 - DMZ"
+vm_folder = "Templates"
 
 # Template to clone
 template_name = "almalinux-10-minimal-template-20251104"
