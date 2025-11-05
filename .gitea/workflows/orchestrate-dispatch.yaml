@@ -271,12 +271,12 @@ jobs:
           TAG="$SNAP_VERSION"
           NAME="IaC snapshot: $SNAP_VERSION"
           BODY="Automated IaC snapshot for prod apply at ${SNAP_VERSION}."
+          # Build JSON body with jq to avoid heredoc YAML parsing issues
+          jq -n --arg tag "$TAG" --arg target "${GITHUB_SHA:-$GITEA_SHA}" --arg name "$NAME" --arg body "$BODY" \
+            '{tag_name:$tag, target_commitish:$target, name:$name, body:$body}' > /tmp/release_body.json
           HTTP=$(curl -sS -o /tmp/release.json -w "%{http_code}" -X POST "${GITEA_SERVER_URL}/api/v1/repos/${OWNER}/${REPO}/releases" \
             -H "Authorization: token ${GITEA_TOKEN}" -H 'Content-Type: application/json' \
-            -d @- <<EOF
-          {"tag_name":"${TAG}","target_commitish":"${GITHUB_SHA:-$GITEA_SHA}","name":"${NAME}","body":"${BODY}"}
-EOF
-          )
+            -d @/tmp/release_body.json)
           echo "Create release HTTP=$HTTP"; cat /tmp/release.json || true
           REL_ID=$(jq -r '.id // empty' /tmp/release.json || true)
           if [ -n "$REL_ID" ]; then
