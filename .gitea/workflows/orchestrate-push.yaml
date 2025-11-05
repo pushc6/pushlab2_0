@@ -260,4 +260,16 @@ jobs:
             -H "Authorization: Bearer $AAP_TOKEN" \
             -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' | jq .
 
+  aap-skip-report:
+    runs-on: [self-hosted, linux, x64, alma]
+    needs: [terraform]
+    if: ${{ needs.terraform.outputs.apply != 'true' && needs.terraform.outputs.ansible_changed != 'true' }}
+    steps:
+      - name: Explain why AAP was skipped
+        run: |
+          echo "AAP trigger job was skipped. Details:" 
+          echo "- needs.terraform.outputs.apply=${{ needs.terraform.outputs.apply }}" 
+          echo "- needs.terraform.outputs.ansible_changed=${{ needs.terraform.outputs.ansible_changed }}"
+          echo "AAP triggers only when (apply == 'true') OR (ansible_changed == 'true')."
+
       
