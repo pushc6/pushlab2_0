@@ -88,7 +88,8 @@ jobs:
           fi
 
       - name: Upload plan output
-        uses: actions/upload-artifact@v4
+        # Gitea/older GHES-compatible runners do not support v4 artifact service
+        uses: actions/upload-artifact@v3
         with:
           name: prod-tfplan-output
           path: /tmp/prod_plan.txt
