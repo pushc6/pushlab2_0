@@ -1,0 +1,94 @@
+name: prod-drift-check
+
+on:
+  schedule:
+    # Nightly at 03:00 UTC; adjust as desired
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      lock_state:
+        description: "Use backend lock during plan (true|false). Default false to avoid contention."
+        required: false
+        default: "false"
+
+jobs:
+  drift:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux:10
+    steps:
+      - name: Prep tools (dnf)
+        run: |
+          dnf -y makecache
+          # Node is required for actions like upload-artifact
+          dnf -y module enable nodejs:20 || true
+          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which nodejs
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        run: |
+          curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
+          unzip -o /tmp/terraform.zip -d /usr/local/bin
+          terraform -version
+
+      - name: Terraform init (prod, S3-compatible backend)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: us-east-005
+          AWS_EC2_METADATA_DISABLED: "true"
+        run: |
+          set -euo pipefail
+          TF_DIR=terraform/envs/prod
+          if [ -f "$TF_DIR/backend.s3.secrets.hcl" ]; then
+            terraform -chdir="$TF_DIR" init \
+              -backend-config=backend.hcl \
+              -backend-config=backend.s3.secrets.hcl \
+              -reconfigure -input=false
+          else
+            terraform -chdir="$TF_DIR" init \
+              -backend-config=backend.hcl \
+              -reconfigure -input=false
+          fi
+
+      - name: Terraform plan (prod, read-only drift check)
+        id: plan
+        env:
+          TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
+          TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set +e
+          TF_DIR=terraform/envs/prod
+          # Use -lock=false by default to avoid contention with applies
+          USE_LOCK=$(jq -r '.inputs.lock_state // "false"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo false)
+          LOCK_FLAG="-lock=false"; if [ "$USE_LOCK" = "true" ]; then LOCK_FLAG="-lock=true"; fi
+          echo "Using LOCK_FLAG=$LOCK_FLAG"
+          terraform -chdir="$TF_DIR" plan -var-file=prod.tfvars -detailed-exitcode $LOCK_FLAG -no-color | tee /tmp/prod_plan.txt
+          CODE=${PIPESTATUS[0]}
+          echo "exitcode=$CODE" >> "$GITHUB_OUTPUT"
+          if [ "$CODE" -eq 2 ]; then
+            echo "DRIFT=true" >> "$GITHUB_OUTPUT"
+            # Do not fail the job; we want a green run with a drift signal
+            exit 0
+          elif [ "$CODE" -eq 0 ]; then
+            echo "DRIFT=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          else
+            echo "Unexpected terraform plan exit code: $CODE" >&2
+            # Surface failure for non 0/2 codes
+            exit $CODE
+          fi
+
+      - name: Upload plan output
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-tfplan-output
+          path: /tmp/prod_plan.txt
+          retention-days: 7
+
+      - name: Summary
+        run: |
+          echo "Drift detected: ${{ steps.plan.outputs.DRIFT }}"
