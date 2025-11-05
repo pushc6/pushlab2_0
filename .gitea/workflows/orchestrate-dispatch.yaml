@@ -207,7 +207,7 @@ jobs:
           fi
 
       - name: Snapshot IaC after prod apply
-        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' }}
+        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -235,7 +235,7 @@ jobs:
           echo "SNAP_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Upload IaC snapshot artifact
-        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' }}
+        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' }}
         uses: actions/upload-artifact@v3
         with:
           name: iac-snapshot-prod
@@ -243,7 +243,7 @@ jobs:
           retention-days: 30
 
       - name: Copy IaC snapshot to S3 (optional)
-        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' && (secrets.TF_SNAPSHOT_BUCKET != '' || vars.TF_SNAPSHOT_BUCKET != '') }}
+        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && (secrets.TF_SNAPSHOT_BUCKET != '' || vars.TF_SNAPSHOT_BUCKET != '') }}
         env:
           TF_SNAPSHOT_BUCKET: ${{ secrets.TF_SNAPSHOT_BUCKET || vars.TF_SNAPSHOT_BUCKET }}
           AWS_S3_ENDPOINT: ${{ secrets.AWS_S3_ENDPOINT }}
@@ -259,7 +259,7 @@ jobs:
           aws "${ARGS[@]}" s3 cp "$FILE" "$DEST"
 
       - name: Create Gitea Release (API, optional)
-        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' && secrets.GITEA_TOKEN != '' }}
+        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && secrets.GITEA_TOKEN != '' }}
         env:
           GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
           GITEA_SERVER_URL: ${{ secrets.GITEA_SERVER_URL }}
@@ -288,7 +288,7 @@ EOF
           fi
 
       - name: Fallback tag push (optional)
-        if: ${{ inputs.environment == 'prod' && inputs.action == 'apply' && secrets.GITEA_TOKEN == '' }}
+        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && secrets.GITEA_TOKEN == '' }}
         run: |
           set -euo pipefail
           # Best-effort: create an annotated tag locally; push may depend on runner credentials
