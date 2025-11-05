@@ -92,3 +92,64 @@ jobs:
       - name: Summary
         run: |
           echo "Drift detected: ${{ steps.plan.outputs.DRIFT }}"
+
+      - name: Notify Discord on drift
+        if: ${{ steps.plan.outputs.DRIFT == 'true' }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
+            echo "No DISCORD_WEBHOOK_URL secret set; skipping Discord notification"
+            exit 0
+          fi
+          CONTENT="⚠️ Terraform drift detected in prod for $GITEA_REPOSITORY@${GITEA_SHA::7}. Check the 'prod-tfplan-output' artifact for details."
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{\"content\": \"${CONTENT//\"/\\\"}\"}"
+
+      - name: PagerDuty trigger on drift
+        if: ${{ steps.plan.outputs.DRIFT == 'true' }}
+        env:
+          PD_ROUTING_KEY: ${{ secrets.PAGERDUTY_ROUTING_KEY }}
+        run: |
+          if [ -z "${PD_ROUTING_KEY:-}" ]; then
+            echo "No PAGERDUTY_ROUTING_KEY secret set; skipping PagerDuty trigger"
+            exit 0
+          fi
+          DEDUP="tf-drift-prod-${GITEA_REPOSITORY//\//-}"
+          NOW=$(date -u +%FT%TZ)
+          curl -s -X POST https://events.pagerduty.com/v2/enqueue \
+            -H 'Content-Type: application/json' \
+            -d @- <<EOF
+          {
+            "routing_key": "${PD_ROUTING_KEY}",
+            "event_action": "trigger",
+            "dedup_key": "${DEDUP}",
+            "payload": {
+              "summary": "Terraform drift detected in prod (${GITEA_REPOSITORY}@${GITEA_SHA::7})",
+              "severity": "warning",
+              "source": "gitea-actions",
+              "timestamp": "${NOW}",
+              "component": "terraform",
+              "group": "prod",
+              "class": "drift"
+            },
+            "links": [
+              {"href": "${GITEA_SERVER_URL}/${GITEA_REPOSITORY}/actions/runs/${GITEA_RUN_ID}", "text": "Gitea run"}
+            ]
+          }
+EOF
+
+      - name: PagerDuty resolve when no drift
+        if: ${{ steps.plan.outputs.DRIFT != 'true' }}
+        env:
+          PD_ROUTING_KEY: ${{ secrets.PAGERDUTY_ROUTING_KEY }}
+        run: |
+          if [ -z "${PD_ROUTING_KEY:-}" ]; then
+            echo "No PAGERDUTY_ROUTING_KEY secret set; skipping PagerDuty resolve"
+            exit 0
+          fi
+          DEDUP="tf-drift-prod-${GITEA_REPOSITORY//\//-}"
+          curl -s -X POST https://events.pagerduty.com/v2/enqueue \
+            -H 'Content-Type: application/json' \
+            -d "{\"routing_key\":\"${PD_ROUTING_KEY}\",\"event_action\":\"resolve\",\"dedup_key\":\"${DEDUP}\"}"
