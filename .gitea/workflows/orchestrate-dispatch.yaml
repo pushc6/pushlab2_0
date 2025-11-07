@@ -245,13 +245,14 @@ jobs:
       - name: Copy IaC snapshot to S3 (optional)
         if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && (secrets.TF_SNAPSHOT_BUCKET != '' || vars.TF_SNAPSHOT_BUCKET != '') }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: us-east-005
+          # Prefer dedicated Backblaze/Snapshot credentials, fallback to generic AWS_*
+          AWS_ACCESS_KEY_ID: ${{ secrets.SNAPSHOT_S3_ACCESS_KEY_ID || secrets.B2_KEY_ID || secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SNAPSHOT_S3_SECRET_ACCESS_KEY || secrets.B2_APPLICATION_KEY || secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.SNAPSHOT_S3_SESSION_TOKEN || secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.SNAPSHOT_S3_REGION || vars.SNAPSHOT_S3_REGION || 'us-east-005' }}
           AWS_EC2_METADATA_DISABLED: "true"
           TF_SNAPSHOT_BUCKET: ${{ secrets.TF_SNAPSHOT_BUCKET || vars.TF_SNAPSHOT_BUCKET }}
-          AWS_S3_ENDPOINT: ${{ secrets.AWS_S3_ENDPOINT }}
+          AWS_S3_ENDPOINT: ${{ secrets.SNAPSHOT_S3_ENDPOINT || secrets.AWS_S3_ENDPOINT }}
         run: |
           set -euo pipefail
           FILE="/tmp/${SNAP_VERSION}.tgz"
