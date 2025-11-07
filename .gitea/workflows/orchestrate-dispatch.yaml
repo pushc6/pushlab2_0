@@ -276,13 +276,14 @@ jobs:
           aws "${ARGS[@]}" s3 cp "$FILE" "$DEST"
 
       - name: Create Gitea Release (API, optional)
-        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && secrets.GITEA_TOKEN != '' }}
+        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && (secrets.GIT_TOKEN != '' || secrets.GITEA_TOKEN != '') && (vars.GIT_SERVER_URL != '' || secrets.GIT_SERVER_URL != '') }}
         env:
-          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
-          GITEA_SERVER_URL: ${{ secrets.GITEA_SERVER_URL }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN || secrets.GITEA_TOKEN }}
+          # GIT_SERVER_URL should be a repository variable (non-secret); fallback to secret of same name only
+          GIT_SERVER_URL: ${{ vars.GIT_SERVER_URL || secrets.GIT_SERVER_URL }}
         run: |
           set -euo pipefail
-          if [ -z "${GITEA_SERVER_URL:-}" ]; then echo "No GITEA_SERVER_URL; skipping release"; exit 0; fi
+          if [ -z "${GIT_SERVER_URL:-}" ]; then echo "No GIT_SERVER_URL; skipping release"; exit 0; fi
           OWNER=$(echo "${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}" | cut -d/ -f1)
           REPO=$(echo "${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}" | cut -d/ -f2)
           TAG="$SNAP_VERSION"
@@ -291,21 +292,21 @@ jobs:
           # Build JSON body with jq to avoid heredoc YAML parsing issues
           jq -n --arg tag "$TAG" --arg target "${GITHUB_SHA:-$GITEA_SHA}" --arg name "$NAME" --arg body "$BODY" \
             '{tag_name:$tag, target_commitish:$target, name:$name, body:$body}' > /tmp/release_body.json
-          HTTP=$(curl -sS -o /tmp/release.json -w "%{http_code}" -X POST "${GITEA_SERVER_URL}/api/v1/repos/${OWNER}/${REPO}/releases" \
-            -H "Authorization: token ${GITEA_TOKEN}" -H 'Content-Type: application/json' \
+          HTTP=$(curl -sS -o /tmp/release.json -w "%{http_code}" -X POST "${GIT_SERVER_URL}/api/v1/repos/${OWNER}/${REPO}/releases" \
+            -H "Authorization: token ${GIT_TOKEN}" -H 'Content-Type: application/json' \
             -d @/tmp/release_body.json)
           echo "Create release HTTP=$HTTP"; cat /tmp/release.json || true
           REL_ID=$(jq -r '.id // empty' /tmp/release.json || true)
           if [ -n "$REL_ID" ]; then
             FILE="/tmp/${SNAP_VERSION}.tgz"; NAME_FILE="${SNAP_VERSION}.tgz"
-            UP_HTTP=$(curl -sS -o /tmp/asset.json -w "%{http_code}" -X POST "${GITEA_SERVER_URL}/api/v1/repos/${OWNER}/${REPO}/releases/${REL_ID}/assets?name=${NAME_FILE}" \
-              -H "Authorization: token ${GITEA_TOKEN}" \
+            UP_HTTP=$(curl -sS -o /tmp/asset.json -w "%{http_code}" -X POST "${GIT_SERVER_URL}/api/v1/repos/${OWNER}/${REPO}/releases/${REL_ID}/assets?name=${NAME_FILE}" \
+              -H "Authorization: token ${GIT_TOKEN}" \
               -F "attachment=@${FILE}")
             echo "Upload asset HTTP=$UP_HTTP"; cat /tmp/asset.json || true
           fi
 
       - name: Fallback tag push (optional)
-        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && secrets.GITEA_TOKEN == '' }}
+        if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && secrets.GIT_TOKEN == '' && secrets.GITEA_TOKEN == '' }}
         run: |
           set -euo pipefail
           # Best-effort: create an annotated tag locally; push may depend on runner credentials

@@ -126,7 +126,7 @@ jobs:
           DEDUP="tf-drift-prod-${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}"; DEDUP=${DEDUP//\//-}
           NOW=$(date -u +%FT%TZ)
           SUMMARY="Terraform drift detected in prod (${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}@${GITHUB_SHA:-$GITEA_SHA})"
-          RUN_URL="${GITHUB_SERVER_URL:-$GITEA_SERVER_URL}/${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-$GITEA_RUN_ID}"
+          RUN_URL="${GITHUB_SERVER_URL:-$GIT_SERVER_URL}/${GITHUB_REPOSITORY:-$GITEA_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-$GITEA_RUN_ID}"
           jq -n \
             --arg rk "$PD_ROUTING_KEY" \
             --arg summary "$SUMMARY" \
