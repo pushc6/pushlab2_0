@@ -245,6 +245,11 @@ jobs:
       - name: Copy IaC snapshot to S3 (optional)
         if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' && (secrets.TF_SNAPSHOT_BUCKET != '' || vars.TF_SNAPSHOT_BUCKET != '') }}
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: us-east-005
+          AWS_EC2_METADATA_DISABLED: "true"
           TF_SNAPSHOT_BUCKET: ${{ secrets.TF_SNAPSHOT_BUCKET || vars.TF_SNAPSHOT_BUCKET }}
           AWS_S3_ENDPOINT: ${{ secrets.AWS_S3_ENDPOINT }}
         run: |
