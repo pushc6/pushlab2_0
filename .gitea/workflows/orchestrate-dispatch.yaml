@@ -256,9 +256,20 @@ jobs:
           set -euo pipefail
           FILE="/tmp/${SNAP_VERSION}.tgz"
           DEST="s3://${TF_SNAPSHOT_BUCKET}/iac-snapshots/prod/${SNAP_VERSION}/"
-          ARGS=(); 
-          if [ -n "${AWS_S3_ENDPOINT:-}" ]; then 
-            ARGS+=(--endpoint-url "$AWS_S3_ENDPOINT"); 
+          # If no explicit endpoint is provided but the region looks like Backblaze (e.g., us-east-005),
+          # default to the Backblaze B2 S3-compatible endpoint.
+          if [ -z "${AWS_S3_ENDPOINT:-}" ]; then
+            case "${AWS_REGION:-}" in
+              us-east-005|us-west-002|eu-central-003|ap-southeast-001)
+                AWS_S3_ENDPOINT="https://s3.${AWS_REGION}.backblazeb2.com"
+                echo "Using Backblaze S3-compatible endpoint: $AWS_S3_ENDPOINT"
+                ;;
+            esac
+          fi
+
+          ARGS=();
+          if [ -n "${AWS_S3_ENDPOINT:-}" ]; then
+            ARGS+=(--endpoint-url "$AWS_S3_ENDPOINT")
             aws configure set default.s3.addressing_style path || true
           fi
           aws "${ARGS[@]}" s3 cp "$FILE" "$DEST"
