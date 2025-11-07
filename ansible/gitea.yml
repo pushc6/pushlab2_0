@@ -6,6 +6,8 @@
     # Optionally override domain to a real FQDN
     # gitea_domain: git.example.com
     gitea_http_port: 3000
+    # Use reverse-proxy public URL for ROOT_URL
+    gitea_external_url: "https://git.push-lab.com"
   roles:
     - system_hostname
     - gitea
