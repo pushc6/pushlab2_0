@@ -44,15 +44,10 @@ module "vm" {
   ssh_private_key = var.ssh_private_key
 }
 
-// Write Ansible SSH private key material to ansible/ssh_key (0600)
-resource "local_file" "ansible_ssh_key" {
-  content              = var.ssh_private_key
-  filename             = "${path.module}/../../../ansible/ssh_key"
-  file_permission      = "0600"
-  directory_permission = "0755"
-}
+// Note: Inventory and SSH key files are not managed by Terraform.
+// AAP will pull the repo and use committed inventory files; SSH key is provided via AAP credentials.
 
-// Generate a YAML inventory for lab with the single VM under [almalinux]
+// YAML inventory for lab (single VM) exposed as output for CI generation
 locals {
   ansible_inventory_yaml = yamlencode({
     all = {
@@ -60,10 +55,9 @@ locals {
         almalinux = {
           hosts = {
             "${module.vm.vm_name}" = {
-              ansible_host                 = module.vm.vm_ip
-              ansible_user                 = var.vm_ssh_user
-              system_hostname              = module.vm.vm_name
-              ansible_ssh_private_key_file = "../../ssh_key"
+              ansible_host    = module.vm.vm_ip
+              ansible_user    = var.vm_ssh_user
+              system_hostname = module.vm.vm_name
             }
           }
         }
@@ -72,10 +66,6 @@ locals {
   })
 }
 
-resource "local_file" "ansible_inventory_lab" {
-  content              = local.ansible_inventory_yaml
-  filename             = "${path.module}/../../../ansible/inventories/lab/hosts.yml"
-  file_permission      = "0644"
-  directory_permission = "0755"
-  depends_on           = [local_file.ansible_ssh_key]
+output "ansible_inventory_yaml" {
+  value = local.ansible_inventory_yaml
 }

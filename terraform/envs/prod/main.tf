@@ -68,32 +68,19 @@ module "vm" {
   prevent_destroy = coalesce(try(each.value.prevent_destroy, null), false)
 }
 
-// Write Ansible SSH private key material to ansible/ssh_key (0600)
-resource "local_file" "ansible_ssh_key" {
-  content              = local.effective_ssh_private_key
-  filename             = "${path.module}/../../../ansible/ssh_key"
-  file_permission      = "0600"
-  directory_permission = "0755"
-}
+// Note: Inventory and SSH key files are no longer managed by Terraform.
+// AAP will pull the repo and use committed inventory files; SSH key is provided via AAP credentials.
 
-// Generate a simple inventory with the VM IPs under group [almalinux]
-locals {
-  ansible_inventory_lines = concat([
-    "[almalinux]"
-  ], [for name, m in module.vm : "${name} ansible_host=${m.vm_ip} ansible_user=${var.vm_ssh_user}"])
-}
-
-// YAML inventory compatible with Ansible
+// YAML inventory compatible with Ansible (for CI generation via outputs)
 locals {
   ansible_inventory_yaml = yamlencode({
     all = {
       children = {
         almalinux = {
           hosts = { for name, m in module.vm : name => {
-            ansible_host                 = (try(var.vms[name].ipv4_address, "") != "" ? var.vms[name].ipv4_address : m.vm_ip)
-            ansible_user                 = var.vm_ssh_user
-            system_hostname              = try(var.vms[name].hostname, name)
-            ansible_ssh_private_key_file = "../../ssh_key"
+            ansible_host    = (try(var.vms[name].ipv4_address, "") != "" ? var.vms[name].ipv4_address : m.vm_ip)
+            ansible_user    = var.vm_ssh_user
+            system_hostname = try(var.vms[name].hostname, name)
           } }
         }
       }
@@ -101,12 +88,8 @@ locals {
   })
 }
 
-resource "local_file" "ansible_inventory_prod" {
-  content              = local.ansible_inventory_yaml
-  filename             = "${path.module}/../../../ansible/inventories/prod/hosts.yml"
-  file_permission      = "0644"
-  directory_permission = "0755"
-  depends_on           = [local_file.ansible_ssh_key]
+output "ansible_inventory_yaml" {
+  value = local.ansible_inventory_yaml
 }
 
 output "vm_names" {

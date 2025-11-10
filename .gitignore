@@ -45,7 +45,6 @@ Thumbs.db
 
 # Ansible generated artifacts
 ansible/ssh_key
-ansible/inventories/*/hosts.yml
 ansible/roles/gitea/files/
 ansible/roles/gitea/tmp/
 
