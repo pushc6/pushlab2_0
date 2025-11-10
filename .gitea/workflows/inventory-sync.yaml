@@ -2,10 +2,8 @@ name: inventory-sync
 
 on:
   workflow_run:
-    workflows: ["orchestrate-push"]
+    workflows: ["orchestrate-dispatch"]
     types: ["completed"]
-  push:
-    branches: ["main"]
 
 jobs:
   sync:

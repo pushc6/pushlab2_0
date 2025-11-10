@@ -206,6 +206,52 @@ jobs:
             echo "ACTION=$ACTION; plan only"
           fi
 
+      - name: Sync inventories from Terraform outputs (pre-AAP)
+        if: ${{ github.event.inputs.action == 'apply' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: us-east-005
+          AWS_EC2_METADATA_DISABLED: "true"
+          GIT_AUTHOR_NAME: ci-bot
+          GIT_AUTHOR_EMAIL: ci-bot@local
+          GIT_COMMITTER_NAME: ci-bot
+          GIT_COMMITTER_EMAIL: ci-bot@local
+        run: |
+          set -euo pipefail
+          UPDATED=0
+          for ENV in lab prod; do
+            echo "--- Inventory sync: $ENV ---"
+            TF_DIR="terraform/envs/$ENV"
+            if [ ! -d "$TF_DIR" ]; then echo "Skip $ENV (no dir)"; continue; fi
+            # CI: use backend.hcl only with CI AWS_* creds; do not load backend.s3.secrets.hcl
+            if [ -f "$TF_DIR/backend.hcl" ]; then
+              terraform -chdir="$TF_DIR" init -backend-config=backend.hcl -reconfigure -input=false >/dev/null
+            else
+              terraform -chdir="$TF_DIR" init -backend=false -input=false >/dev/null
+            fi
+            mkdir -p "ansible/inventories/$ENV"
+            TMP=$(mktemp)
+            if terraform -chdir="$TF_DIR" output -raw ansible_inventory_yaml > "$TMP" 2>/dev/null; then
+              TARGET="ansible/inventories/$ENV/hosts.yml"
+              if [ ! -f "$TARGET" ] || ! cmp -s "$TARGET" "$TMP"; then
+                mv "$TMP" "$TARGET"
+                echo "Updated $TARGET"
+                UPDATED=1
+              else
+                rm -f "$TMP"; echo "No change for $ENV"
+              fi
+            else
+              rm -f "$TMP"; echo "No ansible_inventory_yaml output for $ENV; skipped"
+            fi
+          done
+          if [ "$UPDATED" -eq 1 ]; then
+            git add ansible/inventories
+            git commit -m "Inventory sync (pre-AAP): lab & prod" || echo "Nothing to commit"
+            git push || echo "Warning: push failed; ensure runner has push permissions"
+          fi
+
       - name: Snapshot IaC after prod apply
         if: ${{ github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' }}
         env:
