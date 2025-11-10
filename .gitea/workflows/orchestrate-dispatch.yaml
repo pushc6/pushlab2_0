@@ -372,9 +372,14 @@ jobs:
           dnf -y install curl jq ca-certificates
       - name: Trigger AAP Job Template (apply only)
         env:
-          AAP_URL: ${{ secrets.AAP_URL }}
+          # Use repository variable for AAP_URL (non-secret); fallback to secret only if variable unset
+          AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
           AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
+          # Optional: allow selecting token auth scheme: 'Bearer' (OAuth2 token) or 'Token' (PAT). Default is 'Token'.
+          AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
+          # Prefer explicit ID secret; fallback to name lookup via AAP_JOB_TEMPLATE_NAME variable
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
+          AAP_JOB_TEMPLATE_NAME: ${{ vars.AAP_JOB_TEMPLATE_NAME }}
         run: |
           set -euo pipefail
           ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
@@ -383,8 +388,33 @@ jobs:
             echo "ACTION=$ACTION; skipping AAP trigger (apply only)"
             exit 0
           fi
-          if [ -z "$AAP_URL" ] || [ -z "$AAP_TOKEN" ] || [ -z "$AAP_JOB_TEMPLATE_ID" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
+          MISSING=()
+          [ -z "$AAP_URL" ] && MISSING+=(AAP_URL)
+          [ -z "$AAP_TOKEN" ] && MISSING+=(AAP_TOKEN)
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "Skipping AAP trigger; missing: ${MISSING[*]}"; exit 0
+          fi
+          # Default token type to 'Token' if not provided; set to 'Bearer' for OAuth2 app tokens
+          : "${AAP_TOKEN_TYPE:=Token}"
+          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
+          # If ID not provided, attempt lookup by name
+          if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
+            if [ -n "$AAP_JOB_TEMPLATE_NAME" ]; then
+              echo "Looking up Job Template ID for name: $AAP_JOB_TEMPLATE_NAME"
+              RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)") || {
+                echo "Failed to query AAP job templates"; exit 0; }
+              AAP_JOB_TEMPLATE_ID=$(echo "$RESP" | jq -r '.results[0].id // empty')
+              if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
+                echo "Could not resolve Job Template name '$AAP_JOB_TEMPLATE_NAME'; skipping"
+                exit 0
+              fi
+              echo "Resolved Job Template ID: $AAP_JOB_TEMPLATE_ID"
+            else
+              echo "No AAP_JOB_TEMPLATE_ID or AAP_JOB_TEMPLATE_NAME provided; skipping"
+              exit 0
+            fi
+          fi
           curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $AAP_TOKEN" \
+            -H "$AUTH_HEADER" \
             -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' | jq .

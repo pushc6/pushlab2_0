@@ -293,17 +293,22 @@ jobs:
           dnf -y install curl jq ca-certificates
       - name: Trigger AAP Job Template (apply or ansible-only change)
         env:
-          AAP_URL: ${{ secrets.AAP_URL }}
+          # Prefer variable for AAP_URL to avoid storing non-sensitive base URL as secret
+          AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
           AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
+          # Optional variable to select token type: 'Bearer' or 'Token'; default is 'Token'
+          AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
           ENVIRONMENT: ${{ needs.terraform.outputs.environment }}
         run: |
           set -euo pipefail
           if [ -z "${AAP_URL:-}" ] || [ -z "${AAP_TOKEN:-}" ] || [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
           TARGET_ENV="${ENVIRONMENT:-lab}"
+          : "${AAP_TOKEN_TYPE:=Token}"
+          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
           curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $AAP_TOKEN" \
+            -H "$AUTH_HEADER" \
             -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' | jq .
 
   aap-skip-report:
