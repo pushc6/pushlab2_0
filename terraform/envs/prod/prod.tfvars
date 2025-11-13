@@ -13,18 +13,6 @@ template_name = "almalinux-10-minimal-template-20251104"
 
 # Per-VM definitions
 vms = {
-  "truenas-proxy" = {
-    cpu_count        = 4
-    memory_mb        = 8192
-    disk_size_gb     = 50
-    thin_provisioned = true
-    # Static IP configuration (set to DHCP by leaving ipv4_address empty)
-    ipv4_address = "10.37.70.42"
-    ipv4_netmask = 24
-    ipv4_gateway = "10.37.70.1"
-    dns_servers  = ["10.37.70.2"]
-    domain       = "localdomain"
-  }
   # Gitea server VM (adjust IP/DNS to your environment)
   "gitea" = {
     network          = "VLAN 80 - App"
