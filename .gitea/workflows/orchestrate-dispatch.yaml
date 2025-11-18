@@ -220,36 +220,15 @@ jobs:
           GIT_COMMITTER_EMAIL: ${{ vars.GIT_BOT_EMAIL || 'ci-bot@local' }}
         run: |
           set -euo pipefail
-          UPDATED=0
-          for ENV in lab prod; do
-            echo "--- Inventory sync: $ENV ---"
-            TF_DIR="terraform/envs/$ENV"
-            if [ ! -d "$TF_DIR" ]; then echo "Skip $ENV (no dir)"; continue; fi
-            # CI: use backend.hcl only with CI AWS_* creds; do not load backend.s3.secrets.hcl
-            if [ -f "$TF_DIR/backend.hcl" ]; then
-              terraform -chdir="$TF_DIR" init -backend-config=backend.hcl -reconfigure -input=false >/dev/null
-            else
-              terraform -chdir="$TF_DIR" init -backend=false -input=false >/dev/null
-            fi
-            mkdir -p "ansible/inventories/$ENV"
-            TMP=$(mktemp)
-            if terraform -chdir="$TF_DIR" output -raw ansible_inventory_yaml > "$TMP" 2>/dev/null; then
-              TARGET="ansible/inventories/$ENV/hosts.yml"
-              if [ ! -f "$TARGET" ] || ! cmp -s "$TARGET" "$TMP"; then
-                mv "$TMP" "$TARGET"
-                echo "Updated $TARGET"
-                UPDATED=1
-              else
-                rm -f "$TMP"; echo "No change for $ENV"
-              fi
-            else
-              rm -f "$TMP"; echo "No ansible_inventory_yaml output for $ENV; skipped"
-            fi
-          done
-          if [ "$UPDATED" -eq 1 ]; then
+          # Terraform apply (via local_file) has already updated the inventory files if needed.
+          # We just need to check if there are changes and commit them.
+          if [ -n "$(git status --porcelain ansible/inventories)" ]; then
+            echo "Inventory changes detected."
             git add ansible/inventories
-            git commit -m "Inventory sync (pre-AAP): lab & prod" || echo "Nothing to commit"
-            git push || echo "Warning: push failed; ensure runner has push permissions"
+            git commit -m "Inventory sync (pre-AAP): lab & prod"
+            git push
+          else
+            echo "No inventory changes."
           fi
 
       - name: Snapshot IaC after prod apply
@@ -374,7 +353,7 @@ jobs:
         env:
           # Use repository variable for AAP_URL (non-secret); fallback to secret only if variable unset
           AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
+          AAP_WEBHOOK_TOKEN: ${{ secrets.AAP_WEBHOOK_TOKEN }}
           # Optional: allow selecting token auth scheme: 'Bearer' (OAuth2 token) or 'Token' (PAT). Default is 'Token'.
           AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
           # Prefer explicit ID secret; fallback to name lookup via AAP_JOB_TEMPLATE_NAME variable
@@ -390,13 +369,13 @@ jobs:
           fi
           MISSING=()
           [ -z "$AAP_URL" ] && MISSING+=(AAP_URL)
-          [ -z "$AAP_TOKEN" ] && MISSING+=(AAP_TOKEN)
+          [ -z "$AAP_WEBHOOK_TOKEN" ] && MISSING+=(AAP_WEBHOOK_TOKEN)
           if [ ${#MISSING[@]} -gt 0 ]; then
             echo "Skipping AAP trigger; missing: ${MISSING[*]}"; exit 0
           fi
           # Default token type to 'Token' if not provided; set to 'Bearer' for OAuth2 app tokens
           : "${AAP_TOKEN_TYPE:=Token}"
-          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
+          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_WEBHOOK_TOKEN}"
           # If ID not provided, attempt lookup by name
           if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
             if [ -n "$AAP_JOB_TEMPLATE_NAME" ]; then

@@ -1,0 +1,30 @@
+---
+- name: Identify data disk by size
+  set_fact:
+    target_disk: "{{ item.key }}"
+  loop: "{{ ansible_devices | dict2items }}"
+  when:
+    - item.value.size is defined
+    - item.value.size | human_to_bytes == data_disk_size_gb | int * 1024 * 1024 * 1024
+    - item.key is not search("dm-")
+    - item.key is not search("loop")
+  # We expect exactly one match for the data disk size.
+  # This is a simple heuristic; for more complex setups, we might need WWID or LUN ID.
+
+- name: Fail if no disk found
+  fail:
+    msg: "Could not find a disk with size {{ data_disk_size_gb }} GB"
+  when: target_disk is not defined
+
+- name: Create filesystem on data disk
+  community.general.filesystem:
+    fstype: "{{ data_fs_type | default('ext4') }}"
+    dev: "/dev/{{ target_disk }}"
+
+- name: Mount data disk
+  ansible.posix.mount:
+    path: "{{ data_mount_point | default('/data') }}"
+    src: "/dev/{{ target_disk }}"
+    fstype: "{{ data_fs_type | default('ext4') }}"
+    opts: defaults
+    state: mounted

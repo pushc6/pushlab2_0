@@ -98,3 +98,8 @@ output "vm_names" {
 output "vm_ips" {
   value = { for k in keys(module.vm) : k => (can(module.vm[k].vm_ip) ? module.vm[k].vm_ip : null) }
 }
+
+resource "local_file" "ansible_inventory" {
+  content  = local.ansible_inventory_yaml
+  filename = "${path.module}/../../../../ansible/inventories/prod/hosts.yml"
+}

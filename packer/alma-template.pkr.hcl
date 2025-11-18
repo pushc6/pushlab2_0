@@ -60,6 +60,12 @@ variable "alma_iso_url" {
   default     = "https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10.0-x86_64-boot.iso"
 }
 
+variable "iso_checksum" {
+  type        = string
+  description = "Checksum for the AlmaLinux ISO"
+  default     = "file:https://repo.almalinux.org/almalinux/10/isos/x86_64/CHECKSUM"
+}
+
 variable "ssh_private_key_file" {
   type        = string
   description = "Path to the private key matching the SSH public key injected via kickstart. Used by Packer to connect."
@@ -123,7 +129,7 @@ source "vsphere-iso" "almalinux" {
 
   # ISO configuration
   iso_url      = var.alma_iso_url
-  iso_checksum = "file:https://repo.almalinux.org/almalinux/10/isos/x86_64/CHECKSUM"
+  iso_checksum = var.iso_checksum
 
   # Boot configuration for kickstart automation
   boot_wait = "20s"
