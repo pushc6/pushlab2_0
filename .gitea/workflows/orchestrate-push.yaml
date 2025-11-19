@@ -12,14 +12,13 @@ jobs:
       - name: Emit kickoff
         run: |
           echo "kickoff: ref=${{ github.ref }} sha=${{ github.sha }}"
-      if: ${{ needs.terraform.outputs.apply == 'true' || needs.terraform.outputs.ansible_changed == 'true' }}
+
   validate:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux:10
     steps:
       - name: Prep tools (dnf)
-        - name: Trigger AAP Job Template (apply)
-          if: ${{ needs.terraform.outputs.apply == 'true' }}
+        run: |
           dnf -y makecache
           # Ensure Node.js is present for JavaScript-based actions (actions/checkout)
           dnf -y module enable nodejs:20 || true
@@ -38,42 +37,6 @@ jobs:
             git diff --name-only "$BASE" "$GITHUB_SHA" | sort -u > /tmp/changed.txt || true
           else
             git show --pretty="" --name-only "$GITHUB_SHA" | sort -u > /tmp/changed.txt || true
-
-        - name: Ensure AAP templates for changed playbooks (optional)
-          if: ${{ needs.terraform.outputs.apply != 'true' && needs.terraform.outputs.ansible_changed == 'true' }}
-          env:
-            AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-            AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
-            AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
-            MAP_FILE: .gitea/aap-templates.json
-            AAP_AUTOCREATE_TEMPLATES: ${{ vars.AAP_AUTOCREATE_TEMPLATES || 'false' }}
-            AAP_PROJECT_ID: ${{ secrets.AAP_PROJECT_ID }}
-            AAP_PROJECT_NAME: ${{ vars.AAP_PROJECT_NAME }}
-            AAP_INVENTORY_ID: ${{ secrets.AAP_INVENTORY_ID }}
-            AAP_INVENTORY_NAME: ${{ vars.AAP_INVENTORY_NAME }}
-            AAP_CREDENTIAL_ID: ${{ secrets.AAP_CREDENTIAL_ID }}
-            AAP_CREDENTIAL_NAME: ${{ vars.AAP_CREDENTIAL_NAME }}
-            AAP_EE_ID: ${{ secrets.AAP_EE_ID }}
-            AAP_EE_NAME: ${{ vars.AAP_EE_NAME }}
-          run: |
-            set -euo pipefail
-            if [ -z "${AAP_URL:-}" ] || [ -z "${AAP_TOKEN:-}" ]; then echo "AAP vars not set; skipping ensure"; exit 0; fi
-            bash .gitea/scripts/aap-ensure-templates.sh
-
-        - name: Trigger changed playbooks (ansible-only change)
-          if: ${{ needs.terraform.outputs.apply != 'true' && needs.terraform.outputs.ansible_changed == 'true' }}
-          env:
-            AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-            AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
-            AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
-            ENVIRONMENT: ${{ needs.terraform.outputs.environment }}
-            MAP_FILE: .gitea/aap-templates.json
-            FALLBACK_TEMPLATE_NAME: ${{ vars.AAP_FALLBACK_TEMPLATE_NAME }}
-            STRICT_MODE: ${{ vars.AAP_STRICT_MODE }}
-          run: |
-            set -euo pipefail
-            if [ -z "${AAP_URL:-}" ] || [ -z "${AAP_TOKEN:-}" ]; then echo "AAP vars not set; skipping"; exit 0; fi
-            bash .gitea/scripts/launch-aap-for-changes.sh
           fi
           touch /tmp/changed.txt
           cat /tmp/changed.txt
