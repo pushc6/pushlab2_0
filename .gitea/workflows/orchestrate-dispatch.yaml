@@ -353,8 +353,8 @@ jobs:
         env:
           # Use repository variable for AAP_URL (non-secret); fallback to secret only if variable unset
           AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-          AAP_WEBHOOK_TOKEN: ${{ secrets.AAP_WEBHOOK_TOKEN }}
-          # Optional: allow selecting token auth scheme: 'Bearer' (OAuth2 token) or 'Token' (PAT). Default is 'Token'.
+          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
+          # Optional: allow selecting token type: 'Bearer' (OAuth2 token) or 'Token' (PAT). Default is 'Token'.
           AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
           # Prefer explicit ID secret; fallback to name lookup via AAP_JOB_TEMPLATE_NAME variable
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
@@ -369,13 +369,13 @@ jobs:
           fi
           MISSING=()
           [ -z "$AAP_URL" ] && MISSING+=(AAP_URL)
-          [ -z "$AAP_WEBHOOK_TOKEN" ] && MISSING+=(AAP_WEBHOOK_TOKEN)
+          [ -z "$AAP_TOKEN" ] && MISSING+=(AAP_TOKEN)
           if [ ${#MISSING[@]} -gt 0 ]; then
             echo "Skipping AAP trigger; missing: ${MISSING[*]}"; exit 0
           fi
           # Default token type to 'Token' if not provided; set to 'Bearer' for OAuth2 app tokens
           : "${AAP_TOKEN_TYPE:=Token}"
-          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_WEBHOOK_TOKEN}"
+          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
           # If ID not provided, attempt lookup by name
           if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
             if [ -n "$AAP_JOB_TEMPLATE_NAME" ]; then
