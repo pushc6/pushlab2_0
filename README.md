@@ -317,7 +317,7 @@ Workflows live under `.gitea/workflows/` and run on the self-hosted Docker runne
     - `action`: `plan` or `apply`.
     - `build_packer`: `true`/`false` to optionally build the template first.
   - Performs: optional Packer build → Terraform (plan/apply) → optional AAP trigger.
-
+ 
 If the Gitea UI doesn’t show a manual Run option, use `orchestrate-push.yaml` by pushing an empty commit to the `orchestrate` branch:
 
 ```sh
