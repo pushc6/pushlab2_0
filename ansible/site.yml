@@ -10,3 +10,7 @@
 - name: Run Manual Host Onboarding
   import_playbook: onboard_manual.yml
   when: "'manual' in groups"
+
+- name: Install Docker
+  import_playbook: docker.yml
+  when: "'docker_hosts' in groups"
