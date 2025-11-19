@@ -393,7 +393,19 @@ jobs:
               exit 0
             fi
           fi
-          curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+          echo "Triggering AAP Job Template ID: $AAP_JOB_TEMPLATE_ID"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \
             -H "$AUTH_HEADER" \
-            -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' | jq .
+            -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response Body:"
+          echo "$BODY"
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "$BODY" | jq . || echo "Warning: Response is not valid JSON"
+          else
+            echo "Error: AAP API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
