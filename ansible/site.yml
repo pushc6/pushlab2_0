@@ -5,16 +5,19 @@
 
 - name: Run System Updates
   import_playbook: update_all.yml
-
+  tags: ['updates', 'security']
 
 - name: Run Gitea Configuration
   import_playbook: gitea.yml
   when: "'gitea' in groups"
+  tags: ['gitea', 'apps']
 
 - name: Run Manual Host Onboarding
   import_playbook: onboard_manual.yml
   when: "'manual' in groups"
+  tags: ['onboard', 'manual']
 
 - name: Install Docker
   import_playbook: docker.yml
   when: "'docker_hosts' in groups"
+  tags: ['docker', 'apps']
