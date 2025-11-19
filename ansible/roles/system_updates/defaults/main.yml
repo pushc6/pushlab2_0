@@ -1,0 +1,5 @@
+---
+# Defaults for system_updates role
+enable_reboot: true
+reboot_timeout: 300
+post_reboot_delay: 30

@@ -1,0 +1,10 @@
+---
+- name: Include RHEL updates role
+  include_role:
+    name: rhel_updates
+  when: ansible_os_family == 'RedHat'
+
+- name: Include Debian updates role
+  include_role:
+    name: debian_updates
+  when: ansible_os_family == 'Debian'
