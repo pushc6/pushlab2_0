@@ -5,7 +5,9 @@ on:
     branches:
       - main
 
-concurrency: production
+concurrency:
+  group: production
+  cancel-in-progress: false
 
 jobs:
   kickoff:
