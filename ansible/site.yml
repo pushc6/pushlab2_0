@@ -1,0 +1,12 @@
+---
+# Master Playbook
+# This playbook orchestrates the execution of all other playbooks based on host groups.
+# AAP should point to this playbook.
+
+- name: Run Gitea Configuration
+  import_playbook: gitea.yml
+  when: "'gitea' in groups"
+
+- name: Run Manual Host Onboarding
+  import_playbook: onboard_manual.yml
+  when: "'manual' in groups"
