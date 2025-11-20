@@ -469,8 +469,11 @@ jobs:
         env:
           # Prefer variable for AAP_URL to avoid storing non-sensitive base URL as secret
           AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
-          # Optional variable to select token type: 'Bearer' or 'Token'; default is 'Token'
+          # OAuth2 Credentials
+          AAP_CLIENT_ID: ${{ vars.AAP_CLIENT_ID }}
+          AAP_CLIENT_SECRET: ${{ secrets.AAP_CLIENT_SECRET }}
+          SSO_URL: ${{ vars.SSO_URL }}
+          # Optional variable to select token type: 'Bearer' or 'Token'.
           AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
           AAP_JOB_TEMPLATE_NAME: ${{ vars.AAP_JOB_TEMPLATE_NAME }}
@@ -478,15 +481,42 @@ jobs:
           JOB_TAGS: ${{ env.TAGS }}
         run: |
           set -euo pipefail
-          if [ -z "${AAP_URL:-}" ] || [ -z "${AAP_TOKEN:-}" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
+          if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
+          
+          # Token Exchange Logic
+          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ] && [ -n "$SSO_URL" ]; then
+            echo "Performing OAuth2 Token Exchange with Keycloak..."
+            TOKEN_RESP=$(curl -s -X POST "$SSO_URL" \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "grant_type=client_credentials" \
+              -d "client_id=${AAP_CLIENT_ID}" \
+              -d "client_secret=${AAP_CLIENT_SECRET}")
+            
+            AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.access_token // empty')
+            if [ -z "$AAP_TOKEN" ]; then
+              echo "Failed to obtain access token from SSO. Response:"
+              echo "$TOKEN_RESP"
+              exit 1
+            fi
+            AAP_TOKEN_TYPE="Bearer"
+            echo "Successfully obtained Bearer token."
+          elif [ -n "${{ secrets.AAP_TOKEN }}" ]; then
+             echo "Using static AAP_TOKEN..."
+             AAP_TOKEN="${{ secrets.AAP_TOKEN }}"
+             : "${AAP_TOKEN_TYPE:=Token}"
+          else
+             echo "No credentials found (AAP_CLIENT_ID/SECRET or AAP_TOKEN); skipping"
+             exit 0
+          fi
+          
+          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
           
           # If ID not provided, attempt lookup by name
           if [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then
             if [ -n "${AAP_JOB_TEMPLATE_NAME:-}" ]; then
               echo "Looking up Job Template ID for name: $AAP_JOB_TEMPLATE_NAME"
-              : "${AAP_TOKEN_TYPE:=Token}"
-              AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
-              RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)") || {
+              # Note: Using /api/controller/v2 for lookup as well
+              RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)") || {
                 echo "Failed to query AAP job templates"; exit 0; }
               AAP_JOB_TEMPLATE_ID=$(echo "$RESP" | jq -r '.results[0].id // empty')
               if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
@@ -501,8 +531,6 @@ jobs:
           fi
 
           TARGET_ENV="${ENVIRONMENT:-prod}"
-          : "${AAP_TOKEN_TYPE:=Token}"
-          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
           
           # Construct JSON payload
           # If JOB_TAGS is empty, omitting it runs all tags (default behavior)
@@ -514,7 +542,8 @@ jobs:
           
           echo "Triggering AAP with payload: $DATA"
           
-          curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+          # Updated API Path: /api/controller/v2
+          curl -s -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \
             -H "$AUTH_HEADER" \
             -d "$DATA" | jq .

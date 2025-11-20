@@ -18,14 +18,42 @@ jobs:
       - name: Trigger AAP (Full Convergence)
         env:
           AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
+          # OAuth2 Credentials
+          AAP_CLIENT_ID: ${{ vars.AAP_CLIENT_ID }}
+          AAP_CLIENT_SECRET: ${{ secrets.AAP_CLIENT_SECRET }}
+          SSO_URL: ${{ vars.SSO_URL }}
           AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
         run: |
           set -euo pipefail
-          if [ -z "${AAP_URL:-}" ] || [ -z "${AAP_TOKEN:-}" ] || [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then echo "AAP secrets not set; skipping"; exit 0; fi
+          if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
           
-          : "${AAP_TOKEN_TYPE:=Token}"
+          # Token Exchange Logic
+          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ] && [ -n "$SSO_URL" ]; then
+            echo "Performing OAuth2 Token Exchange with Keycloak..."
+            TOKEN_RESP=$(curl -s -X POST "$SSO_URL" \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "grant_type=client_credentials" \
+              -d "client_id=${AAP_CLIENT_ID}" \
+              -d "client_secret=${AAP_CLIENT_SECRET}")
+            
+            AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.access_token // empty')
+            if [ -z "$AAP_TOKEN" ]; then
+              echo "Failed to obtain access token from SSO. Response:"
+              echo "$TOKEN_RESP"
+              exit 1
+            fi
+            AAP_TOKEN_TYPE="Bearer"
+            echo "Successfully obtained Bearer token."
+          elif [ -n "${{ secrets.AAP_TOKEN }}" ]; then
+             echo "Using static AAP_TOKEN..."
+             AAP_TOKEN="${{ secrets.AAP_TOKEN }}"
+             : "${AAP_TOKEN_TYPE:=Token}"
+          else
+             echo "No credentials found (AAP_CLIENT_ID/SECRET or AAP_TOKEN); skipping"
+             exit 0
+          fi
+          
           AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
           
           # No tags = Run All = Full Convergence
@@ -33,7 +61,8 @@ jobs:
           
           echo "Triggering AAP for Drift Check (Full Run)..."
           
-          curl -s -X POST "$AAP_URL/api/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+          # Updated API Path: /api/controller/v2
+          curl -s -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \
             -H "$AUTH_HEADER" \
             -d "$DATA" | jq .
