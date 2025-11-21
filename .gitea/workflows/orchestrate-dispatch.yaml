@@ -353,10 +353,9 @@ jobs:
         env:
           # Use repository variable for AAP_URL (non-secret); fallback to secret only if variable unset
           AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-          # OAuth2 Credentials
-          AAP_CLIENT_ID: ${{ vars.AAP_CLIENT_ID }}
-          AAP_CLIENT_SECRET: ${{ secrets.AAP_CLIENT_SECRET }}
-          SSO_URL: ${{ vars.SSO_URL }}
+          # AAP Native Credentials
+          AAP_USERNAME: ${{ vars.AAP_USERNAME }}
+          AAP_PASSWORD: ${{ secrets.AAP_PASSWORD }}
           # Optional: allow selecting token type: 'Bearer' (OAuth2 token) or 'Token' (PAT). Default is 'Bearer' for OAuth2.
           AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
           # Prefer explicit ID secret; fallback to name lookup via AAP_JOB_TEMPLATE_NAME variable
@@ -375,17 +374,16 @@ jobs:
           if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
           
           # Token Exchange Logic
-          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ] && [ -n "$SSO_URL" ]; then
-            echo "Performing OAuth2 Token Exchange with Keycloak..."
-            TOKEN_RESP=$(curl -s -X POST "$SSO_URL" \
-              -H "Content-Type: application/x-www-form-urlencoded" \
-              -d "grant_type=client_credentials" \
-              -d "client_id=${AAP_CLIENT_ID}" \
-              -d "client_secret=${AAP_CLIENT_SECRET}")
+          if [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
+            echo "Performing AAP Native Token Exchange..."
+            # Use Basic Auth (username:password) to get a token
+            TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/controller/v2/tokens/" \
+              -u "${AAP_USERNAME}:${AAP_PASSWORD}" \
+              -H "Content-Type: application/json")
             
-            AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.access_token // empty')
+            AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
             if [ -z "$AAP_TOKEN" ]; then
-              echo "Failed to obtain access token from SSO. Response:"
+              echo "Failed to obtain access token from AAP. Response:"
               echo "$TOKEN_RESP"
               exit 1
             fi
@@ -396,7 +394,7 @@ jobs:
              AAP_TOKEN="${{ secrets.AAP_TOKEN }}"
              : "${AAP_TOKEN_TYPE:=Token}"
           else
-             echo "No credentials found (AAP_CLIENT_ID/SECRET or AAP_TOKEN); skipping"
+             echo "No credentials found (AAP_USERNAME/PASSWORD or AAP_TOKEN); skipping"
              exit 0
           fi
 
