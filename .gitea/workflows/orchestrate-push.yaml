@@ -485,11 +485,27 @@ jobs:
           # Token Exchange Logic
           if [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
             echo "Performing AAP Native Token Exchange..."
-            # Use Basic Auth (username:password) to get a token
+            
+            # Manual Basic Auth Header construction to avoid curl -u issues
+            AUTH_STRING=$(printf "%s:%s" "$AAP_USERNAME" "$AAP_PASSWORD" | base64)
+            
+            # Try /api/controller/v2/tokens/ first
+            echo "Attempting POST to $AAP_URL/api/controller/v2/tokens/ ..."
             TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/controller/v2/tokens/" \
-              -u "${AAP_USERNAME}:${AAP_PASSWORD}" \
+              -H "Authorization: Basic $AUTH_STRING" \
               -H "Content-Type: application/json")
             
+            # Check if we got a token, if not, try legacy /api/v2/tokens/
+            if echo "$TOKEN_RESP" | jq -e '.token' >/dev/null; then
+               echo "Success with /api/controller/v2/"
+            else
+               echo "Failed with /api/controller/v2/. Response: $TOKEN_RESP"
+               echo "Retrying with $AAP_URL/api/v2/tokens/ ..."
+               TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/v2/tokens/" \
+                 -H "Authorization: Basic $AUTH_STRING" \
+                 -H "Content-Type: application/json")
+            fi
+
             AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
             if [ -z "$AAP_TOKEN" ]; then
               echo "Failed to obtain access token from AAP. Response:"
