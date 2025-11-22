@@ -370,39 +370,62 @@ jobs:
             exit 0
           fi
           
-          # Check for required variables
           if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
           
+          # Debug: Check if credentials are set (masked)
+          if [ -n "$AAP_USERNAME" ]; then echo "AAP_USERNAME is set."; else echo "AAP_USERNAME is MISSING."; fi
+          if [ -n "$AAP_PASSWORD" ]; then echo "AAP_PASSWORD is set."; else echo "AAP_PASSWORD is MISSING."; fi
+
           # Token Exchange Logic
           if [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
-            echo "Performing AAP Native Token Exchange..."
+            echo "Performing AAP Native Token Exchange (Debug Mode)..."
             
-            # Manual Basic Auth Header construction. tr -d '\n' ensures no newlines.
             AUTH_STRING=$(printf "%s:%s" "$AAP_USERNAME" "$AAP_PASSWORD" | base64 | tr -d '\n')
             
-            # Try /api/controller/v2/tokens/ first
-            echo "Attempting POST to $AAP_URL/api/controller/v2/tokens/ ..."
+            # Attempt 1: /api/controller/v2/tokens/ with Basic Auth + Body
+            echo "--- Attempt 1: POST /api/controller/v2/tokens/ (Basic Auth) ---"
             TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/controller/v2/tokens/" \
               -H "Authorization: Basic $AUTH_STRING" \
-              -H "Content-Type: application/json")
+              -H "Content-Type: application/json" \
+              -d '{"description":"Gitea CI","scope":"write"}')
+            echo "Response: $TOKEN_RESP"
             
-            # Check if we got a token, if not, try legacy /api/v2/tokens/
             if echo "$TOKEN_RESP" | jq -e '.token' >/dev/null 2>&1; then
-               echo "Success with /api/controller/v2/"
+               AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token')
+               echo "Success!"
             else
-               echo "Failed with /api/controller/v2/. Response: $TOKEN_RESP"
-               echo "Retrying with $AAP_URL/api/v2/tokens/ ..."
-               TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/v2/tokens/" \
-                 -H "Authorization: Basic $AUTH_STRING" \
-                 -H "Content-Type: application/json")
-               echo "Response from /api/v2/tokens/: $TOKEN_RESP"
+               # Attempt 2: /api/o/token/ (OAuth2 Password Grant)
+               echo "--- Attempt 2: POST /api/o/token/ (OAuth2 Password Grant) ---"
+               TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/o/token/" \
+                 -H "Content-Type: application/x-www-form-urlencoded" \
+                 -d "grant_type=password" \
+                 -d "username=$AAP_USERNAME" \
+                 -d "password=$AAP_PASSWORD")
+               echo "Response: $TOKEN_RESP"
+               
+               if echo "$TOKEN_RESP" | jq -e '.access_token' >/dev/null 2>&1; then
+                  AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.access_token')
+                  echo "Success!"
+               else
+                  # Attempt 3: /api/controller/v2/o/token/ (OAuth2 Password Grant - Nested)
+                  echo "--- Attempt 3: POST /api/controller/v2/o/token/ ---"
+                  TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/controller/v2/o/token/" \
+                    -H "Content-Type: application/x-www-form-urlencoded" \
+                    -d "grant_type=password" \
+                    -d "username=$AAP_USERNAME" \
+                    -d "password=$AAP_PASSWORD")
+                  echo "Response: $TOKEN_RESP"
+                  
+                  if echo "$TOKEN_RESP" | jq -e '.access_token' >/dev/null 2>&1; then
+                     AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.access_token')
+                     echo "Success!"
+                  else
+                     echo "All auth attempts failed."
+                     exit 1
+                  fi
+               fi
             fi
 
-            AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
-            if [ -z "$AAP_TOKEN" ]; then
-              echo "Failed to obtain access token from AAP."
-              exit 1
-            fi
             AAP_TOKEN_TYPE="Bearer"
             echo "Successfully obtained Bearer token."
           elif [ -n "${{ secrets.AAP_TOKEN }}" ]; then
