@@ -372,60 +372,62 @@ jobs:
           
           if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
           
-          # Debug: Check if credentials are set (masked)
-          if [ -n "$AAP_USERNAME" ]; then echo "AAP_USERNAME is set."; else echo "AAP_USERNAME is MISSING."; fi
-          if [ -n "$AAP_PASSWORD" ]; then echo "AAP_PASSWORD is set."; else echo "AAP_PASSWORD is MISSING."; fi
-
           # Token Exchange Logic
           if [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
-            echo "Performing AAP Native Token Exchange (Debug Mode)..."
+            echo "Performing AAP Native Token Exchange (Session Flow)..."
             
-            AUTH_STRING=$(printf "%s:%s" "$AAP_USERNAME" "$AAP_PASSWORD" | base64 | tr -d '\n')
-            
-            # Attempt 1: /api/controller/v2/tokens/ with Basic Auth + Body
-            echo "--- Attempt 1: POST /api/controller/v2/tokens/ (Basic Auth) ---"
-            TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/controller/v2/tokens/" \
-              -H "Authorization: Basic $AUTH_STRING" \
+            # Step 1: Login to get Session and CSRF cookies
+            echo "Logging in to $AAP_URL/api/login/ ..."
+            # Use a cookie jar
+            rm -f cookies.txt
+            LOGIN_RESP=$(curl -s -c cookies.txt -w "\n%{http_code}" -X POST "$AAP_URL/api/login/" \
               -H "Content-Type: application/json" \
-              -d '{"description":"Gitea CI","scope":"write"}')
-            echo "Response: $TOKEN_RESP"
+              -d "{\"username\": \"$AAP_USERNAME\", \"password\": \"$AAP_PASSWORD\"}")
             
-            if echo "$TOKEN_RESP" | jq -e '.token' >/dev/null 2>&1; then
-               AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token')
-               echo "Success!"
-            else
-               # Attempt 2: /api/o/token/ (OAuth2 Password Grant)
-               echo "--- Attempt 2: POST /api/o/token/ (OAuth2 Password Grant) ---"
-               TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/o/token/" \
-                 -H "Content-Type: application/x-www-form-urlencoded" \
-                 -d "grant_type=password" \
-                 -d "username=$AAP_USERNAME" \
-                 -d "password=$AAP_PASSWORD")
-               echo "Response: $TOKEN_RESP"
-               
-               if echo "$TOKEN_RESP" | jq -e '.access_token' >/dev/null 2>&1; then
-                  AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.access_token')
-                  echo "Success!"
-               else
-                  # Attempt 3: /api/controller/v2/o/token/ (OAuth2 Password Grant - Nested)
-                  echo "--- Attempt 3: POST /api/controller/v2/o/token/ ---"
-                  TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/controller/v2/o/token/" \
-                    -H "Content-Type: application/x-www-form-urlencoded" \
-                    -d "grant_type=password" \
-                    -d "username=$AAP_USERNAME" \
-                    -d "password=$AAP_PASSWORD")
-                  echo "Response: $TOKEN_RESP"
-                  
-                  if echo "$TOKEN_RESP" | jq -e '.access_token' >/dev/null 2>&1; then
-                     AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.access_token')
-                     echo "Success!"
-                  else
-                     echo "All auth attempts failed."
-                     exit 1
-                  fi
-               fi
+            LOGIN_CODE=$(echo "$LOGIN_RESP" | tail -n1)
+            LOGIN_BODY=$(echo "$LOGIN_RESP" | sed '$d')
+            
+            if [ "$LOGIN_CODE" -ne 200 ]; then
+               echo "Login failed with HTTP $LOGIN_CODE"
+               echo "$LOGIN_BODY"
+               exit 1
+            fi
+            echo "Login successful."
+            
+            # Extract CSRF Token from cookies.txt
+            # Format: domain flag path secure expiration name value
+            CSRF_TOKEN=$(grep "csrftoken" cookies.txt | awk '{print $7}')
+            if [ -z "$CSRF_TOKEN" ]; then
+               echo "Failed to extract CSRF token from cookies."
+               cat cookies.txt
+               exit 1
+            fi
+            
+            # Step 2: Create Token using Session + CSRF
+            echo "Creating Token via /api/controller/v2/tokens/ ..."
+            TOKEN_RESP=$(curl -s -b cookies.txt -H "X-CSRFToken: $CSRF_TOKEN" -H "Referer: $AAP_URL" \
+              -X POST "$AAP_URL/api/controller/v2/tokens/" \
+              -H "Content-Type: application/json" \
+              -d '{"description":"Gitea CI", "application": null, "scope":"write"}')
+            
+            AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
+            if [ -z "$AAP_TOKEN" ]; then
+               echo "Failed to obtain token. Response:"
+               echo "$TOKEN_RESP"
+               # Fallback: Try /api/v2/tokens/
+               echo "Retrying with /api/v2/tokens/ ..."
+               TOKEN_RESP=$(curl -s -b cookies.txt -H "X-CSRFToken: $CSRF_TOKEN" -H "Referer: $AAP_URL" \
+                 -X POST "$AAP_URL/api/v2/tokens/" \
+                 -H "Content-Type: application/json" \
+                 -d '{"description":"Gitea CI","scope":"write"}')
+               AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
             fi
 
+            if [ -z "$AAP_TOKEN" ]; then
+              echo "Failed to obtain access token from AAP."
+              echo "$TOKEN_RESP"
+              exit 1
+            fi
             AAP_TOKEN_TYPE="Bearer"
             echo "Successfully obtained Bearer token."
           elif [ -n "${{ secrets.AAP_TOKEN }}" ]; then
