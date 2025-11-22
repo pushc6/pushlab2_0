@@ -486,8 +486,8 @@ jobs:
           if [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
             echo "Performing AAP Native Token Exchange..."
             
-            # Manual Basic Auth Header construction to avoid curl -u issues
-            AUTH_STRING=$(printf "%s:%s" "$AAP_USERNAME" "$AAP_PASSWORD" | base64)
+            # Manual Basic Auth Header construction. tr -d '\n' ensures no newlines.
+            AUTH_STRING=$(printf "%s:%s" "$AAP_USERNAME" "$AAP_PASSWORD" | base64 | tr -d '\n')
             
             # Try /api/controller/v2/tokens/ first
             echo "Attempting POST to $AAP_URL/api/controller/v2/tokens/ ..."
@@ -496,7 +496,7 @@ jobs:
               -H "Content-Type: application/json")
             
             # Check if we got a token, if not, try legacy /api/v2/tokens/
-            if echo "$TOKEN_RESP" | jq -e '.token' >/dev/null; then
+            if echo "$TOKEN_RESP" | jq -e '.token' >/dev/null 2>&1; then
                echo "Success with /api/controller/v2/"
             else
                echo "Failed with /api/controller/v2/. Response: $TOKEN_RESP"
@@ -504,12 +504,12 @@ jobs:
                TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/v2/tokens/" \
                  -H "Authorization: Basic $AUTH_STRING" \
                  -H "Content-Type: application/json")
+               echo "Response from /api/v2/tokens/: $TOKEN_RESP"
             fi
 
             AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
             if [ -z "$AAP_TOKEN" ]; then
-              echo "Failed to obtain access token from AAP. Response:"
-              echo "$TOKEN_RESP"
+              echo "Failed to obtain access token from AAP."
               exit 1
             fi
             AAP_TOKEN_TYPE="Bearer"

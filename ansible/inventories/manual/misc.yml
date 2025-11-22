@@ -1,0 +1,8 @@
+all:
+  children:
+    manual:
+      children:
+        misc:
+          hosts:
+            10.37.70.7:
+            10.37.70.5:
