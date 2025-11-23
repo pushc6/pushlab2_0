@@ -3,6 +3,10 @@
 # This playbook orchestrates the execution of all other playbooks based on host groups.
 # AAP should point to this playbook.
 
+- name: Run Common Setup
+  import_playbook: common_setup.yml
+  tags: ['setup', 'users']
+
 - name: Run System Updates
   import_playbook: update_all.yml
   tags: ['updates', 'security']

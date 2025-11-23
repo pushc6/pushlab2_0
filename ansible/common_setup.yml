@@ -1,0 +1,8 @@
+---
+- name: Common Setup for All Hosts
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - system_users

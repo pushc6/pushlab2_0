@@ -4,46 +4,6 @@
   become: yes
   vars:
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-    target_user: push
   
-  tasks:
-    - name: Ensure wheel group exists
-      group:
-        name: wheel
-        state: present
-
-    - name: Create user {{ target_user }}
-      user:
-        name: "{{ target_user }}"
-        shell: /bin/bash
-        groups: wheel
-        append: yes
-        create_home: yes
-
-    - name: Set authorized key for {{ target_user }}
-      authorized_key:
-        user: "{{ target_user }}"
-        state: present
-        key: "{{ vps_public_key }}"
-
-    - name: Allow 'wheel' group to have passwordless sudo
-      lineinfile:
-        path: /etc/sudoers
-        state: present
-        regexp: '^%wheel'
-        line: '%wheel ALL=(ALL) NOPASSWD: ALL'
-        validate: 'visudo -cf %s'
-
-    - name: Create user ansible
-      user:
-        name: ansible
-        shell: /bin/bash
-        groups: wheel
-        append: yes
-        create_home: yes
-
-    - name: Set authorized key for ansible
-      authorized_key:
-        user: ansible
-        state: present
-        key: "{{ ansible_public_key }}"
+  roles:
+    - system_users
