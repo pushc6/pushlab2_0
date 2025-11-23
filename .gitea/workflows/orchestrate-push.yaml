@@ -19,7 +19,9 @@ jobs:
 
   validate:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux-cicd:latest
+    container:
+      image: almalinux-cicd:latest
+      options: --pull never
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,7 +67,9 @@ jobs:
 
   packer-build:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux-cicd:latest
+    container:
+      image: almalinux-cicd:latest
+      options: --pull never
     needs: [validate]
     steps:
       - name: Checkout
@@ -132,7 +136,9 @@ jobs:
 
   terraform:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux-cicd:latest
+    container:
+      image: almalinux-cicd:latest
+      options: --pull never
     needs: [validate, packer-build]
     outputs:
       environment: ${{ steps.envsel.outputs.ENVIRONMENT }}
@@ -364,7 +370,9 @@ jobs:
 
   ansible-aap:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux-cicd:latest
+    container:
+      image: almalinux-cicd:latest
+      options: --pull never
     needs: [terraform]
     if: ${{ needs.terraform.outputs.apply == 'true' || needs.terraform.outputs.ansible_changed == 'true' }}
     steps:
