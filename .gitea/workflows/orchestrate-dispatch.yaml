@@ -381,18 +381,28 @@ jobs:
              AUTH_STRING=$(printf "%s:%s" "$AAP_CLIENT_ID" "$AAP_CLIENT_SECRET" | base64 | tr -d '\n')
              
              # Request Token from /api/o/token/
-             # Using Basic Auth for Client Credentials is standard
-             TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/o/token/" \
+             # Capture HTTP code and body
+             RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$AAP_URL/api/o/token/" \
                -H "Authorization: Basic $AUTH_STRING" \
                -H "Content-Type: application/x-www-form-urlencoded" \
                -d "grant_type=client_credentials")
              
+             HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+             TOKEN_RESP=$(echo "$RESPONSE" | sed '$d')
+             
+             echo "Token Exchange HTTP Code: $HTTP_CODE"
+             echo "Token Exchange Response Body:"
+             echo "$TOKEN_RESP"
+             
+             if [ "$HTTP_CODE" -ne 200 ]; then
+                echo "::error::OAuth2 Token Exchange failed with HTTP $HTTP_CODE"
+                exit 1
+             fi
+             
              AAP_TOKEN_FINAL=$(echo "$TOKEN_RESP" | jq -r '.access_token // empty')
              
              if [ -z "$AAP_TOKEN_FINAL" ]; then
-                echo "OAuth2 Token Exchange Failed."
-                echo "Response: $TOKEN_RESP"
-                echo "::error::Failed to obtain OAuth2 token. Check Client ID/Secret and AAP configuration."
+                echo "::error::Failed to parse access_token from response."
                 exit 1
              fi
              echo "Successfully obtained OAuth2 Bearer Token."
