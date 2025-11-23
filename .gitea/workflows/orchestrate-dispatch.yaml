@@ -377,26 +377,29 @@ jobs:
             
             # Test 1: Basic Auth on API Root
             echo "--- Test 1: Basic Auth on API Root ($AAP_URL/api/controller/v2/) ---"
-            ROOT_RESP=$(curl -s -u "$AAP_USERNAME:$AAP_PASSWORD" -I "$AAP_URL/api/controller/v2/")
-            echo "$ROOT_RESP"
-            if echo "$ROOT_RESP" | grep -q "200 OK"; then
+            # Use -w to get the status code reliably, avoiding grep on headers
+            ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" -u "$AAP_USERNAME:$AAP_PASSWORD" "$AAP_URL/api/controller/v2/")
+            echo "HTTP Status: $ROOT_CODE"
+            if [ "$ROOT_CODE" -eq 200 ]; then
                echo "Basic Auth WORKS on API Root."
             else
-               echo "Basic Auth FAILED on API Root."
+               echo "Basic Auth FAILED on API Root (HTTP $ROOT_CODE)."
             fi
             
             # Test 2: Probe for Login Endpoint
             echo "--- Test 2: Probing for Login Endpoint ---"
-            PATHS="/api/login/ /api/controller/login/ /api/controller/v2/login/ /login/"
+            # Renamed variable to avoid overwriting system PATH
+            ENDPOINTS="/api/login/ /api/controller/login/ /api/controller/v2/login/ /login/"
             LOGIN_URL=""
             
-            for PATH in $PATHS; do
-               echo "Checking $AAP_URL$PATH ..."
-               CODE=$(curl -s -o /dev/null -w "%{http_code}" "$AAP_URL$PATH")
+            for EP in $ENDPOINTS; do
+               echo "Checking $AAP_URL$EP ..."
+               CODE=$(curl -s -o /dev/null -w "%{http_code}" "$AAP_URL$EP")
                echo "HTTP $CODE"
+               # 200 (OK) or 405 (Method Not Allowed - likely because we did GET instead of POST) means it exists
                if [ "$CODE" -eq 200 ] || [ "$CODE" -eq 405 ]; then
-                  echo "Found potential login endpoint: $AAP_URL$PATH"
-                  LOGIN_URL="$AAP_URL$PATH"
+                  echo "Found potential login endpoint: $AAP_URL$EP"
+                  LOGIN_URL="$AAP_URL$EP"
                   break
                fi
             done
@@ -408,25 +411,56 @@ jobs:
                LOGIN_RESP=$(curl -s -c cookies.txt -w "\n%{http_code}" -X POST "$LOGIN_URL" \
                  -H "Content-Type: application/json" \
                  -d "{\"username\": \"$AAP_USERNAME\", \"password\": \"$AAP_PASSWORD\"}")
-               echo "Login Response:"
-               echo "$LOGIN_RESP"
                
-               # If we got cookies, try to get token
-               if [ -f cookies.txt ]; then
-                  CSRF_TOKEN=$(grep "csrftoken" cookies.txt | awk '{print $7}')
-                  if [ -n "$CSRF_TOKEN" ]; then
-                     echo "Got CSRF Token: $CSRF_TOKEN"
-                     echo "Attempting Token Creation..."
-                     TOKEN_RESP=$(curl -s -b cookies.txt -H "X-CSRFToken: $CSRF_TOKEN" -H "Referer: $AAP_URL" \
-                       -X POST "$AAP_URL/api/controller/v2/tokens/" \
-                       -H "Content-Type: application/json" \
-                       -d '{"description":"Gitea CI", "application": null, "scope":"write"}')
-                     echo "Token Response: $TOKEN_RESP"
-                     AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
-                  fi
+               LOGIN_CODE=$(echo "$LOGIN_RESP" | tail -n1)
+               echo "Login HTTP Code: $LOGIN_CODE"
+               
+               if [ "$LOGIN_CODE" -eq 200 ]; then
+                   echo "Login Successful."
+                   # If we got cookies, try to get token
+                   if [ -f cookies.txt ]; then
+                      CSRF_TOKEN=$(grep "csrftoken" cookies.txt | awk '{print $7}')
+                      if [ -n "$CSRF_TOKEN" ]; then
+                         echo "Got CSRF Token: $CSRF_TOKEN"
+                         echo "Attempting Token Creation via Session..."
+                         TOKEN_RESP=$(curl -s -b cookies.txt -H "X-CSRFToken: $CSRF_TOKEN" -H "Referer: $AAP_URL" \
+                           -X POST "$AAP_URL/api/controller/v2/tokens/" \
+                           -H "Content-Type: application/json" \
+                           -d '{"description":"Gitea CI", "application": null, "scope":"write"}')
+                         
+                         AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
+                         if [ -n "$AAP_TOKEN" ]; then
+                             echo "Success! Obtained Token via Session."
+                         else
+                             echo "Failed to obtain token via session."
+                             echo "Response: $TOKEN_RESP"
+                         fi
+                      else
+                         echo "Could not extract CSRF token."
+                      fi
+                   fi
+               else
+                   echo "Login Failed."
+                   echo "$LOGIN_RESP"
                fi
             else
                echo "Could not find a valid login endpoint."
+            fi
+            
+            # Fallback: If Session failed, try Basic Auth on /tokens/ again (maybe it works now?)
+            if [ -z "${AAP_TOKEN:-}" ]; then
+                echo "--- Fallback: Retrying Basic Auth on /tokens/ ---"
+                TOKEN_RESP=$(curl -s -u "$AAP_USERNAME:$AAP_PASSWORD" \
+                  -H "Content-Type: application/json" \
+                  -X POST "$AAP_URL/api/controller/v2/tokens/" \
+                  -d '{"description":"Gitea CI", "application": null, "scope":"write"}')
+                AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
+                if [ -n "$AAP_TOKEN" ]; then
+                    echo "Success! Obtained Token via Basic Auth."
+                else
+                    echo "Basic Auth on /tokens/ failed."
+                    echo "Response: $TOKEN_RESP"
+                fi
             fi
 
             if [ -n "${AAP_TOKEN:-}" ]; then
