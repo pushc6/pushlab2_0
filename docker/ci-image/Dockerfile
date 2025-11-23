@@ -2,7 +2,6 @@ FROM almalinux:10
 
 # Install DNF packages
 RUN dnf -y makecache && \
-    dnf -y module enable nodejs:20 && \
     dnf -y install \
         unzip \
         curl \
@@ -12,9 +11,17 @@ RUN dnf -y makecache && \
         ca-certificates \
         tar \
         which \
-        nodejs \
-        awscli && \
+        python3 \
+        python3-pip && \
     dnf clean all
+
+# Install Node.js 20 from NodeSource
+RUN curl -fsSL https://rpm.nodesource.com/setup_20.x | bash - && \
+    dnf -y install nodejs && \
+    dnf clean all
+
+# Install AWS CLI via pip
+RUN pip3 install --no-cache-dir awscli
 
 # Install Terraform 1.7.5
 RUN curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip && \
