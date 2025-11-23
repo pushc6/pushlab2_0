@@ -23,23 +23,10 @@ on:
 jobs:
   validate:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux:10
+    container: almalinux-cicd:latest
     steps:
-      - name: Prep tools (dnf)
-        run: |
-          dnf -y makecache
-          # Ensure Node.js is present for JavaScript-based actions (actions/checkout)
-          dnf -y module enable nodejs:20 || true
-          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which nodejs
-
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install Terraform
-        run: |
-          curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
-          unzip -o /tmp/terraform.zip -d /usr/local/bin
-          terraform -version
 
       - name: Terraform fmt/validate (lab)
         run: |
@@ -55,23 +42,11 @@ jobs:
 
   packer-build:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux:10
+    container: almalinux-cicd:latest
     needs: [validate]
     steps:
-      - name: Prep tools (dnf)
-        run: |
-          dnf -y makecache
-          # Ensure Node.js is present for JavaScript-based actions (actions/checkout)
-          dnf -y module enable nodejs:20 || true
-          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which nodejs
-
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install Packer
-        run: |
-          curl -fsSL https://releases.hashicorp.com/packer/1.11.2/packer_1.11.2_linux_amd64.zip -o /tmp/packer.zip
-          unzip -o /tmp/packer.zip -d /usr/local/bin
 
       - name: Respect build_packer input
         id: gate
@@ -127,23 +102,11 @@ jobs:
 
   terraform:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux:10
+    container: almalinux-cicd:latest
     needs: [validate, packer-build]
     steps:
-      - name: Prep tools (dnf)
-        run: |
-          dnf -y makecache
-          # Ensure Node.js is present for JavaScript-based actions (actions/checkout)
-          dnf -y module enable nodejs:20 || true
-          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which nodejs
-
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install Terraform
-        run: |
-          curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
-          unzip -o /tmp/terraform.zip -d /usr/local/bin
 
       - name: Select environment from inputs
         id: envsel
@@ -243,7 +206,7 @@ jobs:
           AWS_S3_ENDPOINT: ${{ secrets.AWS_S3_ENDPOINT }}
         run: |
           set -euo pipefail
-          dnf -y install awscli jq tar >/dev/null 2>&1 || true
+
           TF_DIR=terraform/envs/prod
           SHORT=$(echo "${GITHUB_SHA:-$GITEA_SHA}" | cut -c1-7)
           VERSION="iac-prod-$(date -u +%Y%m%d-%H%M)-$SHORT"
@@ -342,13 +305,10 @@ jobs:
 
   ansible-aap:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux:10
+    container: almalinux-cicd:latest
     needs: [terraform]
     steps:
-      - name: Prep tools (dnf)
-        run: |
-          dnf -y makecache
-          dnf -y install curl jq ca-certificates
+
       - name: Trigger AAP Job Template (apply only)
         env:
           # Use repository variable for AAP_URL (non-secret); fallback to secret only if variable unset
