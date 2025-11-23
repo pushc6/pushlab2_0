@@ -16,6 +16,7 @@
     state: latest
     security: "{{ dnf_security_updates_only | bool }}"
     exclude: "{{ dnf_exclude_packages | join(',') if dnf_exclude_packages | length > 0 else omit }}"
+    allowerasing: true
   register: dnf_update_result
   when: not dnf_update_cache_only | bool
 
