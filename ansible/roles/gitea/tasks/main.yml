@@ -351,6 +351,14 @@
   changed_when: false
   when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
 
+- name: Add git user to docker group
+  ansible.builtin.user:
+    name: git
+    groups: docker
+    append: yes
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+  register: git_docker_group
+
 - name: Ensure runner data directory exists (docker)
   ansible.builtin.file:
     path: "{{ gitea_runner_data_dir }}"
