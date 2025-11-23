@@ -8,13 +8,8 @@ on:
 jobs:
   drift-check:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux:10
+    container: almalinux-cicd:latest
     steps:
-      - name: Prep tools (dnf)
-        run: |
-          dnf -y makecache
-          dnf -y install curl jq ca-certificates
-
       - name: Trigger AAP (Full Convergence)
         env:
           AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}

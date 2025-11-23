@@ -14,23 +14,10 @@ on:
 jobs:
   drift:
     runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux:10
+    container: almalinux-cicd:latest
     steps:
-      - name: Prep tools (dnf)
-        run: |
-          dnf -y makecache
-          # Node is required for actions like upload-artifact
-          dnf -y module enable nodejs:20 || true
-          dnf -y install unzip curl jq git openssh-clients ca-certificates tar which nodejs
-
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install Terraform
-        run: |
-          curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip
-          unzip -o /tmp/terraform.zip -d /usr/local/bin
-          terraform -version
 
       - name: Terraform init (prod, S3-compatible backend)
         env:
