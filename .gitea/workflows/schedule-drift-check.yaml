@@ -18,10 +18,11 @@ jobs:
       - name: Trigger AAP (Full Convergence)
         env:
           AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-          # AAP Native Credentials
-          AAP_USERNAME: ${{ vars.AAP_USERNAME }}
-          AAP_PASSWORD: ${{ secrets.AAP_PASSWORD }}
-          AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
+          # OAuth2 Application Credentials
+          AAP_CLIENT_ID: ${{ secrets.AAP_CLIENT_ID }}
+          AAP_CLIENT_SECRET: ${{ secrets.AAP_CLIENT_SECRET }}
+          # Fallback
+          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
           AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
           AAP_JOB_TEMPLATE_NAME: ${{ vars.AAP_JOB_TEMPLATE_NAME }}
         run: |
@@ -29,49 +30,49 @@ jobs:
           
           if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
           
-          # Priority 1: Use Static Token (Recommended)
-          if [ -n "${{ secrets.AAP_TOKEN }}" ]; then
-             echo "Using static AAP_TOKEN..."
-             AAP_TOKEN="${{ secrets.AAP_TOKEN }}"
-             : "${AAP_TOKEN_TYPE:=Bearer}" # Default to Bearer for PATs
+          AAP_TOKEN_FINAL=""
+          
+          # Priority 1: OAuth2 Client Credentials Flow (Recommended)
+          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ]; then
+             echo "Performing OAuth2 Client Credentials Token Exchange..."
              
-          # Priority 2: Attempt Dynamic Token Exchange (Basic Auth)
-          elif [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
-            echo "Performing AAP Native Token Exchange..."
-            echo "Note: This requires Basic Auth to be enabled on the AAP API."
-            
-            # Try /api/controller/v2/tokens/
-            TOKEN_RESP=$(curl -s -u "$AAP_USERNAME:$AAP_PASSWORD" \
-              -H "Content-Type: application/json" \
-              -X POST "$AAP_URL/api/controller/v2/tokens/" \
-              -d '{"description":"Gitea CI", "application": null, "scope":"write"}')
-            
-            AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
-            
-            if [ -z "$AAP_TOKEN" ]; then
-               echo "Token exchange failed."
-               echo "Response: $TOKEN_RESP"
-               echo "::error::Basic Auth failed. Your AAP instance likely requires a Personal Access Token (PAT)."
-               echo "::notice::Please generate a PAT in AAP (Users -> Tokens) and set it as the 'AAP_TOKEN' secret in Gitea."
-               exit 1
-            fi
-            AAP_TOKEN_TYPE="Bearer"
-            echo "Successfully obtained Bearer token."
-            
+             # Encode Client ID:Secret
+             AUTH_STRING=$(printf "%s:%s" "$AAP_CLIENT_ID" "$AAP_CLIENT_SECRET" | base64 | tr -d '\n')
+             
+             # Request Token from /api/o/token/
+             TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/o/token/" \
+               -H "Authorization: Basic $AUTH_STRING" \
+               -H "Content-Type: application/x-www-form-urlencoded" \
+               -d "grant_type=client_credentials")
+             
+             AAP_TOKEN_FINAL=$(echo "$TOKEN_RESP" | jq -r '.access_token // empty')
+             
+             if [ -z "$AAP_TOKEN_FINAL" ]; then
+                echo "OAuth2 Token Exchange Failed."
+                echo "Response: $TOKEN_RESP"
+                echo "::error::Failed to obtain OAuth2 token. Check Client ID/Secret and AAP configuration."
+                exit 1
+             fi
+             echo "Successfully obtained OAuth2 Bearer Token."
+             
+          # Priority 2: Static PAT (Legacy/Manual)
+          elif [ -n "$AAP_TOKEN" ]; then
+             echo "Using static AAP_TOKEN..."
+             AAP_TOKEN_FINAL=$(echo "$AAP_TOKEN" | xargs)
           else
-             echo "No credentials found (AAP_TOKEN or AAP_USERNAME/PASSWORD); skipping"
+             echo "No credentials found (AAP_CLIENT_ID/SECRET or AAP_TOKEN); skipping"
              exit 0
           fi
 
-          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
+          AUTH_HEADER="Authorization: Bearer $AAP_TOKEN_FINAL"
           
           # If ID not provided, attempt lookup by name
           if [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then
             if [ -n "${AAP_JOB_TEMPLATE_NAME:-}" ]; then
               echo "Looking up Job Template ID for name: $AAP_JOB_TEMPLATE_NAME"
-              # Note: Using /api/controller/v2 for lookup as well
-              RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)") || {
-                echo "Failed to query AAP job templates"; exit 0; }
+              
+              RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)")
+              
               AAP_JOB_TEMPLATE_ID=$(echo "$RESP" | jq -r '.results[0].id // empty')
               if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
                 echo "Could not resolve Job Template name '$AAP_JOB_TEMPLATE_NAME'; skipping"
@@ -85,6 +86,7 @@ jobs:
           fi
 
           echo "Triggering AAP Job Template ID: $AAP_JOB_TEMPLATE_ID"
+          
           # Updated API Path: /api/controller/v2
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \
