@@ -4,7 +4,6 @@ all:
       hosts:
         rangernet-vps:
           ansible_host: 192.210.235.136
-          ansible_user: ansible
 
     docker_hosts:
       hosts:
