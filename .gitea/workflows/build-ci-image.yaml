@@ -1,0 +1,48 @@
+name: Build CI Container Image
+
+on:
+  push:
+    paths:
+      - 'docker/ci-image/**'
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: [self-hosted, linux, x64, alma]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build container image
+        run: |
+          cd docker/ci-image
+          docker build -t almalinux-cicd:latest .
+
+      - name: Tag image
+        run: |
+          docker tag almalinux-cicd:latest almalinux-cicd:${{ github.sha }}
+
+      - name: Test image
+        run: |
+          echo "Testing Terraform..."
+          docker run --rm almalinux-cicd:latest terraform version
+          echo "Testing Packer..."
+          docker run --rm almalinux-cicd:latest packer version
+          echo "Testing Node.js..."
+          docker run --rm almalinux-cicd:latest node --version
+          echo "Testing AWS CLI..."
+          docker run --rm almalinux-cicd:latest aws --version
+
+      - name: Push to Gitea registry (optional)
+        if: false  # Enable this when registry is configured
+        env:
+          REGISTRY_URL: gitea.yourdomain.com
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          echo "$REGISTRY_PASSWORD" | docker login $REGISTRY_URL -u "$REGISTRY_USER" --password-stdin
+          docker tag almalinux-cicd:latest $REGISTRY_URL/yourorg/almalinux-cicd:latest
+          docker tag almalinux-cicd:latest $REGISTRY_URL/yourorg/almalinux-cicd:${{ github.sha }}
+          docker push $REGISTRY_URL/yourorg/almalinux-cicd:latest
+          docker push $REGISTRY_URL/yourorg/almalinux-cicd:${{ github.sha }}
