@@ -12,7 +12,9 @@ jobs:
     runs-on: [self-hosted, linux, x64, alma]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        run: |
+          rm -rf ${{ github.workspace }}/*
+          git clone --depth 1 --branch ${{ github.ref_name }} ${{ github.server_url }}/${{ github.repository }} ${{ github.workspace }}
 
       - name: Build container image
         run: |
