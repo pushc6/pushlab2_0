@@ -377,7 +377,12 @@ jobs:
              echo "Using static AAP_TOKEN..."
              # Trim whitespace just in case
              AAP_TOKEN=$(echo "${{ secrets.AAP_TOKEN }}" | xargs)
-             echo "Token Length: ${#AAP_TOKEN}"
+             TOKEN_LEN=${#AAP_TOKEN}
+             echo "Token Length: $TOKEN_LEN"
+             if [ "$TOKEN_LEN" -gt 4 ]; then
+                echo "Token Start: ${AAP_TOKEN:0:2}***"
+                echo "Token End: ***${AAP_TOKEN: -2}"
+             fi
              
              # Allow override, but default to Bearer
              : "${AAP_TOKEN_TYPE:=Bearer}"
@@ -410,28 +415,53 @@ jobs:
              exit 0
           fi
 
+          # VERIFICATION STEP: Check Token against /me/
+          echo "--- Verifying Token against $AAP_URL/api/controller/v2/me/ ---"
+          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
+          
+          # Print masked header to confirm format
+          echo "Header Format Check: Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN:0:2}***${AAP_TOKEN: -2}"
+          
+          ME_RESP=$(curl -s -w "\n%{http_code}" -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/me/")
+          ME_CODE=$(echo "$ME_RESP" | tail -n1)
+          ME_BODY=$(echo "$ME_RESP" | sed '$d')
+          
+          echo "Verification HTTP Status: $ME_CODE"
+          
+          if [ "$ME_CODE" -eq 401 ]; then
+             echo "Token Verification Failed (401)."
+             echo "Response: $ME_BODY"
+             
+             # Try switching type
+             if [ "$AAP_TOKEN_TYPE" = "Bearer" ]; then
+                echo "Retrying Verification with prefix 'Token'..."
+                AAP_TOKEN_TYPE="Token"
+             else
+                echo "Retrying Verification with prefix 'Bearer'..."
+                AAP_TOKEN_TYPE="Bearer"
+             fi
+             AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
+             
+             ME_RESP=$(curl -s -w "\n%{http_code}" -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/me/")
+             ME_CODE=$(echo "$ME_RESP" | tail -n1)
+             ME_BODY=$(echo "$ME_RESP" | sed '$d')
+             echo "Retry Verification HTTP Status: $ME_CODE"
+             
+             if [ "$ME_CODE" -eq 401 ]; then
+                echo "::error::Token rejected by AAP (401). Please check that the token is valid and not expired."
+                exit 1
+             fi
+          fi
+          
+          echo "Token Verified. User: $(echo "$ME_BODY" | jq -r '.username // "unknown"')"
+
           # If ID not provided, attempt lookup by name
           if [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then
             if [ -n "${AAP_JOB_TEMPLATE_NAME:-}" ]; then
               echo "Looking up Job Template ID for name: $AAP_JOB_TEMPLATE_NAME"
               
-              # Try lookup with current token type
               AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
               RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)")
-              
-              # Check if lookup failed with 401, if so, try switching token type (Bearer <-> Token)
-              if echo "$RESP" | grep -q "Authentication credentials were not provided"; then
-                 echo "Lookup failed with 401 using $AAP_TOKEN_TYPE."
-                 if [ "$AAP_TOKEN_TYPE" = "Bearer" ]; then
-                    echo "Retrying with prefix 'Token'..."
-                    AAP_TOKEN_TYPE="Token"
-                 else
-                    echo "Retrying with prefix 'Bearer'..."
-                    AAP_TOKEN_TYPE="Bearer"
-                 fi
-                 AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
-                 RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)")
-              fi
               
               AAP_JOB_TEMPLATE_ID=$(echo "$RESP" | jq -r '.results[0].id // empty')
               if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
@@ -450,41 +480,15 @@ jobs:
           AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
           
           # Updated API Path: /api/controller/v2
-          # Capture headers to debug 401s
-          RESPONSE=$(curl -s -w "\n%{http_code}" -v -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
             -H "Content-Type: application/json" \
             -H "$AUTH_HEADER" \
-            -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}' 2>curl_debug.log)
+            -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}')
             
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')
           
           echo "HTTP Status: $HTTP_CODE"
-          
-          if [ "$HTTP_CODE" -eq 401 ]; then
-             echo "Authentication Failed."
-             echo "Debug Log (Sanitized):"
-             grep -v "Authorization:" curl_debug.log | grep -v "$AAP_TOKEN" || true
-             
-             # If we haven't tried switching types yet (e.g. ID was provided directly), try now
-             if [ "$AAP_TOKEN_TYPE" = "Bearer" ]; then
-                echo "Retrying with prefix 'Token'..."
-                AAP_TOKEN_TYPE="Token"
-             else
-                echo "Retrying with prefix 'Bearer'..."
-                AAP_TOKEN_TYPE="Bearer"
-             fi
-             AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
-             
-             RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
-                -H "Content-Type: application/json" \
-                -H "$AUTH_HEADER" \
-                -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}')
-             HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-             BODY=$(echo "$RESPONSE" | sed '$d')
-             echo "Retry HTTP Status: $HTTP_CODE"
-          fi
-          
           echo "Response Body:"
           echo "$BODY"
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
