@@ -34,3 +34,4 @@ RUN terraform version && \
     node --version && \
     aws --version
 # Built on Sun Nov 23 14:40:04 EST 2025 
+
