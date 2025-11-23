@@ -372,60 +372,37 @@ jobs:
           
           if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
           
-          if [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
-            echo "Performing AAP Native Token Exchange (Deep Probe)..."
+          # Priority 1: Use Static Token (Recommended)
+          if [ -n "${{ secrets.AAP_TOKEN }}" ]; then
+             echo "Using static AAP_TOKEN..."
+             AAP_TOKEN="${{ secrets.AAP_TOKEN }}"
+             : "${AAP_TOKEN_TYPE:=Bearer}" # Default to Bearer for PATs
+             
+          # Priority 2: Attempt Dynamic Token Exchange (Basic Auth)
+          elif [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
+            echo "Performing AAP Native Token Exchange..."
+            echo "Note: This requires Basic Auth to be enabled on the AAP API."
             
-            # 1. Check Redirects
-            echo "--- Probe 1: Checking Redirects on /api/controller/login/ ---"
-            curl -v -I "$AAP_URL/api/controller/login/" 2>&1 | grep -iE "^< (HTTP|Location)" || true
-            
-            # 2. Check API Root for Autodiscovery
-            echo "--- Probe 2: API Root Autodiscovery ---"
-            echo "Querying $AAP_URL/api/controller/v2/ ..."
-            curl -s "$AAP_URL/api/controller/v2/" | jq 'with_entries(select(.key | contains("token") or contains("login") or contains("me")))' || echo "Failed to parse API root"
-            
-            # 3. Try to use the 'ping' endpoint to verify basic connectivity/auth if possible
-            echo "--- Probe 3: Auth Check on /ping ---"
-            curl -s -u "$AAP_USERNAME:$AAP_PASSWORD" "$AAP_URL/api/controller/v2/ping/" || true
-            
-            # 4. Try the "Official" Token Endpoint again with verbose output (sanitized)
-            echo "--- Probe 4: Verbose Token Request ---"
-            # We capture stderr to see the verbose output, but we must be careful not to leak password.
-            # curl -v will show headers. We will grep for Authorization to confirm it's sent, but mask the value.
-            
-            OUTPUT=$(curl -v -u "$AAP_USERNAME:***" \
-              -H "Content-Type: application/json" \
-              -X POST "$AAP_URL/api/controller/v2/tokens/" \
-              -d '{"description":"Gitea CI", "application": null, "scope":"write"}' 2>&1)
-            
-            echo "Curl Output (Sanitized):"
-            echo "$OUTPUT" | grep -v "Authorization:" | grep -v "$AAP_PASSWORD" || true
-            
-            # Check if we actually got a token in the body (even if we masked the request)
-            # We need to run the real request to capture the token
+            # Try /api/controller/v2/tokens/
             TOKEN_RESP=$(curl -s -u "$AAP_USERNAME:$AAP_PASSWORD" \
               -H "Content-Type: application/json" \
               -X POST "$AAP_URL/api/controller/v2/tokens/" \
               -d '{"description":"Gitea CI", "application": null, "scope":"write"}')
             
-            echo "Response Body:"
-            echo "$TOKEN_RESP"
-            
             AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
             
-            if [ -n "$AAP_TOKEN" ]; then
-               AAP_TOKEN_TYPE="Bearer"
-               echo "Successfully obtained Bearer token."
-            else
-               echo "Failed to obtain token."
+            if [ -z "$AAP_TOKEN" ]; then
+               echo "Token exchange failed."
+               echo "Response: $TOKEN_RESP"
+               echo "::error::Basic Auth failed. Your AAP instance likely requires a Personal Access Token (PAT)."
+               echo "::notice::Please generate a PAT in AAP (Users -> Tokens) and set it as the 'AAP_TOKEN' secret in Gitea."
                exit 1
             fi
-          elif [ -n "${{ secrets.AAP_TOKEN }}" ]; then
-             echo "Using static AAP_TOKEN..."
-             AAP_TOKEN="${{ secrets.AAP_TOKEN }}"
-             : "${AAP_TOKEN_TYPE:=Token}"
+            AAP_TOKEN_TYPE="Bearer"
+            echo "Successfully obtained Bearer token."
+            
           else
-             echo "No credentials found (AAP_USERNAME/PASSWORD or AAP_TOKEN); skipping"
+             echo "No credentials found (AAP_TOKEN or AAP_USERNAME/PASSWORD); skipping"
              exit 0
           fi
 
