@@ -16,10 +16,15 @@
     msg: "Could not find a disk with size {{ data_disk_size_gb }} GB"
   when: target_disk is not defined
 
+- name: Check if filesystem exists
+  command: blkid /dev/{{ target_disk }}
+  register: disk_blkid
+  failed_when: false
+  changed_when: false
+
 - name: Create filesystem on data disk
-  community.general.filesystem:
-    fstype: "{{ data_fs_type | default('ext4') }}"
-    dev: "/dev/{{ target_disk }}"
+  command: mkfs.{{ data_fs_type | default('ext4') }} /dev/{{ target_disk }}
+  when: disk_blkid.rc != 0
 
 - name: Mount data disk
   ansible.posix.mount:
