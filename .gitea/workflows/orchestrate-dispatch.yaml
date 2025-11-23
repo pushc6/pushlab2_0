@@ -356,144 +356,63 @@ jobs:
           # AAP Native Credentials
           AAP_USERNAME: ${{ vars.AAP_USERNAME }}
           AAP_PASSWORD: ${{ secrets.AAP_PASSWORD }}
-          # Optional: allow selecting token type: 'Bearer' (OAuth2 token) or 'Token' (PAT). Default is 'Bearer' for OAuth2.
-          AAP_TOKEN_TYPE: ${{ vars.AAP_TOKEN_TYPE }}
-          # Prefer explicit ID secret; fallback to name lookup via AAP_JOB_TEMPLATE_NAME variable
-          AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
+          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
           AAP_JOB_TEMPLATE_NAME: ${{ vars.AAP_JOB_TEMPLATE_NAME }}
         run: |
-          set -euo pipefail
-          ACTION=$(jq -r '.inputs.action // "plan"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo plan)
-          TARGET_ENV=$(jq -r '.inputs.environment // "lab"' "$GITHUB_EVENT_PATH" 2>/dev/null || echo lab)
-          if [ "$ACTION" != "apply" ]; then
-            echo "ACTION=$ACTION; skipping AAP trigger (apply only)"
-            exit 0
-          fi
+          set +e # Disable exit on error for the probe
           
-          if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
+          if [ -z "$AAP_URL" ]; then echo "AAP_URL not set"; exit 0; fi
           
-          # Priority 1: Use Static Token (Recommended)
-          if [ -n "${{ secrets.AAP_TOKEN }}" ]; then
-             echo "Using static AAP_TOKEN..."
-             # Trim whitespace just in case
-             AAP_TOKEN=$(echo "${{ secrets.AAP_TOKEN }}" | xargs)
-             TOKEN_LEN=${#AAP_TOKEN}
-             echo "Token Length: $TOKEN_LEN"
-             if [ "$TOKEN_LEN" -gt 4 ]; then
-                echo "Token Start: ${AAP_TOKEN:0:2}***"
-                echo "Token End: ***${AAP_TOKEN: -2}"
-             fi
-             
-             # Allow override, but default to Bearer
-             : "${AAP_TOKEN_TYPE:=Bearer}"
-             
-          # Priority 2: Attempt Dynamic Token Exchange (Basic Auth)
-          elif [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
-            echo "Performing AAP Native Token Exchange..."
-            echo "Note: This requires Basic Auth to be enabled on the AAP API."
-            
-            # Try /api/controller/v2/tokens/
-            TOKEN_RESP=$(curl -s -u "$AAP_USERNAME:$AAP_PASSWORD" \
-              -H "Content-Type: application/json" \
-              -X POST "$AAP_URL/api/controller/v2/tokens/" \
-              -d '{"description":"Gitea CI", "application": null, "scope":"write"}')
-            
-            AAP_TOKEN=$(echo "$TOKEN_RESP" | jq -r '.token // empty')
-            
-            if [ -z "$AAP_TOKEN" ]; then
-               echo "Token exchange failed."
-               echo "Response: $TOKEN_RESP"
-               echo "::error::Basic Auth failed. Your AAP instance likely requires a Personal Access Token (PAT)."
-               echo "::notice::Please generate a PAT in AAP (Users -> Tokens) and set it as the 'AAP_TOKEN' secret in Gitea."
-               exit 1
+          echo "--- AAP Auth Super Probe ---"
+          echo "Target: $AAP_URL/api/controller/v2/me/"
+          
+          # Clean Token
+          AAP_TOKEN=$(echo "$AAP_TOKEN" | xargs)
+          
+          run_test() {
+            DESC=$1
+            CMD=$2
+            echo "Testing: $DESC"
+            # Run command, capture code and body
+            RESP=$(eval "$CMD")
+            CODE=$(echo "$RESP" | tail -n1)
+            echo "HTTP Code: $CODE"
+            if [ "$CODE" -eq 200 ]; then
+               echo "SUCCESS!"
+               echo "::notice::Auth Method Found: $DESC"
+               exit 0
             fi
-            AAP_TOKEN_TYPE="Bearer"
-            echo "Successfully obtained Bearer token."
+          }
+          
+          # 1. Standard Bearer (HTTP/2 default)
+          run_test "Bearer Token (Default)" \
+            "curl -s -w '\n%{http_code}' -H 'Authorization: Bearer $AAP_TOKEN' '$AAP_URL/api/controller/v2/me/'"
             
-          else
-             echo "No credentials found (AAP_TOKEN or AAP_USERNAME/PASSWORD); skipping"
-             exit 0
-          fi
-
-          # VERIFICATION STEP: Check Token against /me/
-          echo "--- Verifying Token against $AAP_URL/api/controller/v2/me/ ---"
-          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
-          
-          # Print masked header to confirm format
-          echo "Header Format Check: Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN:0:2}***${AAP_TOKEN: -2}"
-          
-          ME_RESP=$(curl -s -w "\n%{http_code}" -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/me/")
-          ME_CODE=$(echo "$ME_RESP" | tail -n1)
-          ME_BODY=$(echo "$ME_RESP" | sed '$d')
-          
-          echo "Verification HTTP Status: $ME_CODE"
-          
-          if [ "$ME_CODE" -eq 401 ]; then
-             echo "Token Verification Failed (401)."
-             echo "Response: $ME_BODY"
-             
-             # Try switching type
-             if [ "$AAP_TOKEN_TYPE" = "Bearer" ]; then
-                echo "Retrying Verification with prefix 'Token'..."
-                AAP_TOKEN_TYPE="Token"
-             else
-                echo "Retrying Verification with prefix 'Bearer'..."
-                AAP_TOKEN_TYPE="Bearer"
-             fi
-             AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
-             
-             ME_RESP=$(curl -s -w "\n%{http_code}" -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/me/")
-             ME_CODE=$(echo "$ME_RESP" | tail -n1)
-             ME_BODY=$(echo "$ME_RESP" | sed '$d')
-             echo "Retry Verification HTTP Status: $ME_CODE"
-             
-             if [ "$ME_CODE" -eq 401 ]; then
-                echo "::error::Token rejected by AAP (401). Please check that the token is valid and not expired."
-                exit 1
-             fi
-          fi
-          
-          echo "Token Verified. User: $(echo "$ME_BODY" | jq -r '.username // "unknown"')"
-
-          # If ID not provided, attempt lookup by name
-          if [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then
-            if [ -n "${AAP_JOB_TEMPLATE_NAME:-}" ]; then
-              echo "Looking up Job Template ID for name: $AAP_JOB_TEMPLATE_NAME"
-              
-              AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
-              RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)")
-              
-              AAP_JOB_TEMPLATE_ID=$(echo "$RESP" | jq -r '.results[0].id // empty')
-              if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
-                echo "Could not resolve Job Template name '$AAP_JOB_TEMPLATE_NAME'; skipping"
-                echo "Last Response: $RESP"
-                exit 0
-              fi
-              echo "Resolved Job Template ID: $AAP_JOB_TEMPLATE_ID"
-            else
-              echo "No AAP_JOB_TEMPLATE_ID or AAP_JOB_TEMPLATE_NAME provided; skipping"
-              exit 0
-            fi
-          fi
-
-          echo "Triggering AAP Job Template ID: $AAP_JOB_TEMPLATE_ID"
-          AUTH_HEADER="Authorization: ${AAP_TOKEN_TYPE} ${AAP_TOKEN}"
-          
-          # Updated API Path: /api/controller/v2
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
-            -H "Content-Type: application/json" \
-            -H "$AUTH_HEADER" \
-            -d '{"extra_vars": {"target_env": "'"$TARGET_ENV"'"}}')
+          # 2. Standard Bearer (HTTP/1.1)
+          run_test "Bearer Token (HTTP/1.1)" \
+            "curl -s --http1.1 -w '\n%{http_code}' -H 'Authorization: Bearer $AAP_TOKEN' '$AAP_URL/api/controller/v2/me/'"
             
-          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
-          
-          echo "HTTP Status: $HTTP_CODE"
-          echo "Response Body:"
-          echo "$BODY"
-          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "$BODY" | jq . || echo "Warning: Response is not valid JSON"
-          else
-            echo "Error: AAP API returned HTTP $HTTP_CODE"
-            exit 1
+          # 3. Token Prefix
+          run_test "Token Prefix" \
+            "curl -s -w '\n%{http_code}' -H 'Authorization: Token $AAP_TOKEN' '$AAP_URL/api/controller/v2/me/'"
+            
+          # 4. Basic Auth (HTTP/1.1) - If user/pass available
+          if [ -n "$AAP_USERNAME" ]; then
+             run_test "Basic Auth (HTTP/1.1)" \
+               "curl -s --http1.1 -w '\n%{http_code}' -u '$AAP_USERNAME:$AAP_PASSWORD' '$AAP_URL/api/controller/v2/me/'"
           fi
+          
+          # 5. Query Parameter ?access_token=
+          run_test "Query Param ?access_token=" \
+            "curl -s -w '\n%{http_code}' '$AAP_URL/api/controller/v2/me/?access_token=$AAP_TOKEN'"
+            
+          # 6. Query Parameter ?token=
+          run_test "Query Param ?token=" \
+            "curl -s -w '\n%{http_code}' '$AAP_URL/api/controller/v2/me/?token=$AAP_TOKEN'"
+            
+          # 7. X-Auth-Token Header
+          run_test "X-Auth-Token Header" \
+            "curl -s -w '\n%{http_code}' -H 'X-Auth-Token: $AAP_TOKEN' '$AAP_URL/api/controller/v2/me/'"
+
+          echo "::error::All auth methods failed. The server appears to be stripping Authorization headers and ignoring query parameters."
+          exit 1
