@@ -15,3 +15,6 @@ notification_email: ryan.pampush@gmail.com
 # VPS Onboarding
 vps_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICTXfiEHPnR2LHppvnyMUWqp50bV8u01S1td+nFFbjjb"
 ansible_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ3O9uVjXALQBplrprCqAWosyVxu+zA0DGUXJw5kJVx7"
+
+# Connection Settings
+ansible_user: ansible
