@@ -356,6 +356,8 @@ jobs:
           # OAuth2 Application Credentials
           AAP_CLIENT_ID: ${{ secrets.AAP_CLIENT_ID }}
           AAP_CLIENT_SECRET: ${{ secrets.AAP_CLIENT_SECRET }}
+          AAP_USERNAME: ${{ vars.AAP_USERNAME }}
+          AAP_PASSWORD: ${{ secrets.AAP_PASSWORD }}
           # Fallback/Legacy Credentials
           AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
           AAP_JOB_TEMPLATE_NAME: ${{ vars.AAP_JOB_TEMPLATE_NAME }}
