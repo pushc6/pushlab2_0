@@ -32,25 +32,27 @@ jobs:
           
           AAP_TOKEN_FINAL=""
           
-          # Priority 1: OAuth2 Client Credentials Flow (Recommended)
-          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ]; then
-             echo "Performing OAuth2 Client Credentials Token Exchange..."
+          # Priority 1: OAuth2 Password Grant Flow (Required by AAP Config)
+          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ] && [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
+             echo "Performing OAuth2 Password Grant Token Exchange..."
              
-             # Encode Client ID:Secret
+             # Encode Client ID:Secret for Basic Auth
              AUTH_STRING=$(printf "%s:%s" "$AAP_CLIENT_ID" "$AAP_CLIENT_SECRET" | base64 | tr -d '\n')
              
-             # Request Token from /api/o/token/
-             TOKEN_RESP=$(curl -s -X POST "$AAP_URL/api/o/token/" \
+             # Request Token from /o/token/
+             TOKEN_RESP=$(curl -s -X POST "$AAP_URL/o/token/" \
                -H "Authorization: Basic $AUTH_STRING" \
                -H "Content-Type: application/x-www-form-urlencoded" \
-               -d "grant_type=client_credentials")
+               -d "grant_type=password" \
+               -d "username=$AAP_USERNAME" \
+               -d "password=$AAP_PASSWORD")
              
              AAP_TOKEN_FINAL=$(echo "$TOKEN_RESP" | jq -r '.access_token // empty')
              
              if [ -z "$AAP_TOKEN_FINAL" ]; then
                 echo "OAuth2 Token Exchange Failed."
                 echo "Response: $TOKEN_RESP"
-                echo "::error::Failed to obtain OAuth2 token. Check Client ID/Secret and AAP configuration."
+                echo "::error::Failed to obtain OAuth2 token. Check credentials and AAP configuration."
                 exit 1
              fi
              echo "Successfully obtained OAuth2 Bearer Token."
