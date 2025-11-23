@@ -21,13 +21,12 @@ jobs:
     runs-on: [self-hosted, linux, x64, alma]
     container: docker:cli
     steps:
-      - name: Check if Dockerfile changed
-        id: check
-        uses: actions/checkout@v4
-      
-      - name: Detect Dockerfile changes
+      - name: Checkout and detect changes
         id: changes
         run: |
+          apk add --no-cache git
+          git clone --depth 2 ${{ github.server_url }}/${{ github.repository }} /workspace
+          cd /workspace
           if git diff --name-only HEAD~1 HEAD | grep -q '^docker/ci-image/'; then
             echo "changed=true" >> $GITHUB_OUTPUT
           else
@@ -37,7 +36,7 @@ jobs:
       - name: Build image
         if: steps.changes.outputs.changed == 'true'
         run: |
-          cd docker/ci-image
+          cd /workspace/docker/ci-image
           docker build -t almalinux-cicd:latest .
           docker tag almalinux-cicd:latest almalinux-cicd:${{ github.sha }}
 
