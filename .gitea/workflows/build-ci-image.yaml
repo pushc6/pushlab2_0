@@ -10,9 +10,7 @@ on:
 jobs:
   build:
     runs-on: [self-hosted, linux, x64, alma]
-    container:
-      image: docker:cli
-      options: -v /var/run/docker.sock:/var/run/docker.sock
+    container: docker:cli
     steps:
       - name: Checkout
         run: |
