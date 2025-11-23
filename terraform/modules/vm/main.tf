@@ -37,6 +37,37 @@ locals {
     ])),
     "guestinfo.userdata.encoding" = "base64"
   } : {}
+
+  # Common VM configuration
+  vm_config = {
+    name             = var.vm_name
+    folder           = var.vm_folder
+    resource_pool_id = data.vsphere_compute_cluster.clu.resource_pool_id
+    datastore_id     = data.vsphere_datastore.ds.id
+    num_cpus         = var.cpu_count
+    memory           = var.memory_mb
+    guest_id         = data.vsphere_virtual_machine.template.guest_id
+    firmware         = data.vsphere_virtual_machine.template.firmware
+    scsi_type        = data.vsphere_virtual_machine.template.scsi_type
+  }
+
+  network_interface_config = {
+    network_id   = data.vsphere_network.net.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+  }
+
+  os_disk_config = {
+    label            = "osdisk"
+    size             = local.effective_os_disk_size_gb
+    thin_provisioned = var.thin_provisioned
+  }
+
+  data_disk_config = {
+    label            = "datadisk"
+    size             = var.data_disk_size_gb
+    thin_provisioned = var.thin_provisioned
+    unit_number      = 1
+  }
 }
 
 data "vsphere_datacenter" "dc" { name = var.datacenter }
@@ -74,20 +105,20 @@ moved {
 
 resource "vsphere_virtual_machine" "vm_unprotected" {
   count            = var.prevent_destroy ? 0 : 1
-  name             = var.vm_name
-  folder           = var.vm_folder
-  resource_pool_id = data.vsphere_compute_cluster.clu.resource_pool_id
-  datastore_id     = data.vsphere_datastore.ds.id
+  name             = local.vm_config.name
+  folder           = local.vm_config.folder
+  resource_pool_id = local.vm_config.resource_pool_id
+  datastore_id     = local.vm_config.datastore_id
 
-  num_cpus  = var.cpu_count
-  memory    = var.memory_mb
-  guest_id  = data.vsphere_virtual_machine.template.guest_id
-  firmware  = data.vsphere_virtual_machine.template.firmware
-  scsi_type = data.vsphere_virtual_machine.template.scsi_type
+  num_cpus  = local.vm_config.num_cpus
+  memory    = local.vm_config.memory
+  guest_id  = local.vm_config.guest_id
+  firmware  = local.vm_config.firmware
+  scsi_type = local.vm_config.scsi_type
 
   network_interface {
-    network_id   = data.vsphere_network.net.id
-    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+    network_id   = local.network_interface_config.network_id
+    adapter_type = local.network_interface_config.adapter_type
   }
 
   dynamic "clone" {
@@ -120,18 +151,18 @@ resource "vsphere_virtual_machine" "vm_unprotected" {
   extra_config = local.cloud_init_extra
 
   disk {
-    label            = "osdisk"
-    size             = local.effective_os_disk_size_gb
-    thin_provisioned = var.thin_provisioned
+    label            = local.os_disk_config.label
+    size             = local.os_disk_config.size
+    thin_provisioned = local.os_disk_config.thin_provisioned
   }
 
   dynamic "disk" {
     for_each = var.data_disk_size_gb > 0 ? [1] : []
     content {
-      label            = "datadisk"
-      size             = var.data_disk_size_gb
-      thin_provisioned = var.thin_provisioned
-      unit_number      = 1
+      label            = local.data_disk_config.label
+      size             = local.data_disk_config.size
+      thin_provisioned = local.data_disk_config.thin_provisioned
+      unit_number      = local.data_disk_config.unit_number
     }
   }
 
@@ -148,20 +179,20 @@ resource "vsphere_virtual_machine" "vm_unprotected" {
 
 resource "vsphere_virtual_machine" "vm_protected" {
   count            = var.prevent_destroy ? 1 : 0
-  name             = var.vm_name
-  folder           = var.vm_folder
-  resource_pool_id = data.vsphere_compute_cluster.clu.resource_pool_id
-  datastore_id     = data.vsphere_datastore.ds.id
+  name             = local.vm_config.name
+  folder           = local.vm_config.folder
+  resource_pool_id = local.vm_config.resource_pool_id
+  datastore_id     = local.vm_config.datastore_id
 
-  num_cpus  = var.cpu_count
-  memory    = var.memory_mb
-  guest_id  = data.vsphere_virtual_machine.template.guest_id
-  firmware  = data.vsphere_virtual_machine.template.firmware
-  scsi_type = data.vsphere_virtual_machine.template.scsi_type
+  num_cpus  = local.vm_config.num_cpus
+  memory    = local.vm_config.memory
+  guest_id  = local.vm_config.guest_id
+  firmware  = local.vm_config.firmware
+  scsi_type = local.vm_config.scsi_type
 
   network_interface {
-    network_id   = data.vsphere_network.net.id
-    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+    network_id   = local.network_interface_config.network_id
+    adapter_type = local.network_interface_config.adapter_type
   }
 
   dynamic "clone" {
@@ -194,18 +225,18 @@ resource "vsphere_virtual_machine" "vm_protected" {
   extra_config = local.cloud_init_extra
 
   disk {
-    label            = "osdisk"
-    size             = local.effective_os_disk_size_gb
-    thin_provisioned = var.thin_provisioned
+    label            = local.os_disk_config.label
+    size             = local.os_disk_config.size
+    thin_provisioned = local.os_disk_config.thin_provisioned
   }
 
   dynamic "disk" {
     for_each = var.data_disk_size_gb > 0 ? [1] : []
     content {
-      label            = "datadisk"
-      size             = var.data_disk_size_gb
-      thin_provisioned = var.thin_provisioned
-      unit_number      = 1
+      label            = local.data_disk_config.label
+      size             = local.data_disk_config.size
+      thin_provisioned = local.data_disk_config.thin_provisioned
+      unit_number      = local.data_disk_config.unit_number
     }
   }
 
@@ -225,8 +256,3 @@ locals {
   vm_id         = var.prevent_destroy ? vsphere_virtual_machine.vm_protected[0].id : vsphere_virtual_machine.vm_unprotected[0].id
   vm_default_ip = var.prevent_destroy ? vsphere_virtual_machine.vm_protected[0].default_ip_address : vsphere_virtual_machine.vm_unprotected[0].default_ip_address
 }
-
-
-
-# Optional in-guest static IP configuration (fallback when not using vSphere customization or cloud-init)
-
