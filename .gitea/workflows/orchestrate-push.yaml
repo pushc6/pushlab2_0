@@ -17,9 +17,34 @@ jobs:
         run: |
           echo "kickoff: ref=${{ github.ref }} sha=${{ github.sha }}"
 
+  build-image:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: docker:cli
+    steps:
+      - name: Check if Dockerfile changed
+        id: check
+        uses: actions/checkout@v4
+      
+      - name: Detect Dockerfile changes
+        id: changes
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q '^docker/ci-image/'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build image
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          cd docker/ci-image
+          docker build -t almalinux-cicd:latest .
+          docker tag almalinux-cicd:latest almalinux-cicd:${{ github.sha }}
+
   validate:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux-cicd:latest
+    needs: [build-image]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
