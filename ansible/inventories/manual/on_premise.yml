@@ -31,18 +31,3 @@ ansible:
 prusa3dbawkz:
   hosts:
     prusa3dbawkz.localdomain:
-
-# Adding parent groups for internal and external proxies
-internal_proxies:
-  children:
-    nginx_internal: 
-
-external_proxies:
-  children:
-    nginxdmz: 
-
-# All proxies parent group
-all_proxies:
-  children:
-    internal_proxies:
-    external_proxies:
