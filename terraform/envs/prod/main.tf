@@ -101,5 +101,5 @@ output "vm_ips" {
 
 resource "local_file" "ansible_inventory" {
   content  = local.ansible_inventory_yaml
-  filename = "${path.module}/../../../../ansible/inventories/prod/hosts.yml"
+  filename = "${path.module}/../../../ansible/inventories/prod/hosts.yml"
 }
