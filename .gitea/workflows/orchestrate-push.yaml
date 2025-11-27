@@ -499,6 +499,79 @@ jobs:
              AAP_JOB_TEMPLATE_ID="${{ secrets.AAP_JOB_TEMPLATE_ID }}"
           fi
 
+          # --- Project Sync Logic ---
+          echo "Retrieving Project ID for Job Template: $AAP_JOB_TEMPLATE_ID"
+          JT_RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/$AAP_JOB_TEMPLATE_ID/")
+          PROJECT_ID=$(echo "$JT_RESP" | jq -r '.project // empty')
+          
+          if [ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "null" ]; then
+            echo "Triggering Project Update for Project ID: $PROJECT_ID"
+            UPDATE_RESP=$(curl -s -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" "$AAP_URL/api/controller/v2/projects/$PROJECT_ID/update/")
+            UPDATE_JOB_ID=$(echo "$UPDATE_RESP" | jq -r '.id // empty')
+            
+            if [ -n "$UPDATE_JOB_ID" ] && [ "$UPDATE_JOB_ID" != "null" ]; then
+              echo "Project Update Job ID: $UPDATE_JOB_ID. Waiting for completion..."
+              while true; do
+                sleep 5
+                JOB_STATUS=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/project_updates/$UPDATE_JOB_ID/" | jq -r '.status')
+                echo "Project Update Status: $JOB_STATUS"
+                if [ "$JOB_STATUS" == "successful" ]; then
+                  echo "Project Update Successful."
+                  break
+                elif [ "$JOB_STATUS" == "failed" ] || [ "$JOB_STATUS" == "error" ] || [ "$JOB_STATUS" == "canceled" ]; then
+                  echo "::error::Project Update Failed with status: $JOB_STATUS"
+                  exit 1
+                fi
+              done
+            else
+              echo "Warning: Failed to trigger project update. Response: $UPDATE_RESP"
+            fi
+          else
+            echo "Warning: Could not determine Project ID for Job Template. Skipping sync."
+          fi
+
+          # --- Inventory Sync Logic ---
+          echo "Retrieving Inventory ID for Job Template: $AAP_JOB_TEMPLATE_ID"
+          INVENTORY_ID=$(echo "$JT_RESP" | jq -r '.inventory // empty')
+          
+          if [ -n "$INVENTORY_ID" ] && [ "$INVENTORY_ID" != "null" ]; then
+            echo "Found Inventory ID: $INVENTORY_ID. Checking for inventory sources..."
+            
+            # Get inventory sources
+            INV_SOURCES=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/inventories/$INVENTORY_ID/inventory_sources/")
+            SOURCE_IDS=$(echo "$INV_SOURCES" | jq -r '.results[].id // empty')
+            
+            if [ -n "$SOURCE_IDS" ]; then
+              for SOURCE_ID in $SOURCE_IDS; do
+                echo "Triggering Inventory Source Update for Source ID: $SOURCE_ID"
+                INV_UPDATE_RESP=$(curl -s -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" "$AAP_URL/api/controller/v2/inventory_sources/$SOURCE_ID/update/")
+                INV_UPDATE_JOB_ID=$(echo "$INV_UPDATE_RESP" | jq -r '.id // empty')
+                
+                if [ -n "$INV_UPDATE_JOB_ID" ] && [ "$INV_UPDATE_JOB_ID" != "null" ]; then
+                  echo "Inventory Source Update Job ID: $INV_UPDATE_JOB_ID. Waiting for completion..."
+                  while true; do
+                    sleep 3
+                    INV_JOB_STATUS=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/inventory_updates/$INV_UPDATE_JOB_ID/" | jq -r '.status')
+                    echo "Inventory Update Status: $INV_JOB_STATUS"
+                    if [ "$INV_JOB_STATUS" == "successful" ]; then
+                      echo "Inventory Update Successful."
+                      break
+                    elif [ "$INV_JOB_STATUS" == "failed" ] || [ "$INV_JOB_STATUS" == "error" ] || [ "$INV_JOB_STATUS" == "canceled" ]; then
+                      echo "::warning::Inventory Update Failed with status: $INV_JOB_STATUS"
+                      break
+                    fi
+                  done
+                else
+                  echo "Warning: Failed to trigger inventory source update for Source ID: $SOURCE_ID"
+                fi
+              done
+            else
+              echo "No inventory sources found for Inventory ID: $INVENTORY_ID. Skipping inventory sync."
+            fi
+          else
+            echo "Warning: Could not determine Inventory ID for Job Template. Skipping inventory sync."
+          fi
+
           echo "Triggering AAP Job Template ID: $AAP_JOB_TEMPLATE_ID"
           
           if [ "$ENVIRONMENT" == "prod" ]; then
