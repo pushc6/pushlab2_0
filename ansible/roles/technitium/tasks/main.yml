@@ -5,6 +5,11 @@
     state: directory
     mode: '0755'
 
+- name: Install Python Docker SDK
+  dnf:
+    name: python3-docker
+    state: present
+
 - name: Deploy Technitium DNS Server
   docker_container:
     name: dns-server
