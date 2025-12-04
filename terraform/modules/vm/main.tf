@@ -14,19 +14,32 @@ locals {
   # Ensure we never shrink the OS disk below the template's base disk size (vSphere disallows shrinking on clone)
   effective_os_disk_size_gb = max(var.disk_size_gb, try(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size_gb))
 
-  cloud_init_extra = var.use_cloud_init && length(var.ipv4_address) > 0 ? {
+  # Construct the primary interface config
+  primary_iface_config = length(var.ipv4_address) > 0 ? {
+    eth0 = {
+      dhcp4       = false
+      addresses   = [format("%s/%d", var.ipv4_address, var.ipv4_netmask)]
+      gateway4    = var.ipv4_gateway
+      nameservers = { addresses = var.dns_server_list }
+    }
+  } : {}
+
+  # Construct additional interfaces config
+  additional_iface_config = {
+    for idx, iface in var.additional_interfaces : "eth${idx + 1}" => {
+      dhcp4     = false
+      addresses = [format("%s/%d", iface.ipv4_address, iface.ipv4_netmask)]
+    }
+  }
+
+  network_config_ethernets = merge(local.primary_iface_config, local.additional_iface_config)
+
+  cloud_init_extra = var.use_cloud_init && length(local.network_config_ethernets) > 0 ? {
     "guestinfo.metadata" = base64encode(yamlencode({
       local_hostname = var.vm_name,
       network = {
-        version = 2,
-        ethernets = {
-          eth0 = {
-            dhcp4       = false,
-            addresses   = [format("%s/%d", var.ipv4_address, var.ipv4_netmask)],
-            gateway4    = var.ipv4_gateway,
-            nameservers = { addresses = var.dns_server_list }
-          }
-        }
+        version   = 2,
+        ethernets = local.network_config_ethernets
       }
     })),
     "guestinfo.metadata.encoding" = "base64",
@@ -87,6 +100,12 @@ data "vsphere_network" "net" {
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
+data "vsphere_network" "additional" {
+  count         = length(var.additional_interfaces)
+  name          = var.additional_interfaces[count.index].network_name
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
 data "vsphere_virtual_machine" "template" {
   name          = var.template_name
   datacenter_id = data.vsphere_datacenter.dc.id
@@ -119,6 +138,14 @@ resource "vsphere_virtual_machine" "vm_unprotected" {
   network_interface {
     network_id   = local.network_interface_config.network_id
     adapter_type = local.network_interface_config.adapter_type
+  }
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_network.additional
+    content {
+      network_id   = network_interface.value.id
+      adapter_type = local.network_interface_config.adapter_type
+    }
   }
 
   dynamic "clone" {
@@ -193,6 +220,14 @@ resource "vsphere_virtual_machine" "vm_protected" {
   network_interface {
     network_id   = local.network_interface_config.network_id
     adapter_type = local.network_interface_config.adapter_type
+  }
+
+  dynamic "network_interface" {
+    for_each = data.vsphere_network.additional
+    content {
+      network_id   = network_interface.value.id
+      adapter_type = local.network_interface_config.adapter_type
+    }
   }
 
   dynamic "clone" {

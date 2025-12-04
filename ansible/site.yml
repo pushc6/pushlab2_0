@@ -25,3 +25,8 @@
   import_playbook: docker.yml
   when: "'docker_hosts' in groups"
   tags: ['docker', 'apps']
+
+- name: Deploy Technitium
+  import_playbook: technitium.yml
+  when: "'dns02' in groups"
+  tags: ['technitium', 'apps']

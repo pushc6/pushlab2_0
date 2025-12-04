@@ -58,11 +58,12 @@ module "vm" {
   ssh_private_key = local.effective_ssh_private_key
 
   # Optional static IP customization (if provided per-VM)
-  ipv4_address    = try(each.value.ipv4_address, "")
-  ipv4_netmask    = try(each.value.ipv4_netmask, 24)
-  ipv4_gateway    = try(each.value.ipv4_gateway, "")
-  dns_server_list = try(each.value.dns_servers, [])
-  domain          = try(each.value.domain, "localdomain")
+  ipv4_address          = try(each.value.ipv4_address, "")
+  ipv4_netmask          = try(each.value.ipv4_netmask, 24)
+  ipv4_gateway          = try(each.value.ipv4_gateway, "")
+  dns_server_list       = try(each.value.dns_servers, [])
+  domain                = try(each.value.domain, "localdomain")
+  additional_interfaces = try(each.value.additional_interfaces, [])
 
   # Safety: allow per-VM prevent_destroy lifecycle
   prevent_destroy = coalesce(try(each.value.prevent_destroy, null), false)

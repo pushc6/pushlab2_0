@@ -90,3 +90,13 @@ variable "prevent_destroy" {
   description = "If true, set lifecycle.prevent_destroy on the VM resource to block destroy/recreate operations."
   default     = false
 }
+
+variable "additional_interfaces" {
+  type = list(object({
+    network_name = string
+    ipv4_address = string
+    ipv4_netmask = number
+  }))
+  description = "List of additional network interfaces to attach to the VM."
+  default     = []
+}

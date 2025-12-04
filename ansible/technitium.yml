@@ -1,0 +1,6 @@
+---
+- name: Deploy Technitium DNS
+  hosts: dns02
+  become: yes
+  roles:
+    - technitium

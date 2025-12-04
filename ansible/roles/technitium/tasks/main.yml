@@ -1,0 +1,19 @@
+---
+- name: Ensure Technitium config directory exists
+  file:
+    path: /opt/technitium/config
+    state: directory
+    mode: '0755'
+
+- name: Deploy Technitium DNS Server
+  docker_container:
+    name: dns-server
+    image: technitium/dns-server:14.2
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    volumes:
+      - /opt/technitium/config:/etc/dns
+    env:
+      DNS_SERVER_DOMAIN: "dns02.localdomain"
+      DNS_SERVER_WEB_SERVICE_LOCAL_ADDRESSES: "10.37.10.254"

@@ -39,6 +39,11 @@ variable "vms" {
     ipv4_gateway = string
     dns_servers  = list(string)
     domain       = string
+    additional_interfaces = optional(list(object({
+      network_name = string
+      ipv4_address = string
+      ipv4_netmask = number
+    })), [])
   }))
   default = {}
 }
