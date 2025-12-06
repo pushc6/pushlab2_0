@@ -11,8 +11,8 @@ on:
 env:
   REGISTRY_URL: git.push-lab.com
   IMAGE_NAME: ${{ github.repository_owner }}/ansible-ee
-  REGISTRY_USER: ${{ github.actor }}
-  REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  REGISTRY_USER: ${{ vars.GIT_BOT_NAME }}
+  REGISTRY_PASSWORD: ${{ secrets.GIT_TOKEN }}
 
 jobs:
   build-ee:
