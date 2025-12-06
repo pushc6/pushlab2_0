@@ -1,0 +1,50 @@
+name: Build Ansible Execution Environment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'execution-environment/**'
+
+env:
+  REGISTRY_URL: git.push-lab.com
+  IMAGE_NAME: ${{ github.repository_owner }}/ansible-ee
+  REGISTRY_USER: ${{ github.actor }}
+  REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build-ee:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: docker:cli
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python and Ansible Builder
+        run: |
+          apk add --no-cache python3 py3-pip
+          # Create a venv to avoid breaking system packages if strictly managed, 
+          # but on docker:cli (Alpine) usually direct install is fine or venv is better.
+          python3 -m venv /tmp/venv
+          . /tmp/venv/bin/activate
+          pip install ansible-builder
+
+      - name: Log in to the container registry
+        if: env.REGISTRY_USER != '' && env.REGISTRY_PASSWORD != ''
+        run: |
+          echo "$REGISTRY_PASSWORD" | docker login $REGISTRY_URL -u "$REGISTRY_USER" --password-stdin
+        
+      - name: Build Execution Environment
+        run: |
+          . /tmp/venv/bin/activate
+          cd execution-environment
+          # Build using ansible-builder which drives docker
+          # We pass -v 3 for verbosity to see what's happening
+          ansible-builder build --tag ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --tag ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:latest -v 3
+
+      - name: Push Execution Environment
+        if: env.REGISTRY_USER != '' && env.REGISTRY_PASSWORD != ''
+        run: |
+          docker push ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:latest

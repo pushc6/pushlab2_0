@@ -1,0 +1,2 @@
+# Python dependencies
+# docker  # Standard docker python library if not pulled in by collection
