@@ -19,7 +19,12 @@ jobs:
     container: docker:cli
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          # actions/checkout requires nodejs which is not in docker:cli
+          # Use manual clone instead
+          apk add --no-cache git
+          rm -rf ${{ github.workspace }}/*
+          git clone --depth 1 --branch ${{ github.ref_name }} ${{ github.server_url }}/${{ github.repository }} ${{ github.workspace }}
 
       - name: Install Python and Ansible Builder
         run: |
