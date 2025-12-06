@@ -67,7 +67,12 @@ vms = {
     memory_mb        = 8192
     disk_size_gb     = 40
     thin_provisioned = true
-    # Using DHCP for IP as none was specified
+    # Using DHCP for IP as none was specified, but fields are required by variable type
+    ipv4_address = ""
+    ipv4_netmask = 0
+    ipv4_gateway = ""
+    dns_servers  = []
+    domain       = ""
   }
 }
 
