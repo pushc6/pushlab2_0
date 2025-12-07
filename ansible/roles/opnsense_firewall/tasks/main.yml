@@ -5,7 +5,7 @@
 
 - name: Manage custom firewall aliases
   ansibleguy.opnsense.alias:
-    firewall: "{{ opnsense_api_url }}"
+    firewall: "{{ opnsense_firewall }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
     ssl_verify: "{{ opnsense_validate_certs }}"
@@ -21,7 +21,7 @@
 
 - name: Create IP alias for Terraform hosts
   ansibleguy.opnsense.alias:
-    firewall: "{{ opnsense_api_url }}"
+    firewall: "{{ opnsense_firewall }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
     ssl_verify: "{{ opnsense_validate_certs }}"
@@ -34,7 +34,7 @@
 
 - name: Create individual host aliases
   ansibleguy.opnsense.alias:
-    firewall: "{{ opnsense_api_url }}"
+    firewall: "{{ opnsense_firewall }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
     ssl_verify: "{{ opnsense_validate_certs }}"
@@ -48,7 +48,7 @@
 
 - name: Create granular firewall rules
   ansibleguy.opnsense.rule:
-    firewall: "{{ opnsense_api_url }}"
+    firewall: "{{ opnsense_firewall }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
     ssl_verify: "{{ opnsense_validate_certs }}"
@@ -82,7 +82,7 @@
 
 - name: Reload firewall filter
   ansibleguy.opnsense.reload:
-    firewall: "{{ opnsense_api_url }}"
+    firewall: "{{ opnsense_firewall }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
     ssl_verify: "{{ opnsense_validate_certs }}"

@@ -2,7 +2,8 @@
 # OPNsense API Configuration
 # API credentials are stored in Gitea secrets and passed via extra vars
 
-opnsense_api_url: "https://{{ ansible_host }}"
+opnsense_firewall: "{{ ansible_host }}"  # Hostname or IP only (no protocol)
+opnsense_api_url: "https://{{ ansible_host }}"  # Full URL (for backward compatibility)
 opnsense_validate_certs: false  # Set to true if using valid SSL cert
 
 # Default firewall rule settings
