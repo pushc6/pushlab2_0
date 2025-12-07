@@ -1,1 +1,5 @@
 # System dependencies (rpms)
+openssh-clients
+git-core
+rsync
+sshpass
