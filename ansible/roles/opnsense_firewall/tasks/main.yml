@@ -56,7 +56,7 @@
 
 - name: Build firewall rules list
   set_fact:
-    firewall_rules_list: >-
+    firewall_rules_list: |
       {% set result = [] %}
       {% for rule in (terraform_host_firewall_rules + host_specific_rules) %}
         {% if rule.interface is iterable and rule.interface is not string %}
@@ -67,7 +67,7 @@
           {% set _ = result.append([rule, rule.interface | default('lan')]) %}
         {% endif %}
       {% endfor %}
-      {{ result }}
+      {{ result | to_json }}
 
 - name: Create granular firewall rules
   ansibleguy.opnsense.rule:
@@ -86,7 +86,7 @@
     quick: "{{ firewall_defaults.quick }}"
     state: present
     match_fields: ['description']
-  loop: "{{ firewall_rules_list }}"
+  loop: "{{ firewall_rules_list | from_json }}"
   loop_control:
     label: "{{ item.0.name }} on {{ item.1 }}"
   when: item.0.when | default(true)
