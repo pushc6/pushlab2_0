@@ -59,10 +59,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install requirements
+      - name: Setup Ansible
         run: |
           pip3 install ansible requests awxkit
-          ansible-galaxy collection list
 
       - name: Update AAP Execution Environment
         env:
