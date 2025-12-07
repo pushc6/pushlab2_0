@@ -501,7 +501,7 @@ jobs:
   ansible-aap:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux-cicd:latest
-    needs: [terraform]
+    needs: [onboard-hosts]
     steps:
 
       - name: Trigger AAP Job Template (apply only)
