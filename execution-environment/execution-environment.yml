@@ -16,3 +16,8 @@ dependencies:
 
 options:
   package_manager_path: /usr/bin/dnf
+
+additional_build_steps:
+  prepend_base: |
+    RUN dnf install -y dnf-plugins-core && \
+        dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
