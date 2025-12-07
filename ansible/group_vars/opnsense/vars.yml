@@ -74,14 +74,13 @@ terraform_host_firewall_rules:
     port: 22
     interface: dmz_vlan  # Use friendly name - will be mapped to opt7
 
-  # Commented out - dns02 being destroyed and recreated fresh
-  # - name: "SSH from Ansible to DNS02 (cross-site)"
-  #   description: "Allow Ansible SSH to DNS02"
-  #   source: "ansible_automation"  # 10.37.70.x (DMZ)
-  #   destination: "dns02"  # 10.37.10.x (Different network)
-  #   protocol: tcp
-  #   port: 22
-  #   interface: dmz_vlan  # Use friendly name - will be mapped to opt1
+  - name: "SSH from Ansible to DNS02 (cross-site)"
+    description: "Allow Ansible SSH to DNS02"
+    source: "ansible_automation"  # 10.37.70.x (DMZ)
+    destination: "dns02"  # 10.37.10.x (Different network)
+    protocol: tcp
+    port: 22
+    interface: dmz_vlan  # Use friendly name - will be mapped to opt1
   
   # labtest is NOT listed = no firewall rule (same subnet, not needed)
   
