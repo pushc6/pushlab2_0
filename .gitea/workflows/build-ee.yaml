@@ -42,6 +42,11 @@ jobs:
         run: |
           echo "$REGISTRY_PASSWORD" | docker login $REGISTRY_URL -u "$REGISTRY_USER" --password-stdin
         
+      - name: Prepare build context
+        run: |
+          # Copy collections requirements to EE build directory
+          cp collections/requirements.yml execution-environment/requirements.yml
+          
       - name: Build Execution Environment
         run: |
           . /tmp/venv/bin/activate
