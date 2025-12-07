@@ -72,7 +72,7 @@ terraform_host_firewall_rules:
     destination: "gitea"  # 10.37.80.x (App VLAN)
     protocol: tcp
     port: 22
-    interface: app_vlan  # Use friendly name - will be mapped to opt9
+    interface: dmz_vlan  # Use friendly name - will be mapped to opt9
 
   - name: "SSH from Ansible to DNS02 (cross-site)"
     description: "Allow Ansible SSH to DNS02"
@@ -80,7 +80,7 @@ terraform_host_firewall_rules:
     destination: "dns02"  # 10.37.10.x (Different network)
     protocol: tcp
     port: 22
-    interface: management_vlan  # Use friendly name - will be mapped to opt1
+    interface: dmz_vlan  # Use friendly name - will be mapped to opt1
   
   # labtest is NOT listed = no firewall rule (same subnet, not needed)
   
