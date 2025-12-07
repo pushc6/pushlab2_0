@@ -16,12 +16,17 @@ on:
 jobs:
   redeploy:
     runs-on: self-hosted
-    container:
-      image: hashicorp/terraform:light
+    runs-on: self-hosted
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+          terraform_wrapper: false
 
       - name: Initialize Terraform
         working-directory: terraform/envs/${{ inputs.environment }}
