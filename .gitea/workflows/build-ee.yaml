@@ -49,8 +49,32 @@ jobs:
           # We pass -v 3 for verbosity to see what's happening
           ansible-builder build --tag ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --tag ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:latest -v 3
 
-      - name: Push Execution Environment
-        if: env.REGISTRY_USER != '' && env.REGISTRY_PASSWORD != ''
-        run: |
-          docker push ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:latest
+
+  update-aap:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux-cicd:latest
+    needs: build-ee
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install requirements
+        run: ansible-galaxy collection install -r collections/requirements.yml
+
+      - name: Update AAP Execution Environment
+        env:
+          AAP_URL: ${{ secrets.AAP_URL || vars.AAP_URL }}
+          AAP_USERNAME: ${{ secrets.AAP_USERNAME || vars.AAP_USERNAME }}
+          AAP_PASSWORD: ${{ secrets.AAP_PASSWORD }}
+          # Use GITHUB_TOKEN info for the registry credential in AAP
+          # NOTE: AAP needs a PERMANENT token to pull images in the future.
+          # GITHUB_TOKEN is ephemeral, so it won't work for long-term pulling.
+          # We MUST use GIT_TOKEN (Service Account) here for AAP.
+          REGISTRY_URL: ${{ env.REGISTRY_URL }}
+          REGISTRY_USER: ${{ vars.GIT_BOT_NAME }}
+          REGISTRY_PASSWORD: ${{ secrets.GIT_TOKEN }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        run: |
+          ansible-playbook ansible/update_aap_ee.yml
+
