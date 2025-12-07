@@ -74,78 +74,92 @@ jobs:
           REGISTRY_PASSWORD: ${{ secrets.GIT_TOKEN }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
         run: |
+          set -e
+          
           # Create or update Container Registry credential
+          echo "Searching for existing credential..."
           CRED_SEARCH=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
-            "$AAP_URL/api/v2/credentials/?name=Gitea+Registry" | jq -r '.results[0].id // empty')
+            "$AAP_URL/api/v2/credentials/?name=Gitea+Registry")
+          CRED_ID=$(echo "$CRED_SEARCH" | jq -r '.results[0].id // empty')
           
-          CRED_PAYLOAD=$(jq -n \
-            --arg name "Gitea Registry" \
-            --arg host "$REGISTRY_URL" \
-            --arg user "$REGISTRY_USER" \
-            --arg pass "$REGISTRY_PASSWORD" \
-            '{
-              name: $name,
-              organization: 1,
-              credential_type: 8,
-              inputs: {
-                host: $host,
-                username: $user,
-                password: $pass,
-                verify_ssl: true
-              }
-            }')
-          
-          if [ -z "$CRED_SEARCH" ]; then
+          if [ -z "$CRED_ID" ] || [ "$CRED_ID" = "null" ]; then
             echo "Creating new credential..."
             CRED_RESP=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
               -H "Content-Type: application/json" \
               -X POST \
-              -d "$CRED_PAYLOAD" \
+              -d "{
+                \"name\": \"Gitea Registry\",
+                \"organization\": 1,
+                \"credential_type\": 8,
+                \"inputs\": {
+                  \"host\": \"$REGISTRY_URL\",
+                  \"username\": \"$REGISTRY_USER\",
+                  \"password\": \"$REGISTRY_PASSWORD\",
+                  \"verify_ssl\": true
+                }
+              }" \
               "$AAP_URL/api/v2/credentials/")
-            CRED_ID=$(echo "$CRED_RESP" | jq -r '.id')
+            CRED_ID=$(echo "$CRED_RESP" | jq -r '.id // empty')
+            if [ -z "$CRED_ID" ] || [ "$CRED_ID" = "null" ]; then
+              echo "Failed to create credential. Response:"
+              echo "$CRED_RESP" | jq .
+              exit 1
+            fi
             echo "Created credential ID: $CRED_ID"
           else
-            echo "Updating existing credential ID: $CRED_SEARCH"
+            echo "Updating existing credential ID: $CRED_ID"
             curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
               -H "Content-Type: application/json" \
               -X PATCH \
-              -d "$CRED_PAYLOAD" \
-              "$AAP_URL/api/v2/credentials/$CRED_SEARCH/" > /dev/null
-            CRED_ID="$CRED_SEARCH"
+              -d "{
+                \"inputs\": {
+                  \"host\": \"$REGISTRY_URL\",
+                  \"username\": \"$REGISTRY_USER\",
+                  \"password\": \"$REGISTRY_PASSWORD\",
+                  \"verify_ssl\": true
+                }
+              }" \
+              "$AAP_URL/api/v2/credentials/$CRED_ID/" > /dev/null
           fi
           
           # Create or update Execution Environment
+          echo "Searching for existing Execution Environment..."
           EE_SEARCH=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
-            "$AAP_URL/api/v2/execution_environments/?name=AlmaLinux+EE" | jq -r '.results[0].id // empty')
+            "$AAP_URL/api/v2/execution_environments/?name=AlmaLinux+EE")
+          EE_ID=$(echo "$EE_SEARCH" | jq -r '.results[0].id // empty')
           
           IMAGE_URL="${REGISTRY_URL}/${IMAGE_NAME}:latest"
-          EE_PAYLOAD=$(jq -n \
-            --arg name "AlmaLinux EE" \
-            --arg image "$IMAGE_URL" \
-            --arg cred "$CRED_ID" \
-            '{
-              name: $name,
-              image: $image,
-              pull: "always",
-              credential: ($cred | tonumber)
-            }')
           
-          if [ -z "$EE_SEARCH" ]; then
+          if [ -z "$EE_ID" ] || [ "$EE_ID" = "null" ]; then
             echo "Creating new Execution Environment..."
             EE_RESP=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
               -H "Content-Type: application/json" \
               -X POST \
-              -d "$EE_PAYLOAD" \
+              -d "{
+                \"name\": \"AlmaLinux EE\",
+                \"image\": \"$IMAGE_URL\",
+                \"pull\": \"always\",
+                \"credential\": $CRED_ID
+              }" \
               "$AAP_URL/api/v2/execution_environments/")
-            EE_ID=$(echo "$EE_RESP" | jq -r '.id')
-            echo "Created EE ID: $EE_ID"
+            NEW_EE_ID=$(echo "$EE_RESP" | jq -r '.id // empty')
+            if [ -z "$NEW_EE_ID" ] || [ "$NEW_EE_ID" = "null" ]; then
+              echo "Failed to create EE. Response:"
+              echo "$EE_RESP" | jq .
+              exit 1
+            fi
+            echo "Created EE ID: $NEW_EE_ID"
           else
-            echo "Updating existing EE ID: $EE_SEARCH"
+            echo "Updating existing EE ID: $EE_ID"
             curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
               -H "Content-Type: application/json" \
               -X PATCH \
-              -d "$EE_PAYLOAD" \
-              "$AAP_URL/api/v2/execution_environments/$EE_SEARCH/" > /dev/null
+              -d "{
+                \"image\": \"$IMAGE_URL\",
+                \"pull\": \"always\",
+                \"credential\": $CRED_ID
+              }" \
+              "$AAP_URL/api/v2/execution_environments/$EE_ID/" > /dev/null
           fi
           
           echo "✓ AAP Configuration Complete"
