@@ -27,7 +27,7 @@ jobs:
 
       - name: Install Python and Ansible Builder
         run: |
-          apk add --no-cache python3 py3-pip
+          dnf install -y python3 python3-pip
           # Create a venv to avoid breaking system packages if strictly managed, 
           # but on docker:cli (Alpine) usually direct install is fine or venv is better.
           python3 -m venv /tmp/venv
