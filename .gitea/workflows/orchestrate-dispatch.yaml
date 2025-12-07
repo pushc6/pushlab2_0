@@ -303,6 +303,83 @@ jobs:
           git tag -a "$SNAP_VERSION" -m "IaC snapshot prod apply $SNAP_VERSION" || true
           git push origin "$SNAP_VERSION" || true
 
+  onboard-hosts:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux-cicd:latest
+    needs: [terraform]
+    steps:
+      - name: Onboard new hosts with ansible user
+        if: ${{ github.event.inputs.action == 'apply' }}
+        env:
+          AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
+          AAP_CLIENT_ID: ${{ secrets.AAP_CLIENT_ID }}
+          AAP_CLIENT_SECRET: ${{ secrets.AAP_CLIENT_SECRET }}
+          AAP_USERNAME: ${{ vars.AAP_USERNAME }}
+          AAP_PASSWORD: ${{ secrets.AAP_PASSWORD }}
+          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          
+          if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping onboarding"; exit 0; fi
+          
+          # Get authentication token
+          AAP_TOKEN_FINAL=""
+          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ] && [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
+            AUTH_STRING=$(printf "%s:%s" "$AAP_CLIENT_ID" "$AAP_CLIENT_SECRET" | base64 | tr -d '\n')
+            TOKEN_RESP=$(curl -s -X POST "$AAP_URL/o/token/" \
+              -H "Authorization: Basic $AUTH_STRING" \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "grant_type=password" \
+              -d "username=$AAP_USERNAME" \
+              -d "password=$AAP_PASSWORD")
+            AAP_TOKEN_FINAL=$(echo "$TOKEN_RESP" | jq -r '.access_token')
+          elif [ -n "$AAP_TOKEN" ]; then
+            AAP_TOKEN_FINAL="$AAP_TOKEN"
+          else
+            echo "No AAP credentials; skipping onboarding"
+            exit 0
+          fi
+          
+          AUTH_HEADER="Authorization: Bearer $AAP_TOKEN_FINAL"
+          
+          # Find the Onboard job template
+          ONBOARD_TEMPLATE=$(curl -s -H "$AUTH_HEADER" \
+            "$AAP_URL/api/controller/v2/job_templates/?name=Onboard+Manual+Hosts")
+          ONBOARD_ID=$(echo "$ONBOARD_TEMPLATE" | jq -r '.results[0].id // empty')
+          
+          if [ -z "$ONBOARD_ID" ] || [ "$ONBOARD_ID" = "null" ]; then
+            echo "Warning: 'Onboard Manual Hosts' job template not found in AAP"
+            echo "Please create it manually or skip onboarding for now"
+            exit 0
+          fi
+          
+          echo "Launching onboarding job (Template ID: $ONBOARD_ID)..."
+          LAUNCH_RESP=$(curl -s -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" \
+            -d '{"limit": "manual"}' \
+            "$AAP_URL/api/controller/v2/job_templates/$ONBOARD_ID/launch/")
+          JOB_ID=$(echo "$LAUNCH_RESP" | jq -r '.id // empty')
+          
+          if [ -z "$JOB_ID" ] || [ "$JOB_ID" = "null" ]; then
+            echo "Failed to launch onboarding job. Response:"
+            echo "$LAUNCH_RESP" | jq .
+            exit 1
+          fi
+          
+          echo "Onboarding Job ID: $JOB_ID. Waiting for completion..."
+          while true; do
+            sleep 5
+            JOB_STATUS=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/jobs/$JOB_ID/" | jq -r '.status')
+            echo "Onboarding Status: $JOB_STATUS"
+            if [ "$JOB_STATUS" == "successful" ]; then
+              echo "✓ Onboarding completed successfully"
+              break
+            elif [ "$JOB_STATUS" == "failed" ] || [ "$JOB_STATUS" == "error" ] || [ "$JOB_STATUS" == "canceled" ]; then
+              echo "::error::Onboarding failed with status: $JOB_STATUS"
+              echo "::error::New hosts may not be accessible. Check AAP job output."
+              exit 1
+            fi
+          done
+
   ansible-aap:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux-cicd:latest

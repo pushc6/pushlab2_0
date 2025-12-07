@@ -76,4 +76,4 @@ vms = {
   }
 }
 
-vm_ssh_user = "ansible"
+vm_ssh_user = "root"
