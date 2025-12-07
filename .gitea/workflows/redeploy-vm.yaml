@@ -16,6 +16,8 @@ on:
 jobs:
   redeploy:
     runs-on: self-hosted
+    container:
+      image: node:20
     
     steps:
       - name: Checkout repository
