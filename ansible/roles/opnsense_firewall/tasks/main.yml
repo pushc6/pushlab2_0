@@ -3,6 +3,14 @@
 # Manages granular firewall rules for Terraform-created hosts
 # Uses ansibleguy.opnsense collection with API authentication
 
+- name: Debug - Check if API credentials are defined
+  debug:
+    msg:
+      - "Firewall: {{ opnsense_firewall }}"
+      - "API Key defined: {{ opnsense_api_key is defined }}"
+      - "API Secret defined: {{ opnsense_api_secret is defined }}"
+      - "SSL Verify: {{ opnsense_validate_certs }}"
+
 - name: Manage custom firewall aliases
   ansibleguy.opnsense.alias:
     firewall: "{{ opnsense_firewall }}"
