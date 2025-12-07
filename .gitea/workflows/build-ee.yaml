@@ -112,8 +112,7 @@ jobs:
                 \"inputs\": {
                   \"host\": \"$REGISTRY_URL\",
                   \"username\": \"$REGISTRY_USER\",
-                  \"password\": \"$REGISTRY_PASSWORD\",
-                  \"verify_ssl\": true
+                  \"password\": \"$REGISTRY_PASSWORD\"
                 }
               }" \
               "$AAP_URL/api/controller/v2/credentials/")
@@ -133,8 +132,7 @@ jobs:
                 \"inputs\": {
                   \"host\": \"$REGISTRY_URL\",
                   \"username\": \"$REGISTRY_USER\",
-                  \"password\": \"$REGISTRY_PASSWORD\",
-                  \"verify_ssl\": true
+                  \"password\": \"$REGISTRY_PASSWORD\"
                 }
               }" \
               "$AAP_URL/api/controller/v2/credentials/$CRED_ID/" > /dev/null
