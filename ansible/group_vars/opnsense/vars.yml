@@ -6,6 +6,22 @@ opnsense_firewall: "{{ ansible_host }}"  # Hostname or IP only (no protocol)
 opnsense_api_url: "https://{{ ansible_host }}"  # Full URL (for backward compatibility)
 opnsense_validate_certs: false  # Set to true if using valid SSL cert
 
+# Interface mapping - friendly names to OPNsense interface IDs
+# Update these based on your OPNsense configuration (Interfaces -> Assignments)
+opnsense_interfaces:
+  wan: wan
+  wan_backup: opt4
+  wan_group: "WAN_Interfaces net"  # Failover WAN group - use for rules/NAT from internet
+  lan: lan
+  management_vlan: opt1      # VLAN 10 - Management
+  trusted_vlan: opt2         # VLAN 20 - Trusted/Servers
+  storage_vlan: opt3         # Storage VLAN
+  iot_vlan: opt5             # IoT VLAN
+  guest_vlan: opt6           # Guest VLAN
+  dmz_vlan: opt7             # VLAN 70 - DMZ
+  app_vlan: opt9             # VLAN 80 - App
+  wireguard_vlan: opt8       # WireGuard VPN
+
 # Default firewall rule settings
 firewall_defaults:
   enabled: true
@@ -27,16 +43,13 @@ opnsense_aliases:
     type: network
     content:
       - "10.37.0.0/16"
-      - "172.16.0.0/12"
     description: "Internal private networks"
     
   # Port aliases
-  - name: "web_ports"
+  - name: "web_https"
     type: port
     content:
-      - "80"
       - "443"
-      - "8080"
     description: "Common web service ports"
     
   # URL table aliases (for dynamic IP lists)
@@ -59,15 +72,15 @@ terraform_host_firewall_rules:
     destination: "gitea"  # 10.37.80.x (App VLAN)
     protocol: tcp
     port: 22
-    interface: VLAN80App
-    
+    interface: app_vlan  # Use friendly name - will be mapped to opt9
+
   - name: "SSH from Ansible to DNS02 (cross-site)"
     description: "Allow Ansible SSH to DNS02"
     source: "ansible_automation"  # 10.37.70.x (DMZ)
     destination: "dns02"  # 10.37.10.x (Different network)
     protocol: tcp
     port: 22
-    interface: VLAN10Management  # Adjust to actual interface
+    interface: management_vlan  # Use friendly name - will be mapped to opt1
   
   # labtest is NOT listed = no firewall rule (same subnet, not needed)
   

@@ -61,10 +61,13 @@
       {% for rule in (terraform_host_firewall_rules + host_specific_rules) %}
         {% if rule.interface is iterable and rule.interface is not string %}
           {% for iface in rule.interface %}
-            {% set _ = result.append([rule, iface]) %}
+            {% set actual_iface = opnsense_interfaces.get(iface, iface) %}
+            {% set _ = result.append([rule, actual_iface]) %}
           {% endfor %}
         {% else %}
-          {% set _ = result.append([rule, rule.interface | default('lan')]) %}
+          {% set iface = rule.interface | default('lan') %}
+          {% set actual_iface = opnsense_interfaces.get(iface, iface) %}
+          {% set _ = result.append([rule, actual_iface]) %}
         {% endif %}
       {% endfor %}
       {{ result | to_json }}
