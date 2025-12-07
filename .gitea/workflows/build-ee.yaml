@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'execution-environment/**'
+      - 'collections/requirements.yml'
   workflow_dispatch:
 
 env:
