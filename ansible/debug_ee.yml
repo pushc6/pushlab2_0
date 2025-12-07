@@ -15,6 +15,19 @@
       ignore_errors: true
     - debug: var=coll_list.stdout_lines
 
+    - name: List collection directory
+      command: ls -R /usr/share/ansible/collections/ansible_collections/puzzle
+      register: dir_list
+      ignore_errors: true
+    - debug: var=dir_list.stdout_lines
+
+    - name: Check module doc
+      command: ansible-doc -t module puzzle.opnsense.alias
+      register: doc_check
+      ignore_errors: true
+    - debug: var=doc_check.stdout_lines
+    - debug: var=doc_check.stderr_lines
+
     - name: Show ansible config dump
       command: ansible-config dump --only-changed
       register: config_dump
