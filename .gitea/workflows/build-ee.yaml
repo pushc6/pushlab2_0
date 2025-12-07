@@ -59,9 +59,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup AWX CLI
+      - name: Setup Dependencies
         run: |
-          pip3 install awxkit requests
+          # Only jq needed for JSON parsing
+          echo "Using curl for API calls"
 
       - name: Configure AAP Execution Environment
         env:
@@ -73,46 +74,79 @@ jobs:
           REGISTRY_PASSWORD: ${{ secrets.GIT_TOKEN }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
         run: |
-          # Configure awx CLI
-          awx login -f human --conf.host "$AAP_URL" --conf.username "$AAP_USERNAME" --conf.password "$AAP_PASSWORD" --conf.insecure
-          
           # Create or update Container Registry credential
-          CRED_ID=$(awx credentials list --name "Gitea Registry" -f json | jq -r '.results[0].id // empty' 2>/dev/null || echo "")
-          if [ -z "$CRED_ID" ]; then
-            echo "Creating new credential..."
-            awx credentials create \
-              --name "Gitea Registry" \
-              --organization 1 \
-              --credential_type 8 \
-              --inputs "{\"host\":\"$REGISTRY_URL\",\"username\":\"$REGISTRY_USER\",\"password\":\"$REGISTRY_PASSWORD\",\"verify_ssl\":true}" \
-              -f human
-          else
-            echo "Updating existing credential ID: $CRED_ID"
-            awx credentials modify "$CRED_ID" \
-              --inputs "{\"host\":\"$REGISTRY_URL\",\"username\":\"$REGISTRY_USER\",\"password\":\"$REGISTRY_PASSWORD\",\"verify_ssl\":true}" \
-              -f human
-          fi
+          CRED_SEARCH=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+            "$AAP_URL/api/v2/credentials/?name=Gitea+Registry" | jq -r '.results[0].id // empty')
           
-          # Get credential ID for EE assignment
-          CRED_ID=$(awx credentials list --name "Gitea Registry" -f json | jq -r '.results[0].id')
+          CRED_PAYLOAD=$(jq -n \
+            --arg name "Gitea Registry" \
+            --arg host "$REGISTRY_URL" \
+            --arg user "$REGISTRY_USER" \
+            --arg pass "$REGISTRY_PASSWORD" \
+            '{
+              name: $name,
+              organization: 1,
+              credential_type: 8,
+              inputs: {
+                host: $host,
+                username: $user,
+                password: $pass,
+                verify_ssl: true
+              }
+            }')
+          
+          if [ -z "$CRED_SEARCH" ]; then
+            echo "Creating new credential..."
+            CRED_RESP=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d "$CRED_PAYLOAD" \
+              "$AAP_URL/api/v2/credentials/")
+            CRED_ID=$(echo "$CRED_RESP" | jq -r '.id')
+            echo "Created credential ID: $CRED_ID"
+          else
+            echo "Updating existing credential ID: $CRED_SEARCH"
+            curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+              -H "Content-Type: application/json" \
+              -X PATCH \
+              -d "$CRED_PAYLOAD" \
+              "$AAP_URL/api/v2/credentials/$CRED_SEARCH/" > /dev/null
+            CRED_ID="$CRED_SEARCH"
+          fi
           
           # Create or update Execution Environment
-          EE_ID=$(awx execution_environments list --name "AlmaLinux EE" -f json | jq -r '.results[0].id // empty' 2>/dev/null || echo "")
+          EE_SEARCH=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+            "$AAP_URL/api/v2/execution_environments/?name=AlmaLinux+EE" | jq -r '.results[0].id // empty')
+          
           IMAGE_URL="${REGISTRY_URL}/${IMAGE_NAME}:latest"
-          if [ -z "$EE_ID" ]; then
+          EE_PAYLOAD=$(jq -n \
+            --arg name "AlmaLinux EE" \
+            --arg image "$IMAGE_URL" \
+            --arg cred "$CRED_ID" \
+            '{
+              name: $name,
+              image: $image,
+              pull: "always",
+              credential: ($cred | tonumber)
+            }')
+          
+          if [ -z "$EE_SEARCH" ]; then
             echo "Creating new Execution Environment..."
-            awx execution_environments create \
-              --name "AlmaLinux EE" \
-              --image "$IMAGE_URL" \
-              --pull "always" \
-              --credential "$CRED_ID" \
-              -f human
+            EE_RESP=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d "$EE_PAYLOAD" \
+              "$AAP_URL/api/v2/execution_environments/")
+            EE_ID=$(echo "$EE_RESP" | jq -r '.id')
+            echo "Created EE ID: $EE_ID"
           else
-            echo "Updating existing Execution Environment ID: $EE_ID"
-            awx execution_environments modify "$EE_ID" \
-              --image "$IMAGE_URL" \
-              --pull "always" \
-              --credential "$CRED_ID" \
-              -f human
+            echo "Updating existing EE ID: $EE_SEARCH"
+            curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+              -H "Content-Type: application/json" \
+              -X PATCH \
+              -d "$EE_PAYLOAD" \
+              "$AAP_URL/api/v2/execution_environments/$EE_SEARCH/" > /dev/null
           fi
+          
+          echo "✓ AAP Configuration Complete"
 
