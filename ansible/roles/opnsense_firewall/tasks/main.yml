@@ -54,6 +54,21 @@
   loop: "{{ groups['terraform_created'] }}"
   register: host_aliases
 
+- name: Build firewall rules list
+  set_fact:
+    firewall_rules_list: >-
+      {% set result = [] %}
+      {% for rule in (terraform_host_firewall_rules + host_specific_rules) %}
+        {% if rule.interface is iterable and rule.interface is not string %}
+          {% for iface in rule.interface %}
+            {% set _ = result.append([rule, iface]) %}
+          {% endfor %}
+        {% else %}
+          {% set _ = result.append([rule, rule.interface | default('lan')]) %}
+        {% endif %}
+      {% endfor %}
+      {{ result }}
+
 - name: Create granular firewall rules
   ansibleguy.opnsense.rule:
     firewall: "{{ opnsense_firewall }}"
@@ -71,18 +86,7 @@
     quick: "{{ firewall_defaults.quick }}"
     state: present
     match_fields: ['description']
-  loop: >-
-    {% set result = [] %}
-    {% for rule in (terraform_host_firewall_rules + host_specific_rules) %}
-      {% if rule.interface is iterable and rule.interface is not string %}
-        {% for iface in rule.interface %}
-          {% set _ = result.append([rule, iface]) %}
-        {% endfor %}
-      {% else %}
-        {% set _ = result.append([rule, rule.interface | default('lan')]) %}
-      {% endif %}
-    {% endfor %}
-    {{ result }}
+  loop: "{{ firewall_rules_list }}"
   loop_control:
     label: "{{ item.0.name }} on {{ item.1 }}"
   when: item.0.when | default(true)
