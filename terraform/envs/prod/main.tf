@@ -89,8 +89,8 @@ locals {
         }
         docker_hosts = {
           hosts = {
-            gitea   = {}
-            dns02   = {}
+            gitea = {}
+            # dns02   = {}  # Commented out to destroy and recreate fresh
             labtest = {}
           }
         }
