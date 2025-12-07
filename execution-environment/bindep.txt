@@ -3,3 +3,4 @@ openssh-clients
 git-core
 rsync
 sshpass
+docker-ce-cli
