@@ -2,7 +2,7 @@
 - name: Identify data disk by size
   set_fact:
     target_disk: "{{ item.key }}"
-  loop: "{{ ansible_devices | dict2items }}"
+  loop: "{{ ansible_facts['devices'] | dict2items }}"
   when:
     - item.value.size is defined
     - item.value.size | human_to_bytes == data_disk_size_gb | int * 1024 * 1024 * 1024
@@ -18,7 +18,7 @@
 
 - name: Determine if disk is partitioned
   set_fact:
-    target_partition: "{{ (ansible_devices[target_disk].partitions | length > 0) | ternary(ansible_devices[target_disk].partitions.keys() | sort | first, '') }}"
+    target_partition: "{{ (ansible_facts['devices'][target_disk].partitions | length > 0) | ternary(ansible_facts['devices'][target_disk].partitions.keys() | sort | first, '') }}"
 
 - name: Set target device path
   set_fact:
