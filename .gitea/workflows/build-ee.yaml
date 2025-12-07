@@ -112,9 +112,38 @@ jobs:
           fi
           
           CRED_ID=$(echo "$CRED_SEARCH" | jq -r '.results[0].id // empty')
+          EXISTING_CRED_TYPE=$(echo "$CRED_SEARCH" | jq -r '.results[0].credential_type // empty')
           
           if [ -z "$CRED_ID" ] || [ "$CRED_ID" = "null" ]; then
             echo "Creating new credential..."
+            CRED_RESP=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d "{
+                \"name\": \"Gitea Registry\",
+                \"organization\": 1,
+                \"credential_type\": $CRED_TYPE_ID,
+                \"inputs\": {
+                  \"host\": \"$REGISTRY_URL\",
+                  \"username\": \"$REGISTRY_USER\",
+                  \"password\": \"$REGISTRY_PASSWORD\"
+                }
+              }" \
+              "$AAP_URL/api/controller/v2/credentials/")
+            CRED_ID=$(echo "$CRED_RESP" | jq -r '.id // empty')
+            if [ -z "$CRED_ID" ] || [ "$CRED_ID" = "null" ]; then
+              echo "Failed to create credential. Response:"
+              echo "$CRED_RESP" | jq .
+              exit 1
+            fi
+            echo "Created credential ID: $CRED_ID"
+          elif [ "$EXISTING_CRED_TYPE" != "$CRED_TYPE_ID" ]; then
+            echo "Existing credential has wrong type ($EXISTING_CRED_TYPE != $CRED_TYPE_ID). Deleting and recreating..."
+            curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+              -X DELETE \
+              "$AAP_URL/api/controller/v2/credentials/$CRED_ID/" > /dev/null
+            
+            echo "Creating new credential with correct type..."
             CRED_RESP=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
               -H "Content-Type: application/json" \
               -X POST \
