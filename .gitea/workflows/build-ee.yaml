@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - 'execution-environment/**'
-      - 'collections/requirements.yml'
   workflow_dispatch:
 
 env:
@@ -15,18 +14,16 @@ env:
   REGISTRY_USER: ${{ github.actor }}
   REGISTRY_PASSWORD: ${{ secrets.GIT_TOKEN }}
 
+permissions:
+  packages: write
+
 jobs:
   build-ee:
     runs-on: [self-hosted, linux, x64, alma]
-    container: docker:cli
+    container: almalinux-cicd:latest # Use the image we created previously
     steps:
       - name: Checkout repository
-        run: |
-          # actions/checkout requires nodejs which is not in docker:cli
-          # Use manual clone instead
-          apk add --no-cache git
-          rm -rf ${{ github.workspace }}/*
-          git clone --depth 1 --branch ${{ github.ref_name }} ${{ github.server_url }}/${{ github.repository }} ${{ github.workspace }}
+        uses: actions/checkout@v4
 
       - name: Install Python and Ansible Builder
         run: |
@@ -42,11 +39,6 @@ jobs:
         run: |
           echo "$REGISTRY_PASSWORD" | docker login $REGISTRY_URL -u "$REGISTRY_USER" --password-stdin
         
-      - name: Prepare build context
-        run: |
-          # Copy collections requirements to EE build directory
-          cp collections/requirements.yml execution-environment/requirements.yml
-          
       - name: Build Execution Environment
         run: |
           . /tmp/venv/bin/activate
