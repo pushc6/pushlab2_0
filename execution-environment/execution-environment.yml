@@ -3,9 +3,13 @@ version: 3
 
 images:
   base_image:
-    name: registry.fedoraproject.org/fedora:40
+    name: almalinux:10
 
 dependencies:
+  ansible_core:
+    package_pip: ansible-core
+  ansible_runner:
+    package_pip: ansible-runner
   galaxy: requirements.yml
   python: requirements.txt
   system: bindep.txt

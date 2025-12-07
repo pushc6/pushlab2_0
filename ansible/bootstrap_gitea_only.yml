@@ -1,0 +1,10 @@
+---
+- name: Bootstrap Gitea Config Only
+  hosts: gitea
+  become: true
+  vars:
+    # Explicitly set variables to match production, though defaults might suffice
+    gitea_http_port: 3000
+    gitea_external_url: "https://git.push-lab.com"
+  roles:
+    - gitea
