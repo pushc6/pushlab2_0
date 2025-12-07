@@ -1,0 +1,31 @@
+---
+- name: Debug Execution Environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Show python version
+      command: python3 --version
+      register: py_ver
+    - debug: var=py_ver.stdout
+
+    - name: Show installed collections
+      command: ansible-galaxy collection list
+      register: coll_list
+      ignore_errors: true
+    - debug: var=coll_list.stdout_lines
+
+    - name: Show ansible config dump
+      command: ansible-config dump --only-changed
+      register: config_dump
+      ignore_errors: true
+    - debug: var=config_dump.stdout_lines
+
+    - name: Show environment variables
+      command: env
+      register: env_vars
+    - debug: var=env_vars.stdout_lines
+
+    - name: Try to load puzzle.opnsense
+      debug:
+        msg: "Attempting to load puzzle.opnsense"
