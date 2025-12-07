@@ -1,0 +1,47 @@
+name: Redeploy Virtual Machine
+run-name: Redeploy VM ${{ inputs.vm_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      vm_name:
+        description: 'Name of the VM to redeploy (e.g., dns02, gitea)'
+        required: true
+        default: 'dns02'
+      environment:
+        description: 'Terraform environment/workspace'
+        required: true
+        default: 'prod'
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:light
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize Terraform
+        working-directory: terraform/envs/${{ inputs.environment }}
+        run: terraform init
+
+      - name: Taint VM Resource
+        working-directory: terraform/envs/${{ inputs.environment }}
+        run: |
+          # Try to taint unprotected resource first, then protected if not found
+          # Note: The resource path matches the structure in main.tf/modules
+          if terraform state list | grep -q 'module.vm\["${{ inputs.vm_name }}"\].vsphere_virtual_machine.vm_unprotected\[0\]'; then
+            terraform taint 'module.vm["${{ inputs.vm_name }}"].vsphere_virtual_machine.vm_unprotected[0]'
+          elif terraform state list | grep -q 'module.vm\["${{ inputs.vm_name }}"\].vsphere_virtual_machine.vm_protected\[0\]'; then
+             terraform taint 'module.vm["${{ inputs.vm_name }}"].vsphere_virtual_machine.vm_protected[0]'
+          else
+            echo "::error::VM resource for ${{ inputs.vm_name }} not found in state!"
+            exit 1
+          fi
+
+      - name: Apply Changes (Recreate VM)
+        working-directory: terraform/envs/${{ inputs.environment }}
+        # Only target the specific module to limit blast radius
+        run: terraform apply -auto-approve -target='module.vm["${{ inputs.vm_name }}"]'
