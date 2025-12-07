@@ -344,11 +344,11 @@ jobs:
           
           # Find the Onboard job template
           ONBOARD_TEMPLATE=$(curl -s -H "$AUTH_HEADER" \
-            "$AAP_URL/api/controller/v2/job_templates/?name=Onboard+Manual+Hosts")
+            "$AAP_URL/api/controller/v2/job_templates/?name=Onboard+Terraform+Hosts")
           ONBOARD_ID=$(echo "$ONBOARD_TEMPLATE" | jq -r '.results[0].id // empty')
           
           if [ -z "$ONBOARD_ID" ] || [ "$ONBOARD_ID" = "null" ]; then
-            echo "Warning: 'Onboard Manual Hosts' job template not found in AAP"
+            echo "Warning: 'Onboard Terraform Hosts' job template not found in AAP"
             echo "Please create it manually or skip onboarding for now"
             exit 0
           fi
