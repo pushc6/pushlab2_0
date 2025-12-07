@@ -61,7 +61,7 @@ jobs:
 
       - name: Install requirements
         run: |
-          pip3 install ansible requests awxkit
+          pip3 install ansible-core requests awxkit
           ansible-galaxy collection install ansible.controller --force
 
       - name: Update AAP Execution Environment
