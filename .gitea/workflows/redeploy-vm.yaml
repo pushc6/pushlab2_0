@@ -22,6 +22,11 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
+      TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+      TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+      # Assuming we don't need private key for pure deployment (unless provisioner needs it)
+      # TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
     
     steps:
       - name: Checkout repository
@@ -54,4 +59,5 @@ jobs:
       - name: Apply Changes (Recreate VM)
         working-directory: terraform/envs/${{ inputs.environment }}
         # Only target the specific module to limit blast radius
-        run: terraform apply -auto-approve -target='module.vm["${{ inputs.vm_name }}"]'
+        # Must pass prod.tfvars for non-secret vars
+        run: terraform apply -auto-approve -var-file=prod.tfvars -target='module.vm["${{ inputs.vm_name }}"]'
