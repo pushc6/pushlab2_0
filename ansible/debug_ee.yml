@@ -15,13 +15,13 @@
       ignore_errors: true
     - debug: var=coll_list.stdout_lines
 
-    - name: List collection directory
-      command: ls -R /usr/share/ansible/collections/ansible_collections/puzzle
+    - name: List collection directory (check permissions/existence)
+      command: ls -laR /usr/share/ansible/collections/ansible_collections/puzzle
       register: dir_list
       ignore_errors: true
     - debug: var=dir_list.stdout_lines
 
-    - name: Check module doc
+    - name: Check module doc (can Ansible see it?)
       command: ansible-doc -t module puzzle.opnsense.alias
       register: doc_check
       ignore_errors: true
