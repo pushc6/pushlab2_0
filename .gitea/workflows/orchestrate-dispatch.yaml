@@ -343,6 +343,7 @@ jobs:
           AUTH_HEADER="Authorization: Bearer $AAP_TOKEN_FINAL"
           
           # Find the Onboard job template
+          echo "Resolving 'Onboard Terraform Hosts' Job Template..."
           ONBOARD_TEMPLATE=$(curl -s -H "$AUTH_HEADER" \
             "$AAP_URL/api/controller/v2/job_templates/?name=Onboard+Terraform+Hosts")
           ONBOARD_ID=$(echo "$ONBOARD_TEMPLATE" | jq -r '.results[0].id // empty')
@@ -352,10 +353,30 @@ jobs:
             echo "Please create it manually or skip onboarding for now"
             exit 0
           fi
+
+          # --- Project Sync ---
+          PROJECT_ID=$(echo "$ONBOARD_TEMPLATE" | jq -r '.results[0].project // empty')
+          if [ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "null" ]; then
+            echo "Triggering Project Update for Project ID: $PROJECT_ID"
+            UPDATE_RESP=$(curl -s -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" "$AAP_URL/api/controller/v2/projects/$PROJECT_ID/update/")
+            UPDATE_JOB_ID=$(echo "$UPDATE_RESP" | jq -r '.id // empty')
+            if [ -n "$UPDATE_JOB_ID" ] && [ "$UPDATE_JOB_ID" != "null" ]; then
+               echo "Project Update Job ID: $UPDATE_JOB_ID. Waiting..."
+               while true; do
+                 sleep 5
+                 JOB_STATUS=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/project_updates/$UPDATE_JOB_ID/" | jq -r '.status')
+                 echo "Project Update Status: $JOB_STATUS"
+                 if [ "$JOB_STATUS" == "successful" ]; then break; fi
+                 if [ "$JOB_STATUS" == "failed" ] || [ "$JOB_STATUS" == "error" ] || [ "$JOB_STATUS" == "canceled" ]; then
+                   echo "::error::Project Update Failed: $JOB_STATUS"; exit 1
+                 fi
+               done
+            fi
+          fi
           
           echo "Launching onboarding job (Template ID: $ONBOARD_ID)..."
+          # Removed limit: manual to respect playbook hosts definition
           LAUNCH_RESP=$(curl -s -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" \
-            -d '{"limit": "manual"}' \
             "$AAP_URL/api/controller/v2/job_templates/$ONBOARD_ID/launch/")
           JOB_ID=$(echo "$LAUNCH_RESP" | jq -r '.id // empty')
           
