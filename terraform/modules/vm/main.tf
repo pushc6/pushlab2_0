@@ -15,9 +15,8 @@ locals {
   effective_os_disk_size_gb = max(var.disk_size_gb, try(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size_gb))
 
   # Construct the primary interface config
-  # Using ens192 (standard VMware slot 0/192) for RHEL/AlmaLinux 10 compatibility
   primary_iface_config = length(var.ipv4_address) > 0 ? {
-    ens192 = {
+    eth0 = {
       dhcp4       = false
       addresses   = [format("%s/%d", var.ipv4_address, var.ipv4_netmask)]
       gateway4    = var.ipv4_gateway
@@ -26,10 +25,8 @@ locals {
   } : {}
 
   # Construct additional interfaces config
-  # Using standard VMware PCI enumeration: 192 (slot 0), 224 (slot 1), 256 (slot 2)...
-  # Increment is 32. Slot 0 is primary (ens192). Slot 1 is first additional (ens224).
   additional_iface_config = {
-    for idx, iface in var.additional_interfaces : "ens${224 + (idx * 32)}" => {
+    for idx, iface in var.additional_interfaces : "eth${idx + 1}" => {
       dhcp4     = false
       addresses = [format("%s/%d", iface.ipv4_address, iface.ipv4_netmask)]
     }
