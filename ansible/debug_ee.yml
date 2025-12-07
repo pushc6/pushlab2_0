@@ -46,6 +46,18 @@
       register: env_vars
     - debug: var=env_vars.stdout_lines
 
+    - name: List all puzzle.opnsense modules
+      command: ansible-doc -l puzzle.opnsense
+      register: module_list
+      ignore_errors: true
+    - debug: var=module_list.stdout_lines
+
+    - name: Check plugins directory
+      command: ls -la /usr/share/ansible/collections/ansible_collections/puzzle/opnsense/plugins/modules/
+      register: modules_dir
+      ignore_errors: true
+    - debug: var=modules_dir.stdout_lines
+
     - name: Try to load puzzle.opnsense
       debug:
         msg: "Attempting to load puzzle.opnsense"
