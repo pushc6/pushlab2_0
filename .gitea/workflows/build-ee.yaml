@@ -85,7 +85,7 @@ jobs:
           # Create or update Container Registry credential
           echo "Searching for existing credential..."
           CRED_SEARCH=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
-            "$AAP_URL/api/v2/credentials/?name=Gitea+Registry")
+            "$AAP_URL/api/controller/v2/credentials/?name=Gitea+Registry")
           
           # Debug: Show response
           echo "API Response:"
@@ -116,7 +116,7 @@ jobs:
                   \"verify_ssl\": true
                 }
               }" \
-              "$AAP_URL/api/v2/credentials/")
+              "$AAP_URL/api/controller/v2/credentials/")
             CRED_ID=$(echo "$CRED_RESP" | jq -r '.id // empty')
             if [ -z "$CRED_ID" ] || [ "$CRED_ID" = "null" ]; then
               echo "Failed to create credential. Response:"
@@ -137,13 +137,13 @@ jobs:
                   \"verify_ssl\": true
                 }
               }" \
-              "$AAP_URL/api/v2/credentials/$CRED_ID/" > /dev/null
+              "$AAP_URL/api/controller/v2/credentials/$CRED_ID/" > /dev/null
           fi
           
           # Create or update Execution Environment
           echo "Searching for existing Execution Environment..."
           EE_SEARCH=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
-            "$AAP_URL/api/v2/execution_environments/?name=AlmaLinux+EE")
+            "$AAP_URL/api/controller/v2/execution_environments/?name=AlmaLinux+EE")
           EE_ID=$(echo "$EE_SEARCH" | jq -r '.results[0].id // empty')
           
           IMAGE_URL="${REGISTRY_URL}/${IMAGE_NAME}:latest"
@@ -159,7 +159,7 @@ jobs:
                 \"pull\": \"always\",
                 \"credential\": $CRED_ID
               }" \
-              "$AAP_URL/api/v2/execution_environments/")
+              "$AAP_URL/api/controller/v2/execution_environments/")
             NEW_EE_ID=$(echo "$EE_RESP" | jq -r '.id // empty')
             if [ -z "$NEW_EE_ID" ] || [ "$NEW_EE_ID" = "null" ]; then
               echo "Failed to create EE. Response:"
@@ -177,7 +177,7 @@ jobs:
                 \"pull\": \"always\",
                 \"credential\": $CRED_ID
               }" \
-              "$AAP_URL/api/v2/execution_environments/$EE_ID/" > /dev/null
+              "$AAP_URL/api/controller/v2/execution_environments/$EE_ID/" > /dev/null
           fi
           
           echo "✓ AAP Configuration Complete"
