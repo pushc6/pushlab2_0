@@ -2,4 +2,4 @@
 collections:
   - name: ansible.posix
   - name: community.general
-  - name: puzzle.opnsense
+  - name: ansibleguy.opnsense

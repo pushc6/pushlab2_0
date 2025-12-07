@@ -52,6 +52,12 @@
       ignore_errors: true
     - debug: var=module_list.stdout_lines
 
+    - name: Get detailed docs for firewall_alias
+      command: ansible-doc puzzle.opnsense.firewall_alias
+      register: alias_docs
+      ignore_errors: true
+    - debug: var=alias_docs.stdout_lines
+
     - name: Check plugins directory
       command: ls -la /usr/share/ansible/collections/ansible_collections/puzzle/opnsense/plugins/modules/
       register: modules_dir

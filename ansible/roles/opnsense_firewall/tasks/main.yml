@@ -1,29 +1,30 @@
 ---
 # OPNsense Firewall Management Role
 # Manages granular firewall rules for Terraform-created hosts
+# Uses ansibleguy.opnsense collection with API authentication
 
 - name: Manage custom firewall aliases
-  puzzle.opnsense.firewall_alias:
-    api_url: "{{ opnsense_api_url }}"
+  ansibleguy.opnsense.alias:
+    firewall: "{{ opnsense_api_url }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
-    validate_certs: "{{ opnsense_validate_certs }}"
+    ssl_verify: "{{ opnsense_validate_certs }}"
     name: "{{ item.name }}"
     type: "{{ item.type }}"
     content: "{{ item.content }}"
     description: "{{ item.description }}"
-    updatefreq: "{{ item.refresh_frequency | default(omit) }}"
+    update_frequency_days: "{{ item.refresh_frequency | default(omit) }}"
     state: present
   loop: "{{ opnsense_aliases }}"
   when: opnsense_aliases is defined and opnsense_aliases | length > 0
   register: custom_aliases
 
 - name: Create IP alias for Terraform hosts
-  puzzle.opnsense.firewall_alias:
-    api_url: "{{ opnsense_api_url }}"
+  ansibleguy.opnsense.alias:
+    firewall: "{{ opnsense_api_url }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
-    validate_certs: "{{ opnsense_validate_certs }}"
+    ssl_verify: "{{ opnsense_validate_certs }}"
     name: "terraform_hosts"
     type: host
     content: "{{ groups['terraform_created'] | map('extract', hostvars, 'ansible_host') | list }}"
@@ -32,11 +33,11 @@
   register: terraform_alias
 
 - name: Create individual host aliases
-  puzzle.opnsense.firewall_alias:
-    api_url: "{{ opnsense_api_url }}"
+  ansibleguy.opnsense.alias:
+    firewall: "{{ opnsense_api_url }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
-    validate_certs: "{{ opnsense_validate_certs }}"
+    ssl_verify: "{{ opnsense_validate_certs }}"
     name: "{{ item }}"
     type: host
     content: ["{{ hostvars[item].ansible_host }}"]
@@ -46,23 +47,22 @@
   register: host_aliases
 
 - name: Create granular firewall rules
-  puzzle.opnsense.firewall_rules:
-    api_url: "{{ opnsense_api_url }}"
+  ansibleguy.opnsense.rule:
+    firewall: "{{ opnsense_api_url }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
-    validate_certs: "{{ opnsense_validate_certs }}"
+    ssl_verify: "{{ opnsense_validate_certs }}"
     interface: "{{ item.1 }}"
-    direction: in
-    protocol: "{{ item.0.protocol }}"
-    source: "{{ item.0.source }}"
-    source_port: any
-    destination: "{{ item.0.destination }}"
+    protocol: "{{ item.0.protocol | upper }}"
+    source_net: "{{ item.0.source }}"
+    destination_net: "{{ item.0.destination }}"
     destination_port: "{{ item.0.port }}"
     description: "{{ item.0.description }}{{ ' [' ~ item.1 ~ ']' if item.0.interface is iterable and item.0.interface is not string else '' }}"
     enabled: "{{ firewall_defaults.enabled }}"
     log: "{{ item.0.log | default(firewall_defaults.log) }}"
     quick: "{{ firewall_defaults.quick }}"
     state: present
+    match_fields: ['description']
   loop: >-
     {% set result = [] %}
     {% for rule in (terraform_host_firewall_rules + host_specific_rules) %}
@@ -80,16 +80,15 @@
   when: item.0.when | default(true)
   register: firewall_rules
 
-# NOTE: The puzzle.opnsense collection v2.0.0 does not include a 'reload' module
-# Configuration changes are applied automatically by the firewall_alias and firewall_rules modules
-# - name: Apply firewall configuration
-#   puzzle.opnsense.reload:
-#     api_url: "{{ opnsense_api_url }}"
-#     api_key: "{{ opnsense_api_key }}"
-#     api_secret: "{{ opnsense_api_secret }}"
-#     validate_certs: "{{ opnsense_validate_certs }}"
-#   when: >
-#     (custom_aliases is defined and custom_aliases.changed) or
-#     terraform_alias.changed or
-#     host_aliases.changed or
-#     firewall_rules.changed
+- name: Reload firewall filter
+  ansibleguy.opnsense.reload:
+    firewall: "{{ opnsense_api_url }}"
+    api_key: "{{ opnsense_api_key }}"
+    api_secret: "{{ opnsense_api_secret }}"
+    ssl_verify: "{{ opnsense_validate_certs }}"
+    target: 'filter'
+  when: >
+    (custom_aliases is defined and custom_aliases.changed) or
+    terraform_alias.changed or
+    host_aliases.changed or
+    firewall_rules.changed

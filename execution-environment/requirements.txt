@@ -1,3 +1,4 @@
 # Python dependencies
 requests
+httpx  # Required by ansibleguy.opnsense collection
 # docker  # Standard docker python library if not pulled in by collection
