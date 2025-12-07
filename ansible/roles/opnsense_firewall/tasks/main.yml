@@ -95,13 +95,13 @@
   when: item.0.when | default(true)
   register: firewall_rules
 
-- name: Reload firewall filter
+- name: Reload firewall rules
   ansibleguy.opnsense.reload:
     firewall: "{{ opnsense_firewall }}"
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
     ssl_verify: "{{ opnsense_validate_certs }}"
-    target: 'filter'
+    target: 'rule'
   when: >
     (custom_aliases is defined and custom_aliases.changed) or
     terraform_alias.changed or
