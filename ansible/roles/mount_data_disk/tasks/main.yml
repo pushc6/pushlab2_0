@@ -16,20 +16,29 @@
     msg: "Could not find a disk with size {{ data_disk_size_gb }} GB"
   when: target_disk is not defined
 
-- name: Check if filesystem exists
-  command: blkid /dev/{{ target_disk }}
+- name: Determine if disk is partitioned
+  set_fact:
+    target_partition: "{{ (ansible_devices[target_disk].partitions | length > 0) | ternary(ansible_devices[target_disk].partitions.keys() | sort | first, '') }}"
+
+- name: Set target device path
+  set_fact:
+    target_device: "/dev/{{ (target_partition | length > 0) | ternary(target_partition, target_disk) }}"
+
+- name: Check if filesystem exists on target device
+  command: blkid {{ target_device }}
   register: disk_blkid
   failed_when: false
   changed_when: false
 
 - name: Create filesystem on data disk
-  command: mkfs.{{ data_fs_type | default('ext4') }} /dev/{{ target_disk }}
+  command: mkfs.{{ data_fs_type | default('ext4') }} {{ target_device }}
   when: disk_blkid.rc != 0
 
 - name: Mount data disk
   ansible.posix.mount:
     path: "{{ data_mount_point | default('/data') }}"
-    src: "/dev/{{ target_disk }}"
+    src: "{{ target_device }}"
     fstype: "{{ data_fs_type | default('ext4') }}"
     opts: defaults
     state: mounted
+
