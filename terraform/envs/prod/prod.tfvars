@@ -44,12 +44,14 @@ vms = {
     thin_provisioned = true
     hostname         = "dns02"
     domain           = "localdomain"
+    # Use cloud-init (same as gitea) - configures all interfaces via guestinfo metadata
 
     ipv4_address = "10.37.10.254"
     ipv4_netmask = 24
     ipv4_gateway = "10.37.10.1"
-    dns_servers  = ["1.1.1.1"]
+    dns_servers  = ["10.37.10.2"]
 
+    # Cloud-init will configure all additional interfaces with static IPs
     additional_interfaces = [
       { network_name = "VLAN 20 - Trusted", ipv4_address = "10.37.20.254", ipv4_netmask = 24 },
       { network_name = "VLAN 30 - Storage", ipv4_address = "10.37.30.254", ipv4_netmask = 24 },

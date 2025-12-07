@@ -1,0 +1,24 @@
+---
+# Configure multiple network interfaces with static IPs
+# This role configures NetworkManager connections for additional interfaces
+
+- name: Configure additional network interfaces
+  block:
+    - name: Configure static IP on additional interfaces
+      community.general.nmcli:
+        conn_name: "{{ item.conn_name }}"
+        ifname: "{{ item.ifname }}"
+        type: ethernet
+        ip4: "{{ item.ipv4_address }}/{{ item.ipv4_netmask }}"
+        state: present
+        autoconnect: true
+      loop: "{{ network_interfaces }}"
+      when: network_interfaces is defined and network_interfaces | length > 0
+
+    - name: Bring up the network interfaces
+      ansible.builtin.command: nmcli connection up "{{ item.conn_name }}"
+      loop: "{{ network_interfaces }}"
+      when: network_interfaces is defined and network_interfaces | length > 0
+      changed_when: false
+      failed_when: false
+  when: network_interfaces is defined

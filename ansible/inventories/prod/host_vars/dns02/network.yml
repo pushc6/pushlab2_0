@@ -1,0 +1,7 @@
+---
+# Network interface configuration for dns02
+# Maps interface names to static IP addresses
+# Cloud-init configures all 8 interfaces via Terraform
+
+# This file is kept for reference but network_interfaces role will skip dns02
+# since cloud-init handles all interface configuration
