@@ -52,12 +52,16 @@ locals {
   ansible_inventory_yaml = yamlencode({
     all = {
       children = {
-        almalinux = {
-          hosts = {
-            "${module.vm.vm_name}" = {
-              ansible_host    = module.vm.vm_ip
-              ansible_user    = var.vm_ssh_user
-              system_hostname = module.vm.vm_name
+        terraform_created = {
+          children = {
+            almalinux = {
+              hosts = {
+                "${module.vm.vm_name}" = {
+                  ansible_host    = module.vm.vm_ip
+                  ansible_user    = var.vm_ssh_user
+                  system_hostname = module.vm.vm_name
+                }
+              }
             }
           }
         }

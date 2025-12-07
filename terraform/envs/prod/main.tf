@@ -77,12 +77,16 @@ locals {
   ansible_inventory_yaml = yamlencode({
     all = {
       children = {
-        almalinux = {
-          hosts = { for name, m in module.vm : name => {
-            ansible_host    = (try(var.vms[name].ipv4_address, "") != "" ? var.vms[name].ipv4_address : m.vm_ip)
-            ansible_user    = var.vm_ssh_user
-            system_hostname = try(var.vms[name].hostname, name)
-          } }
+        terraform_created = {
+          children = {
+            almalinux = {
+              hosts = { for name, m in module.vm : name => {
+                ansible_host    = (try(var.vms[name].ipv4_address, "") != "" ? var.vms[name].ipv4_address : m.vm_ip)
+                ansible_user    = var.vm_ssh_user
+                system_hostname = try(var.vms[name].hostname, name)
+              } }
+            }
+          }
         }
       }
     }
