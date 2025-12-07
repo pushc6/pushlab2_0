@@ -17,7 +17,7 @@ jobs:
   redeploy:
     runs-on: self-hosted
     container:
-      image: node:20
+      image: almalinux-cicd:latest
     
     steps:
       - name: Checkout repository
