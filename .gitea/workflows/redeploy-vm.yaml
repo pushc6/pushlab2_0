@@ -15,7 +15,7 @@ on:
 
 jobs:
   redeploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: hashicorp/terraform:light
     
