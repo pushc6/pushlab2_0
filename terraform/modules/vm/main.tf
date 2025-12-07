@@ -34,14 +34,28 @@ locals {
 
   network_config_ethernets = merge(local.primary_iface_config, local.additional_iface_config)
 
+  # Build network metadata as proper YAML for cloud-init
+  # We construct YAML manually to avoid yamlencode() issues with quoted keys
+  metadata_yaml = var.use_cloud_init && length(local.network_config_ethernets) > 0 ? join("\n", concat(
+    ["local-hostname: ${var.vm_name}"],
+    ["network:"],
+    ["  version: 2"],
+    ["  ethernets:"],
+    flatten([
+      for iface_name, iface_cfg in local.network_config_ethernets : concat(
+        ["    ${iface_name}:"],
+        ["      dhcp4: ${iface_cfg.dhcp4}"],
+        ["      addresses:"],
+        [for addr in iface_cfg.addresses : "        - ${addr}"],
+        can(iface_cfg.gateway4) ? ["      gateway4: ${iface_cfg.gateway4}"] : [],
+        can(iface_cfg.nameservers) ? ["      nameservers:", "        addresses:"] : [],
+        can(iface_cfg.nameservers) ? [for ns in iface_cfg.nameservers.addresses : "          - ${ns}"] : []
+      )
+    ])
+  )) : ""
+
   cloud_init_extra = var.use_cloud_init && length(local.network_config_ethernets) > 0 ? {
-    "guestinfo.metadata" = base64encode(yamlencode({
-      local_hostname = var.vm_name,
-      network = {
-        version   = 2,
-        ethernets = local.network_config_ethernets
-      }
-    })),
+    "guestinfo.metadata"          = base64encode(local.metadata_yaml),
     "guestinfo.metadata.encoding" = "base64",
     "guestinfo.userdata" = base64encode(join("\n", [
       "#cloud-config",
