@@ -15,6 +15,13 @@
       ignore_errors: true
     - debug: var=coll_list.stdout_lines
 
+    - name: Check if docker-ce-cli is installed (verifies new image)
+      command: rpm -q docker-ce-cli
+      register: docker_check
+      ignore_errors: true
+    - debug: 
+        msg: "Docker CLI installed: {{ docker_check.rc == 0 }} (If false, using OLD image)"
+
     - name: List collection directory (check permissions/existence)
       command: ls -laR /usr/share/ansible/collections/ansible_collections/puzzle
       register: dir_list
