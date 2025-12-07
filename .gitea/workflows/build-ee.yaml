@@ -82,6 +82,19 @@ jobs:
             exit 1
           fi
           
+          # Get Container Registry credential type ID
+          echo "Looking up Container Registry credential type..."
+          CRED_TYPE_RESP=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
+            "$AAP_URL/api/controller/v2/credential_types/?name=Container+Registry")
+          CRED_TYPE_ID=$(echo "$CRED_TYPE_RESP" | jq -r '.results[0].id // empty')
+          
+          if [ -z "$CRED_TYPE_ID" ] || [ "$CRED_TYPE_ID" = "null" ]; then
+            echo "Failed to find Container Registry credential type. Response:"
+            echo "$CRED_TYPE_RESP" | jq .
+            exit 1
+          fi
+          echo "Container Registry credential type ID: $CRED_TYPE_ID"
+          
           # Create or update Container Registry credential
           echo "Searching for existing credential..."
           CRED_SEARCH=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
@@ -108,7 +121,7 @@ jobs:
               -d "{
                 \"name\": \"Gitea Registry\",
                 \"organization\": 1,
-                \"credential_type\": 8,
+                \"credential_type\": $CRED_TYPE_ID,
                 \"inputs\": {
                   \"host\": \"$REGISTRY_URL\",
                   \"username\": \"$REGISTRY_USER\",
