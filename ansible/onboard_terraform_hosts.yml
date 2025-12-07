@@ -3,6 +3,7 @@
   hosts: terraform_created
   become: yes
   vars:
+    ansible_user: root
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
   
   roles:
