@@ -76,10 +76,28 @@ jobs:
         run: |
           set -e
           
+          # Validate required variables
+          if [ -z "$AAP_URL" ] || [ -z "$AAP_USERNAME" ] || [ -z "$AAP_PASSWORD" ]; then
+            echo "Error: Missing AAP credentials"
+            exit 1
+          fi
+          
           # Create or update Container Registry credential
           echo "Searching for existing credential..."
           CRED_SEARCH=$(curl -s -k -u "$AAP_USERNAME:$AAP_PASSWORD" \
             "$AAP_URL/api/v2/credentials/?name=Gitea+Registry")
+          
+          # Debug: Show response
+          echo "API Response:"
+          echo "$CRED_SEARCH"
+          
+          # Validate JSON response
+          if ! echo "$CRED_SEARCH" | jq empty 2>/dev/null; then
+            echo "Error: Invalid JSON response from AAP API"
+            echo "Response was: $CRED_SEARCH"
+            exit 1
+          fi
+          
           CRED_ID=$(echo "$CRED_SEARCH" | jq -r '.results[0].id // empty')
           
           if [ -z "$CRED_ID" ] || [ "$CRED_ID" = "null" ]; then
