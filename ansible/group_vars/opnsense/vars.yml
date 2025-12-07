@@ -1,0 +1,146 @@
+---
+# OPNsense API Configuration
+# API credentials are stored in Gitea secrets and passed via extra vars
+
+opnsense_api_url: "https://{{ ansible_host }}"
+opnsense_validate_certs: false  # Set to true if using valid SSL cert
+
+# Default firewall rule settings
+firewall_defaults:
+  enabled: true
+  log: false
+  quick: true
+
+# Custom firewall aliases
+# These will be created/updated in OPNsense for use in rules
+opnsense_aliases:
+  # AAP/Ansible Controller
+  - name: "ansible_automation"
+    type: host
+    content:
+      - "10.37.70.27"
+    description: "Ansible Automation Platform (AAP) server"
+    
+  # Network aliases (CIDR ranges)
+  - name: "internal_networks"
+    type: network
+    content:
+      - "10.37.0.0/16"
+      - "172.16.0.0/12"
+    description: "Internal private networks"
+    
+  # Port aliases
+  - name: "web_ports"
+    type: port
+    content:
+      - "80"
+      - "443"
+      - "8080"
+    description: "Common web service ports"
+    
+  # URL table aliases (for dynamic IP lists)
+  # - name: "threat_intel_blocklist"
+  #   type: urltable
+  #   content:
+  #     - "https://example.com/blocklist.txt"
+  #   description: "External threat intelligence blocklist"
+  #   refresh_frequency: 1  # Days
+
+# Granular firewall rules for Terraform hosts
+# Define specific source -> destination -> port combinations
+# IMPORTANT: Specify the correct interface for each rule
+terraform_host_firewall_rules:
+  # SSH access from Ansible (in DMZ) to cross-VLAN hosts only
+  # Option 1: Target specific hosts explicitly
+  - name: "SSH from Ansible to Gitea (cross-VLAN)"
+    description: "Allow Ansible SSH to Gitea in App VLAN"
+    source: "ansible_automation"  # 10.37.70.x (DMZ)
+    destination: "gitea"  # 10.37.80.x (App VLAN)
+    protocol: tcp
+    port: 22
+    interface: VLAN80App
+    
+  - name: "SSH from Ansible to DNS02 (cross-site)"
+    description: "Allow Ansible SSH to DNS02"
+    source: "ansible_automation"  # 10.37.70.x (DMZ)
+    destination: "dns02"  # 10.37.10.x (Different network)
+    protocol: tcp
+    port: 22
+    interface: VLAN10Management  # Adjust to actual interface
+  
+  # labtest is NOT listed = no firewall rule (same subnet, not needed)
+  
+  # Option 2: Use conditional based on subnet matching
+  # - name: "SSH cross-VLAN only"
+  #   description: "SSH from Ansible to Terraform hosts (excluding same subnet)"
+  #   source: "ansible.localdomain"
+  #   destination: "{{ item }}"
+  #   protocol: tcp
+  #   port: 22
+  #   interface: "auto"  # Would need custom logic
+  #   when: "{{ hostvars[item].ansible_host | ipaddr('10.37.70.0/24') | length == 0 }}"
+  #   # ^ Only create if host is NOT in 10.37.70.0/24 (DMZ subnet)
+    
+  # Example: Same rule on multiple interfaces
+  # - name: "Management access multi-interface"
+  #   description: "Allow management from trusted network"
+  #   source: "10.37.50.0/24"
+  #   destination: "terraform_hosts"
+  #   protocol: tcp
+  #   port: 22
+  #   interface:  # Array of interfaces - rule will be created on each
+  #     - lan
+  #     - dmz
+  #     - vlan10
+  
+  # Example: Conditional rule (only create if condition is true)
+  # - name: "Cross-VLAN SSH"
+  #   description: "SSH from management to app hosts"
+  #   source: "10.37.50.0/24"  # Management VLAN
+  #   destination: "10.37.80.0/24"  # App VLAN
+  #   protocol: tcp
+  #   port: 22
+  #   interface: VLAN80App
+  #   when: "{{ groups['terraform_created'] | map('extract', hostvars, 'ansible_host') | select('match', '^10\\.37\\.80\\.') | list | length > 0 }}"
+  #   # ^ Only create if we have hosts in the App VLAN
+  
+  # Example: Skip same-subnet rules
+  # - name: "Ansible to DMZ hosts"
+  #   description: "SSH from Ansible to DMZ terraform hosts"
+  #   source: "ansible.localdomain"  # 10.37.70.x
+  #   destination: "terraform_hosts"
+  #   protocol: tcp
+  #   port: 22
+  #   interface: VLAN70DMZ
+  #   when: false  # Skip - same subnet, no firewall rule needed
+    
+  # Example: WAN access rules
+  # - name: "HTTPS from Internet to Gitea"
+  #   description: "Allow public HTTPS to Gitea"
+  #   source: any
+  #   destination: "gitea"
+  #   protocol: tcp
+  #   port: 443
+  #   interface: wan  # WAN interface
+  
+  # Example: DMZ to LAN access
+  # - name: "Database access from DMZ app servers"
+  #   description: "Allow DMZ servers to access database"
+  #   source: "dmz_servers"  # Custom alias
+  #   destination: "10.37.80.10"  # Database server
+  #   protocol: tcp
+  #   port: 5432
+  #   interface: dmz  # DMZ interface
+  
+  # Example: Inter-VLAN routing
+  # - name: "App to Database cross-VLAN"
+  #   description: "Allow App VLAN to Database VLAN"
+  #   source: "app_vlan"
+  #   destination: "db_vlan"
+  #   protocol: tcp
+  #   port: 3306
+  #   interface: vlan10  # Specific VLAN interface
+
+# Host-specific rules (optional)
+# Override per-host in host_vars/<hostname>/firewall.yml
+host_specific_rules: []

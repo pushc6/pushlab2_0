@@ -1,0 +1,93 @@
+---
+# OPNsense Firewall Management Role
+# Manages granular firewall rules for Terraform-created hosts
+
+- name: Manage custom firewall aliases
+  puzzle.opnsense.alias:
+    api_url: "{{ opnsense_api_url }}"
+    api_key: "{{ opnsense_api_key }}"
+    api_secret: "{{ opnsense_api_secret }}"
+    validate_certs: "{{ opnsense_validate_certs }}"
+    name: "{{ item.name }}"
+    type: "{{ item.type }}"
+    content: "{{ item.content }}"
+    description: "{{ item.description }}"
+    updatefreq: "{{ item.refresh_frequency | default(omit) }}"
+    state: present
+  loop: "{{ opnsense_aliases }}"
+  when: opnsense_aliases is defined and opnsense_aliases | length > 0
+  register: custom_aliases
+
+- name: Create IP alias for Terraform hosts
+  puzzle.opnsense.alias:
+    api_url: "{{ opnsense_api_url }}"
+    api_key: "{{ opnsense_api_key }}"
+    api_secret: "{{ opnsense_api_secret }}"
+    validate_certs: "{{ opnsense_validate_certs }}"
+    name: "terraform_hosts"
+    type: host
+    content: "{{ groups['terraform_created'] | map('extract', hostvars, 'ansible_host') | list }}"
+    description: "Hosts created by Terraform automation"
+    state: present
+  register: terraform_alias
+
+- name: Create individual host aliases
+  puzzle.opnsense.alias:
+    api_url: "{{ opnsense_api_url }}"
+    api_key: "{{ opnsense_api_key }}"
+    api_secret: "{{ opnsense_api_secret }}"
+    validate_certs: "{{ opnsense_validate_certs }}"
+    name: "{{ item }}"
+    type: host
+    content: ["{{ hostvars[item].ansible_host }}"]
+    description: "Terraform host: {{ item }}"
+    state: present
+  loop: "{{ groups['terraform_created'] }}"
+  register: host_aliases
+
+- name: Create granular firewall rules
+  puzzle.opnsense.rule:
+    api_url: "{{ opnsense_api_url }}"
+    api_key: "{{ opnsense_api_key }}"
+    api_secret: "{{ opnsense_api_secret }}"
+    validate_certs: "{{ opnsense_validate_certs }}"
+    interface: "{{ item.1 }}"
+    direction: in
+    protocol: "{{ item.0.protocol }}"
+    source: "{{ item.0.source }}"
+    source_port: any
+    destination: "{{ item.0.destination }}"
+    destination_port: "{{ item.0.port }}"
+    description: "{{ item.0.description }}{{ ' [' ~ item.1 ~ ']' if item.0.interface is iterable and item.0.interface is not string else '' }}"
+    enabled: "{{ firewall_defaults.enabled }}"
+    log: "{{ item.0.log | default(firewall_defaults.log) }}"
+    quick: "{{ firewall_defaults.quick }}"
+    state: present
+  loop: >-
+    {% set result = [] %}
+    {% for rule in (terraform_host_firewall_rules + host_specific_rules) %}
+      {% if rule.interface is iterable and rule.interface is not string %}
+        {% for iface in rule.interface %}
+          {% set _ = result.append([rule, iface]) %}
+        {% endfor %}
+      {% else %}
+        {% set _ = result.append([rule, rule.interface | default('lan')]) %}
+      {% endif %}
+    {% endfor %}
+    {{ result }}
+  loop_control:
+    label: "{{ item.0.name }} on {{ item.1 }}"
+  when: item.0.when | default(true)
+  register: firewall_rules
+
+- name: Apply firewall configuration
+  puzzle.opnsense.reload:
+    api_url: "{{ opnsense_api_url }}"
+    api_key: "{{ opnsense_api_key }}"
+    api_secret: "{{ opnsense_api_secret }}"
+    validate_certs: "{{ opnsense_validate_certs }}"
+  when: >
+    (custom_aliases is defined and custom_aliases.changed) or
+    terraform_alias.changed or
+    host_aliases.changed or
+    firewall_rules.changed
