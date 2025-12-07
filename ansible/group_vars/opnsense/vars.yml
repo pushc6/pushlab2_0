@@ -69,10 +69,10 @@ terraform_host_firewall_rules:
   - name: "SSH from Ansible to Gitea (cross-VLAN)"
     description: "Allow Ansible SSH to Gitea in App VLAN"
     source: "ansible_automation"  # 10.37.70.x (DMZ)
-    destination: "gitea"  # 10.37.80.x (App VLAN)
+    destination: "gitea_server"  # 10.37.80.x (App VLAN)
     protocol: tcp
     port: 22
-    interface: dmz_vlan  # Use friendly name - will be mapped to opt9
+    interface: dmz_vlan  # Use friendly name - will be mapped to opt7
 
   - name: "SSH from Ansible to DNS02 (cross-site)"
     description: "Allow Ansible SSH to DNS02"
