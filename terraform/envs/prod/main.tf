@@ -87,6 +87,13 @@ locals {
             }
           }
         }
+        docker_hosts = {
+          hosts = {
+            gitea   = {}
+            dns02   = {}
+            labtest = {}
+          }
+        }
       }
     }
   })
