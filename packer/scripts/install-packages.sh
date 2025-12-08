@@ -3,10 +3,10 @@
 
 echo "=== Installing minimal essential packages ==="
 
-dnf install -y \
     open-vm-tools \
     openssh-server \
-    curl
+    curl \
+    cloud-init
 
 echo "=== Package installation completed ==="
 
