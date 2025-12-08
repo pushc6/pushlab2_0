@@ -19,7 +19,11 @@ jobs:
       - name: Validate Packer Template
         run: |
           packer init packer
-          packer validate packer/alma-template.pkr.hcl
+          packer validate \
+            -var "vcenter_server=validate" \
+            -var "vcenter_username=validate" \
+            -var "vcenter_password=validate" \
+            packer/alma-template.pkr.hcl
 
   build-packer:
     runs-on: [self-hosted, linux, x64, alma]
