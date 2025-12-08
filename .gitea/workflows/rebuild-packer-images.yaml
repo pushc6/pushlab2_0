@@ -1,0 +1,70 @@
+name: rebuild-packer-images
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "Force rebuild even if not strictly necessary (true|false)"
+        required: true
+        default: "false"
+
+jobs:
+  validate-packer:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux-cicd:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Packer Template
+        run: |
+          packer init packer
+          packer validate packer/alma-template.pkr.hcl
+
+  build-packer:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux-cicd:latest
+    needs: [validate-packer]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate ephemeral SSH key
+        run: |
+          ssh-keygen -t ed25519 -N "" -C "ci@packer-build" -f /tmp/ci_key
+          echo "SSH_PUBLIC_KEY=$(cat /tmp/ci_key.pub)" >> $GITHUB_ENV
+
+      - name: Packer Build
+        env:
+          VCENTER_SERVER: ${{ secrets.VCENTER_SERVER || vars.VCENTER_SERVER || vars.vcenter_server || secrets.VSPHERE_SERVER || vars.VSPHERE_SERVER || vars.vsphere_server }}
+          VSPHERE_USER: ${{ secrets.VSPHERE_USER }}
+          VSPHERE_PASSWORD: ${{ secrets.VSPHERE_PASSWORD }}
+          SSH_PUBLIC_KEY: ${{ env.SSH_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VCENTER_SERVER:-}" ] || [ -z "${VSPHERE_USER:-}" ] || [ -z "${VSPHERE_PASSWORD:-}" ]; then
+            echo "Missing required Packer inputs: VCENTER_SERVER, VSPHERE_USER, or VSPHERE_PASSWORD." >&2
+            exit 1
+          fi
+
+          # Normalize vCenter URL
+          RAW_VC="$VCENTER_SERVER"
+          NORM_VC="${RAW_VC#http://}"; NORM_VC="${NORM_VC#https://}"
+          NORM_VC="${NORM_VC#http//}";  NORM_VC="${NORM_VC#https//}"
+          NORM_VC="${NORM_VC%%/*}"
+
+          echo "Using vCenter host: $NORM_VC"
+          
+          FORCE_ARGS=""
+          if [ "${{ github.event.inputs.force_build }}" == "true" ]; then
+            FORCE_ARGS="-force"
+          fi
+
+          packer init packer
+          packer build $FORCE_ARGS \
+            -var "vcenter_server=${NORM_VC}" \
+            -var "vcenter_username=${VSPHERE_USER}" \
+            -var "vcenter_password=${VSPHERE_PASSWORD}" \
+            -var "ssh_public_key=${SSH_PUBLIC_KEY}" \
+            -var "ssh_private_key_file=/tmp/ci_key" \
+            packer/alma-template.pkr.hcl
