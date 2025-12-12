@@ -1,4 +1,0 @@
----
-# Default firewall configuration
-# Standard SSH port (22) is handled via the 'ssh' service
-# Override ssh_port in host_vars if using non-standard port
