@@ -247,7 +247,7 @@
   loop: "{{ (normalized_services | default([]) | selectattr('access', 'equalto', 'custom') | list) | subelements('sources') }}"
   loop_control:
     label: "{{ item.0.name }} from {{ item.1 }}"
-  when: item.1 | ansible.utils.ipaddr('ipv4')
+  when: (item.1 | ansible.utils.ipaddr('ipv4')) != false
   notify: reload firewalld
 
 - name: Apply rich rules for custom access services (IPv6)
@@ -264,7 +264,7 @@
   loop_control:
     label: "{{ item.0.name }} from {{ item.1 }} [IPv6]"
   when:
-    - item.1 | ansible.utils.ipaddr('ipv6')
+    - (item.1 | ansible.utils.ipaddr('ipv6')) != false
     - firewall_enable_ipv6 | default(true)
   notify: reload firewalld
 

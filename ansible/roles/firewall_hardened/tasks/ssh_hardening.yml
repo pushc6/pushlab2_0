@@ -53,7 +53,7 @@
     - name: Validate SSH allowed subnets are valid CIDRs
       ansible.builtin.assert:
         that:
-          - item | ansible.utils.ipaddr
+          - (item | ansible.utils.ipaddr) != false
         fail_msg: "Invalid CIDR notation in firewall_ssh_allowed_subnets: {{ item }}"
         success_msg: "✓ Valid CIDR: {{ item }}"
       loop: "{{ firewall_ssh_allowed_subnets }}"
