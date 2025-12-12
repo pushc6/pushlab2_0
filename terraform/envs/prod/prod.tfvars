@@ -62,20 +62,6 @@ vms = {
       { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24 }
     ]
   }
-
-  "labtest" = {
-    network          = "VLAN 70 - DMZ"
-    cpu_count        = 4
-    memory_mb        = 8192
-    disk_size_gb     = 40
-    thin_provisioned = true
-    # Using DHCP for IP as none was specified, but fields are required by variable type
-    ipv4_address = ""
-    ipv4_netmask = 0
-    ipv4_gateway = ""
-    dns_servers  = []
-    domain       = ""
-  }
 }
 
 vm_ssh_user = "root"
