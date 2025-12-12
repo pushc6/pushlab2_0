@@ -2,7 +2,6 @@ bucket       = "pushlabterraformstate"
 key          = "prod/terraform.tfstate"
 region       = "us-east-005"
 encrypt      = true
-use_lockfile = true
 endpoints = {
   s3 = "https://s3.us-east-005.backblazeb2.com"
 }
