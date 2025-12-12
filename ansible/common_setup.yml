@@ -7,4 +7,4 @@
   roles:
     - system_users
     - network_interfaces
-    - firewall
+    # firewall role removed - replaced by firewall_hardened role in site.yml

@@ -1,0 +1,214 @@
+---
+# ============================================================================
+# FIREWALL ROLLBACK PLAYBOOK
+# ============================================================================
+#
+# Purpose: Manually restore a previous firewall configuration from backup
+#
+# Usage Examples:
+#   # Rollback a specific host
+#   ansible-playbook -i inventories/manual/on_premise.yml rollback_firewall.yml --limit nginx
+#
+#   # Rollback with specific backup file
+#   ansible-playbook -i inventories/manual/on_premise.yml rollback_firewall.yml \
+#     --limit nginx \
+#     --extra-vars "backup_file=/tmp/firewall_backup_1765337903.txt"
+#
+# Safety:
+#   - Will list available backups if none specified
+#   - Creates a new backup before rollback
+#   - Requires manual confirmation
+# ============================================================================
+
+- name: Rollback Firewall Configuration
+  hosts: all
+  become: true
+
+  vars:
+    backup_file: ""  # Set via --extra-vars or will auto-detect latest
+
+  tasks:
+    - name: Find available firewall backups
+      ansible.builtin.find:
+        paths: /tmp
+        patterns: 'firewall_backup_*.txt'
+        age: -7d  # Last 7 days
+      register: backup_files
+
+    - name: Display available backups
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          AVAILABLE FIREWALL BACKUPS
+          ========================================
+          {% for file in backup_files.files | sort(attribute='mtime', reverse=true) %}
+          {{ loop.index }}. {{ file.path }} ({{ file.mtime | strftime('%Y-%m-%d %H:%M:%S') }})
+          {% endfor %}
+          ========================================
+      when: backup_files.files | length > 0
+
+    - name: No backups found
+      ansible.builtin.fail:
+        msg: |
+          ========================================
+          ERROR: No Firewall Backups Found
+          ========================================
+          No backup files found in /tmp/firewall_backup_*.txt
+
+          Backups are automatically created during deployment.
+          If you need to restore manually, you can use:
+
+          # Save current state
+          firewall-cmd --list-all-zones > /tmp/manual_backup.txt
+
+          # Restore from saved configuration
+          firewall-cmd --reload
+          ========================================
+      when: backup_files.files | length == 0
+
+    - name: Set backup file to latest if not specified
+      ansible.builtin.set_fact:
+        selected_backup: "{{ backup_file if backup_file != '' else (backup_files.files | sort(attribute='mtime', reverse=true) | first).path }}"
+
+    - name: Display selected backup
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          ROLLBACK TARGET
+          ========================================
+          Host: {{ inventory_hostname }}
+          Backup File: {{ selected_backup }}
+          Created: {{ (backup_files.files | selectattr('path', 'equalto', selected_backup) | first).mtime | strftime('%Y-%m-%d %H:%M:%S') }}
+          ========================================
+
+    - name: Confirm rollback
+      ansible.builtin.pause:
+        prompt: |
+
+          ⚠️  WARNING: FIREWALL ROLLBACK
+
+          You are about to restore the firewall configuration from:
+          {{ selected_backup }}
+
+          This will:
+          - Backup current firewall state (safety backup)
+          - Flush all current firewall rules
+          - Restore configuration from backup file
+
+          ⚠️  This may interrupt network connectivity!
+
+          Press ENTER to continue, or Ctrl+C then 'A' to abort
+
+    - name: Create safety backup of current state
+      ansible.builtin.shell: |
+        firewall-cmd --list-all-zones > /tmp/firewall_before_rollback_{{ ansible_date_time.epoch }}.txt
+      register: safety_backup
+      changed_when: true
+
+    - name: Display safety backup location
+      ansible.builtin.debug:
+        msg: "Safety backup created: /tmp/firewall_before_rollback_{{ ansible_date_time.epoch }}.txt"
+
+    - name: Read backup file content
+      ansible.builtin.slurp:
+        src: "{{ selected_backup }}"
+      register: backup_content
+
+    - name: Parse backup and extract rules
+      ansible.builtin.set_fact:
+        backup_rules: "{{ backup_content.content | b64decode }}"
+
+    - name: Display backup preview
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          BACKUP PREVIEW (first 20 lines)
+          ========================================
+          {{ backup_rules.split('\n')[:20] | join('\n') }}
+          ...
+          ========================================
+
+    - name: Warning - Manual restoration required
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          MANUAL RESTORATION INSTRUCTIONS
+          ========================================
+          Automatic firewall restoration is complex and risky.
+
+          To manually restore, SSH to {{ inventory_hostname }} and:
+
+          1. Review the backup:
+             cat {{ selected_backup }}
+
+          2. Identify services to restore:
+             grep -E 'ports:|services:|rich rules:' {{ selected_backup }}
+
+          3. Restore specific rules manually:
+             firewall-cmd --add-service=<service>
+             firewall-cmd --add-port=<port>/tcp
+             firewall-cmd --add-rich-rule='<rule>'
+
+          4. Make permanent:
+             firewall-cmd --runtime-to-permanent
+
+          OR use emergency restore:
+             firewall-cmd --complete-reload
+
+          Safety backup location:
+          /tmp/firewall_before_rollback_{{ ansible_date_time.epoch }}.txt
+          ========================================
+
+    - name: Offer emergency reset option
+      ansible.builtin.pause:
+        prompt: |
+
+          Do you want to perform an EMERGENCY FIREWALL RESET?
+
+          This will:
+          - Stop firewalld
+          - Flush all iptables rules
+          - Restart firewalld with default config
+          - ⚠️  YOU WILL LOSE SSH ACCESS if not on console!
+
+          Type 'EMERGENCY_RESET' to proceed, or just press ENTER to skip
+
+      register: emergency_choice
+
+    - name: Emergency firewall reset
+      when: emergency_choice.user_input == "EMERGENCY_RESET"
+      block:
+        - name: Stop firewalld
+          ansible.builtin.systemd:
+            name: firewalld
+            state: stopped
+
+        - name: Flush all iptables rules
+          ansible.builtin.shell: |
+            iptables -F
+            iptables -X
+            iptables -P INPUT ACCEPT
+            iptables -P FORWARD ACCEPT
+            iptables -P OUTPUT ACCEPT
+          changed_when: true
+
+        - name: Start firewalld with default config
+          ansible.builtin.systemd:
+            name: firewalld
+            state: started
+
+        - name: Display emergency reset complete
+          ansible.builtin.debug:
+            msg: |
+              ========================================
+              EMERGENCY RESET COMPLETE
+              ========================================
+              Firewall has been reset to default state.
+
+              ⚠️  ALL custom rules have been removed!
+
+              Next steps:
+              1. Verify SSH access
+              2. Re-deploy firewall rules:
+                 ansible-playbook deploy_firewall.yml --limit {{ inventory_hostname }}
+              ========================================

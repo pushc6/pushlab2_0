@@ -1,0 +1,21 @@
+---
+# Firewall configuration for gitea (10.37.80.4) - Gitea Server
+
+# Using unified firewall_services structure with rich rules
+firewall_services:
+  # Proxy-accessible services - Gitea web UI and SSH
+  - port: 2222
+    protocol: tcp
+    name: "Gitea SSH"
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal
+      - "10.37.20.0/24"  # trusted_vlan
+
+  - port: 3000
+    protocol: tcp
+    name: "Gitea Web UI"
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal
+      - "10.37.20.0/24"  # trusted_vlan

@@ -1,0 +1,12 @@
+---
+# Firewall configuration for crowdsec.localdomain - CrowdSec Controller
+
+# Using unified firewall_services structure with rich rules
+firewall_services:
+  # Custom access - CrowdSec API accessible from entire push-lab network
+  - port: 8080
+    protocol: tcp
+    name: "CrowdSec API"
+    access: custom
+    sources:
+      - "10.37.0.0/16"

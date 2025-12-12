@@ -1,0 +1,166 @@
+---
+# Main task orchestration with error handling
+# FIXED: Wrapped in block/rescue for safety
+
+- name: Firewall Hardening with Automatic Rollback
+  block:
+    # ========================================================================
+    # PREFLIGHT CHECKS
+    # ========================================================================
+
+    - name: Include preflight checks
+      ansible.builtin.include_tasks: preflight.yml
+      when: firewall_enable_preflight | default(true)
+      tags:
+        - firewall
+        - preflight
+
+    # ========================================================================
+    # SSH HARDENING (Most Critical)
+    # ========================================================================
+
+    - name: Include SSH hardening
+      ansible.builtin.include_tasks: ssh_hardening.yml
+      when: firewall_ssh_hardening_enabled | default(true)
+      tags:
+        - firewall
+        - ssh
+
+    - name: Flush handlers after SSH hardening to stabilize state
+      meta: flush_handlers
+      when: firewall_ssh_hardening_enabled | default(true)
+      tags:
+        - firewall
+        - ssh
+
+    - name: Display SSH hardening skipped message
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          SSH Hardening SKIPPED
+          ========================================
+          SSH hardening is disabled for this host.
+          SSH will remain publicly accessible.
+          ========================================
+      when: not (firewall_ssh_hardening_enabled | default(true))
+
+    # ========================================================================
+    # DOCKER CONFIGURATION
+    # ========================================================================
+
+    - name: Configure Docker interface in trusted zone
+      ansible.builtin.include_tasks: docker_rules.yml
+      when: "'docker' in group_names or 'docker_hosts' in group_names or 'dockerhost' in group_names or 'docker_internal' in group_names or 'docker_secure' in group_names"
+      tags:
+        - firewall
+        - docker
+
+    # ========================================================================
+    # SERVICE RULES
+    # ========================================================================
+
+    - name: Configure firewall services
+      ansible.builtin.include_tasks: service_rules.yml
+      when: >
+        (firewall_services is defined and firewall_services | length > 0) or
+        (firewall_public_services is defined and firewall_public_services | length > 0) or
+        (firewall_management_services is defined and firewall_management_services | length > 0) or
+        (firewall_proxy_services is defined and firewall_proxy_services | length > 0) or
+        (firewall_custom_rich_rules is defined and firewall_custom_rich_rules | length > 0)
+      tags:
+        - firewall
+        - services
+
+    # ========================================================================
+    # FLUSH HANDLERS (apply all pending firewall reloads)
+    # ========================================================================
+
+    - name: Flush handlers to apply all firewall changes
+      meta: flush_handlers
+
+    # ========================================================================
+    # VALIDATION
+    # ========================================================================
+
+    - name: Include validation
+      ansible.builtin.include_tasks: validate.yml
+      when: firewall_enable_validation | default(true)
+      tags:
+        - firewall
+        - validate
+
+  rescue:
+    # ========================================================================
+    # AUTOMATIC ROLLBACK on ANY failure
+    # ========================================================================
+
+    - name: Firewall configuration failed - initiating emergency rollback
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          FIREWALL CONFIGURATION FAILED
+          ========================================
+          An error occurred during firewall hardening.
+          Initiating emergency rollback...
+          ========================================
+
+    - name: Find most recent firewall backup
+      ansible.builtin.find:
+        paths: /tmp
+        patterns: "firewall_backup_*.txt"
+        age: -1d
+      register: backup_files
+
+    - name: Emergency - Re-enable SSH service to prevent lockout
+      ansible.posix.firewalld:
+        service: ssh
+        permanent: true
+        immediate: false
+        state: enabled
+      ignore_errors: true
+
+    - name: Reload firewall after emergency SSH restoration
+      ansible.builtin.service:
+        name: firewalld
+        state: reloaded
+      ignore_errors: true
+      register: emergency_reload
+
+    - name: Wait for firewall stabilization after emergency restore
+      ansible.builtin.pause:
+        seconds: 5
+      when: emergency_reload is changed
+
+    - name: Verify emergency SSH access
+      ansible.builtin.wait_for:
+        host: "{{ ansible_default_ipv4.address }}"
+        port: 22
+        timeout: 15
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      ignore_errors: true
+
+    - name: Display rollback information
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          EMERGENCY ROLLBACK COMPLETE
+          ========================================
+          SSH service has been re-enabled globally.
+          You should now have SSH access to the host.
+
+          Firewall backup available at:
+          {{ backup_files.files[0].path if backup_files.files | length > 0 else 'No backup found' }}
+
+          Please review the error below and investigate before retrying.
+          ========================================
+
+    - name: Fail with original error
+      ansible.builtin.fail:
+        msg: |
+          Firewall hardening failed. Emergency rollback completed.
+          SSH access has been restored.
+
+          Original error: {{ ansible_failed_result.msg | default('Unknown error') }}

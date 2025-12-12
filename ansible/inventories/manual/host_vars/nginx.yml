@@ -1,0 +1,14 @@
+---
+# Firewall configuration for nginx (10.37.70.5) - Nginx Reverse Proxy
+
+# Using unified firewall_services structure with access levels
+firewall_services:
+  - port: 80
+    protocol: tcp
+    name: "HTTP"
+    access: public  # Publicly accessible web server
+
+  - port: 443
+    protocol: tcp
+    name: "HTTPS"
+    access: public  # Publicly accessible web server

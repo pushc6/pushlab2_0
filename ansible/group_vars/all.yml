@@ -18,3 +18,16 @@ ansible_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ3O9uVjXALQBplrprCqAWo
 
 # Connection Settings
 ansible_user: ansible
+
+# Global firewall settings for all hosts
+firewall_management_subnet: "10.37.20.0/24"
+
+# Reverse proxy IPs
+firewall_reverse_proxy_ips:
+  - "10.37.70.5"
+  - "10.37.70.24"
+
+# Safety settings
+firewall_rollback_timer: 300
+firewall_enable_preflight: true
+firewall_enable_validation: true

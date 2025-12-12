@@ -37,3 +37,10 @@ opnsense:
       ansible_host: 10.37.70.1
       ansible_connection: local
       ansible_python_interpreter: /usr/bin/python3
+
+# Phased rollout groups for firewall hardening
+phase1_critical:
+  hosts:
+    nginx:
+    docker:
+    "nginx-internal.localdomain":

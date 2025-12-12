@@ -1,0 +1,300 @@
+---
+# Apply firewall services using unified structure
+# FIXED: Handles both new unified format and legacy variables
+
+- name: Merge legacy variables into unified firewall_services
+  ansible.builtin.set_fact:
+    unified_services: >-
+      {{
+        firewall_services | default([]) +
+        (firewall_public_services | default([]) | map('combine', {'access': 'public'}) | list) +
+        (firewall_management_services | default([]) | map('combine', {'access': 'trusted_vlan'}) | list) +
+        (firewall_proxy_services | default([]) | map('combine', {'access': 'proxy'}) | list)
+      }}
+
+- name: Normalize and validate service definitions
+  ansible.builtin.set_fact:
+    normalized_services: "{{ normalized_services | default([]) + [normalized_item] }}"
+  vars:
+    # Handle both string format "9000/tcp" and structured format
+    port_value: "{{ item.port if item.port is number else item.port.split('/')[0] | int }}"
+    protocol_value: >-
+      {{
+        item.protocol | default(
+          item.port.split('/')[1] if ('/' in (item.port | string)) else 'tcp'
+        )
+      }}
+    normalized_item:
+      port: "{{ port_value }}"
+      protocol: "{{ protocol_value }}"
+      name: "{{ item.name }}"
+      access: "{{ item.access | default('trusted_vlan') }}"
+      sources: "{{ item.sources | default([]) }}"
+  loop: "{{ unified_services }}"
+  when: unified_services | default([]) | length > 0
+
+- name: Validate normalized services
+  ansible.builtin.assert:
+    that:
+      - item.port | int > 0
+      - item.port | int < 65536
+      - item.protocol in ['tcp', 'udp']
+      - item.access in ['public', 'management_vlan', 'trusted_vlan', 'dmz_vlan', 'wireguard_vlan', 'proxy', 'custom']
+      - item.access != 'custom' or (item.sources | length > 0)
+    fail_msg: |
+      Invalid service definition: {{ item }}
+      - Port must be 1-65535
+      - Protocol must be tcp or udp
+      - Access must be: public, management_vlan, trusted_vlan, dmz_vlan, wireguard_vlan, proxy, or custom
+      - Custom access requires sources list
+    success_msg: "Service {{ item.name }} validation passed"
+  loop: "{{ normalized_services | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# ============================================================================
+# APPLY PUBLIC SERVICES (no source restriction)
+# ============================================================================
+
+- name: Apply public services to firewall
+  ansible.posix.firewalld:
+    port: "{{ item.port }}/{{ item.protocol }}"
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'public') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
+  notify: reload firewalld
+
+# ============================================================================
+# APPLY MANAGEMENT VLAN SERVICES (rich rules)
+# ============================================================================
+
+- name: Apply rich rules for management VLAN services (IPv4)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv4"
+      source address="{{ firewall_management_vlan_subnet }}"
+      port port="{{ item.port }}" protocol="{{ item.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'management_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
+  notify: reload firewalld
+
+- name: Apply rich rules for management VLAN services (IPv6)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv6"
+      source address="{{ firewall_management_vlan_subnet_ipv6 }}"
+      port port="{{ item.port }}" protocol="{{ item.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'management_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }}) [IPv6]"
+  notify: reload firewalld
+  when: firewall_enable_ipv6 | default(true)
+
+# ============================================================================
+# APPLY TRUSTED VLAN SERVICES (rich rules)
+# ============================================================================
+
+- name: Apply rich rules for trusted VLAN services (IPv4)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv4"
+      source address="{{ firewall_trusted_vlan_subnet }}"
+      port port="{{ item.port }}" protocol="{{ item.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'trusted_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
+  notify: reload firewalld
+
+- name: Apply rich rules for trusted VLAN services (IPv6)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv6"
+      source address="{{ firewall_trusted_vlan_subnet_ipv6 }}"
+      port port="{{ item.port }}" protocol="{{ item.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'trusted_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }}) [IPv6]"
+  notify: reload firewalld
+  when: firewall_enable_ipv6 | default(true)
+
+# ============================================================================
+# APPLY DMZ VLAN SERVICES (rich rules)
+# ============================================================================
+
+- name: Apply rich rules for DMZ VLAN services (IPv4)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv4"
+      source address="{{ firewall_dmz_vlan_subnet }}"
+      port port="{{ item.port }}" protocol="{{ item.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'dmz_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
+  notify: reload firewalld
+
+- name: Apply rich rules for DMZ VLAN services (IPv6)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv6"
+      source address="{{ firewall_dmz_vlan_subnet_ipv6 }}"
+      port port="{{ item.port }}" protocol="{{ item.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'dmz_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }}) [IPv6]"
+  notify: reload firewalld
+  when: firewall_enable_ipv6 | default(true)
+
+# ============================================================================
+# APPLY WIREGUARD VLAN SERVICES (rich rules)
+# ============================================================================
+
+- name: Apply rich rules for WireGuard VLAN services (IPv4)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv4"
+      source address="{{ firewall_wireguard_vlan_subnet }}"
+      port port="{{ item.port }}" protocol="{{ item.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'wireguard_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
+  notify: reload firewalld
+
+- name: Apply rich rules for WireGuard VLAN services (IPv6)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv6"
+      source address="{{ firewall_wireguard_vlan_subnet_ipv6 }}"
+      port port="{{ item.port }}" protocol="{{ item.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'wireguard_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }}) [IPv6]"
+  notify: reload firewalld
+  when: firewall_enable_ipv6 | default(true)
+
+# ============================================================================
+# APPLY PROXY-ACCESSIBLE SERVICES (rich rules for each source)
+# ============================================================================
+
+- name: Build proxy access source list
+  ansible.builtin.set_fact:
+    proxy_sources: "{{ firewall_reverse_proxy_ips + [firewall_management_vlan_subnet] }}"
+
+- name: Apply rich rules for proxy-accessible services
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv4"
+      source address="{{ item.1 }}"
+      port port="{{ item.0.port }}" protocol="{{ item.0.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ (normalized_services | default([]) | selectattr('access', 'equalto', 'proxy') | list) | product(proxy_sources) | list }}"
+  loop_control:
+    label: "{{ item.0.name }} from {{ item.1 }}"
+  notify: reload firewalld
+
+# ============================================================================
+# APPLY CUSTOM ACCESS SERVICES (user-defined sources)
+# ============================================================================
+
+- name: Apply rich rules for custom access services (IPv4)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv4"
+      source address="{{ item.1 }}"
+      port port="{{ item.0.port }}" protocol="{{ item.0.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ (normalized_services | default([]) | selectattr('access', 'equalto', 'custom') | list) | subelements('sources') }}"
+  loop_control:
+    label: "{{ item.0.name }} from {{ item.1 }}"
+  when: item.1 | ansible.utils.ipaddr('ipv4')
+  notify: reload firewalld
+
+- name: Apply rich rules for custom access services (IPv6)
+  ansible.posix.firewalld:
+    rich_rule: >-
+      rule family="ipv6"
+      source address="{{ item.1 }}"
+      port port="{{ item.0.port }}" protocol="{{ item.0.protocol }}"
+      accept
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ (normalized_services | default([]) | selectattr('access', 'equalto', 'custom') | list) | subelements('sources') }}"
+  loop_control:
+    label: "{{ item.0.name }} from {{ item.1 }} [IPv6]"
+  when:
+    - item.1 | ansible.utils.ipaddr('ipv6')
+    - firewall_enable_ipv6 | default(true)
+  notify: reload firewalld
+
+# ============================================================================
+# APPLY CUSTOM RICH RULES (legacy support)
+# ============================================================================
+
+- name: Apply custom rich rules
+  ansible.posix.firewalld:
+    rich_rule: "{{ item.rule }}"
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ firewall_custom_rich_rules | default([]) }}"
+  loop_control:
+    label: "{{ item.rule | truncate(80) }}"
+  notify: reload firewalld
+
+- name: Display services configuration summary
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      Firewall Services Configured
+      ========================================
+      Public Services: {{ normalized_services | default([]) | selectattr('access', 'equalto', 'public') | list | length }}
+      Management VLAN Services: {{ normalized_services | default([]) | selectattr('access', 'equalto', 'management_vlan') | list | length }}
+      Trusted VLAN Services: {{ normalized_services | default([]) | selectattr('access', 'equalto', 'trusted_vlan') | list | length }}
+      DMZ VLAN Services: {{ normalized_services | default([]) | selectattr('access', 'equalto', 'dmz_vlan') | list | length }}
+      WireGuard VLAN Services: {{ normalized_services | default([]) | selectattr('access', 'equalto', 'wireguard_vlan') | list | length }}
+      Proxy Services: {{ normalized_services | default([]) | selectattr('access', 'equalto', 'proxy') | list | length }}
+      Custom Services: {{ normalized_services | default([]) | selectattr('access', 'equalto', 'custom') | list | length }}
+      Custom Rich Rules: {{ firewall_custom_rich_rules | default([]) | length }}
+      ========================================

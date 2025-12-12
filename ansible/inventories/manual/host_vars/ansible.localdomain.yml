@@ -1,0 +1,13 @@
+---
+# Firewall configuration for ansible.localdomain - Ansible Automation Platform
+
+# Using unified firewall_services structure with rich rules
+firewall_services:
+  # Proxy-accessible services - accessible from reverse proxies + management
+  - port: 443
+    protocol: tcp
+    name: "HTTPS Envoy Proxy"
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal
+      - "10.37.20.0/24"  # trusted_vlan

@@ -1,0 +1,116 @@
+---
+# firewall_hardened role defaults
+
+# ============================================================================
+# SAFETY SETTINGS
+# ============================================================================
+
+# Rollback timer (seconds) - firewall rules auto-revert if not made permanent
+firewall_rollback_timer: 300
+
+# Enable preflight connectivity checks
+firewall_enable_preflight: true
+
+# Enable post-implementation validation
+firewall_enable_validation: true
+
+# Enable strict mode (remove unmanaged rules)
+firewall_strict_mode: false
+
+# ============================================================================
+# NETWORK CONFIGURATION
+# ============================================================================
+
+# Network VLANs (override in group_vars/host_vars)
+# 10.37.10.0/24 = Management VLAN (admin access only)
+# 10.37.20.0/24 = Trusted VLAN (internal hosts)
+# 10.37.70.0/24 = DMZ VLAN (public-facing hosts)
+# 10.37.90.0/24 = WireGuard VLAN (VPN access)
+firewall_management_vlan_subnet: "10.37.10.0/24"
+firewall_management_vlan_subnet_ipv6: "fd00:1337:1337:10::/64"
+
+firewall_trusted_vlan_subnet: "10.37.20.0/24"
+firewall_trusted_vlan_subnet_ipv6: "fd00:1337:1337:20::/64"
+
+firewall_dmz_vlan_subnet: "10.37.70.0/24"
+firewall_dmz_vlan_subnet_ipv6: "fd00:1337:1337:70::/64"
+
+firewall_wireguard_vlan_subnet: "10.37.90.0/24"
+firewall_wireguard_vlan_subnet_ipv6: "fd00:1337:1337:90::/64"
+
+# SSH Access - Allow SSH from these subnets (IPv4)
+firewall_ssh_allowed_subnets:
+  - "{{ firewall_trusted_vlan_subnet }}"
+  - "{{ firewall_wireguard_vlan_subnet }}"
+  - "10.37.70.27/32"  # Ansible controller host (ansible.localdomain)
+
+# SSH Access - Allow SSH from these subnets (IPv6)
+firewall_ssh_allowed_subnets_ipv6:
+  - "{{ firewall_trusted_vlan_subnet_ipv6 }}"
+  - "{{ firewall_wireguard_vlan_subnet_ipv6 }}"
+
+# Reverse proxy IPs (override in group_vars)
+firewall_reverse_proxy_ips:
+  - "10.37.70.5"
+  - "10.37.70.24"
+
+# ============================================================================
+# SSH CONFIGURATION
+# ============================================================================
+
+firewall_ssh_port: 22
+
+# Enable IPv6 firewall rules (set to true to enable IPv6 support)
+firewall_enable_ipv6: true
+
+# Enable SSH hardening (set to false for VPS hosts that need public SSH)
+firewall_ssh_hardening_enabled: true
+
+# ============================================================================
+# DOCKER CONFIGURATION
+# ============================================================================
+
+firewall_docker_interface: "docker0"
+firewall_docker_zone: "trusted"
+
+# ============================================================================
+# SERVICE CONFIGURATION (UNIFIED STRUCTURE)
+# ============================================================================
+
+# UNIFIED SERVICE LIST - Single place to define all firewall rules
+# Format:
+#   - port: 9000              # Port number (required)
+#     protocol: tcp           # tcp or udp (required)
+#     name: "Service Name"    # Description (required)
+#     access: trusted_vlan    # Access level (required): public, management_vlan, trusted_vlan, proxy, custom
+#     sources: []             # Custom sources (only if access: custom)
+#
+# Access levels:
+#   - public: Accessible from anywhere (0.0.0.0/0)
+#   - management_vlan: Accessible only from management VLAN (10.37.10.0/24)
+#   - trusted_vlan: Accessible from trusted VLAN (10.37.20.0/24)
+#   - dmz_vlan: Accessible from DMZ VLAN (10.37.70.0/24)
+#   - wireguard_vlan: Accessible from WireGuard VPN VLAN (10.37.90.0/24)
+#   - proxy: Accessible from reverse proxies + management VLAN
+#   - custom: Accessible from custom source list (requires 'sources' field)
+
+firewall_services: []
+
+# LEGACY VARIABLES (for backward compatibility, will be merged into firewall_services)
+firewall_public_services: []
+firewall_management_services: []
+firewall_proxy_services: []
+firewall_custom_rich_rules: []
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+
+firewall_log_denied_packets: false
+firewall_log_level: "info"
+
+# ============================================================================
+# FIREWALL ZONE
+# ============================================================================
+
+firewall_default_zone: "public"

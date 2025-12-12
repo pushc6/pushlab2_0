@@ -1,0 +1,31 @@
+---
+# Firewall configuration for linuxgameserver.localdomain - Game Server
+
+# Using unified firewall_services structure with rich rules
+firewall_services:
+  # Public services - game servers need to be publicly accessible
+  - port: 7777
+    protocol: tcp
+    name: "Satisfactory Game Server"
+    access: public
+
+  - port: 8888
+    protocol: tcp
+    name: "Game Server Query"
+    access: public
+
+  # Management services - AMP control interfaces
+  - port: 2223
+    protocol: tcp
+    name: "AMP Instance 1"
+    access: trusted_vlan
+
+  - port: 2224
+    protocol: tcp
+    name: "AMP Instance 2"
+    access: trusted_vlan
+
+  - port: 8080
+    protocol: tcp
+    name: "AMP Web UI"
+    access: trusted_vlan

@@ -1,0 +1,25 @@
+---
+# Firewall configuration for dns02 (10.37.20.2) - Technitium DNS Server
+
+# Using unified firewall_services structure with rich rules
+firewall_services:
+  # Custom services - DNS accessible from local networks
+  - port: 53
+    protocol: tcp
+    name: "DNS TCP"
+    access: custom
+    sources:
+      - "10.37.0.0/16"
+
+  - port: 53
+    protocol: udp
+    name: "DNS UDP"
+    access: custom
+    sources:
+      - "10.37.0.0/16"
+
+  - port: 5380
+    protocol: tcp
+    name: "Technitium Web Console"
+    access: trusted_vlan
+

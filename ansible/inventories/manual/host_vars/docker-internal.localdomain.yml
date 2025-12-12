@@ -1,0 +1,388 @@
+---
+# Firewall configuration for docker-internal.localdomain (10.37.70.7) - Internal Docker Host
+# Updated with actual running containers and IPv6 support
+
+# Using unified firewall_services structure with rich rules
+firewall_services:
+
+  # ============================================================================
+  # Media Management Stack - Accessible from proxy_internal and trusted_vlan
+  # ============================================================================
+
+  - port: 5055
+    protocol: tcp
+    name: "Overseerr - Media Requests"
+    container: overseerr
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 7878
+    protocol: tcp
+    name: "Radarr - Movie Management"
+    container: radarr
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 8989
+    protocol: tcp
+    name: "Sonarr - TV Management"
+    container: sonarr
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 8686
+    protocol: tcp
+    name: "Lidarr - Music Management"
+    container: lidarr
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 9696
+    protocol: tcp
+    name: "Prowlarr - Indexer Manager"
+    container: prowlarr
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 8085
+    protocol: tcp
+    name: "SABnzbd - Usenet Downloader"
+    container: sabnzbd
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 8181
+    protocol: tcp
+    name: "Tautulli - Plex Stats"
+    container: tautulli
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 5076
+    protocol: tcp
+    name: "Hydra2 - NZB Search"
+    container: hydra2
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 32400
+    protocol: tcp
+    name: "Plex Media Server"
+    container: plex
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+      - "10.37.50.0/24"  # IoT (TVs, streaming devices - IPv4)
+      - "fd00:1337:1337:50::/64"  # IoT (IPv6)
+
+  # ============================================================================
+  # Dashboards & Monitoring - Accessible from proxy_internal and trusted_vlan
+  # ============================================================================
+
+  - port: 3002
+    protocol: tcp
+    name: "Homepage Dashboard"
+    container: homepage
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 8280
+    protocol: tcp
+    name: "Dashy Dashboard"
+    container: dashy
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 9999
+    protocol: tcp
+    name: "Dozzle - Docker Logs"
+    container: dozzle
+    access: trusted_vlan
+
+  - port: 8281
+    protocol: tcp
+    name: "SmokePing - Network Monitoring"
+    container: smokeping
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Automation & Tools - Accessible from proxy_internal and trusted_vlan
+  # ============================================================================
+
+  - port: 5678
+    protocol: tcp
+    name: "n8n - Workflow Automation"
+    container: n8n
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 3010
+    protocol: tcp
+    name: "Huginn - Automation"
+    container: huginn
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 5000
+    protocol: tcp
+    name: "ChangeDetection.io - Website Monitor"
+    container: changedetectionio
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 8000
+    protocol: tcp
+    name: "Apprise API - Notifications"
+    container: apprise-api
+    access: custom
+    sources:
+      - "10.37.70.0/24"  # DMZ (other containers - IPv4)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 5454
+    protocol: tcp
+    name: "Notifiarr - Notifications"
+    container: notifiarr
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Development & Admin Tools - Trusted VLAN only
+  # ============================================================================
+
+  - port: 8443
+    protocol: tcp
+    name: "Code-Server - VS Code Web"
+    container: code-server
+    access: trusted_vlan
+
+  - port: 8888
+    protocol: tcp
+    name: "pgAdmin4 HTTP"
+    container: pgadmin4_container
+    access: trusted_vlan
+
+  - port: 8889
+    protocol: tcp
+    name: "pgAdmin4 HTTPS"
+    container: pgadmin4_container
+    access: trusted_vlan
+
+  - port: 8082
+    protocol: tcp
+    name: "Keycloak - SSO"
+    container: keycloak-keycloak-1
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 8081
+    protocol: tcp
+    name: "MicroBin - Pastebin"
+    container: dlstack-microbin-1
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 3005
+    protocol: tcp
+    name: "Browserless - Browser Automation"
+    container: browserless
+    access: custom
+    sources:
+      - "10.37.70.0/24"  # DMZ (other containers - IPv4)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+
+  - port: 8191
+    protocol: tcp
+    name: "FlareSolverr - Cloudflare Bypass"
+    container: flaresolverr
+    access: custom
+    sources:
+      - "10.37.70.0/24"  # DMZ (other containers - IPv4)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+
+  # ============================================================================
+  # Tesla/Vehicle Tracking Stack
+  # ============================================================================
+
+  - port: 4000
+    protocol: tcp
+    name: "TeslaMate - Tesla Tracking"
+    container: teslamate-teslamate-1
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 3001
+    protocol: tcp
+    name: "TeslaMate Grafana"
+    container: teslamate-grafana-1
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Utility Containers
+  # ============================================================================
+
+  - port: 2322
+    protocol: tcp
+    name: "SSH Read-Only Access"
+    container: ssh-readonly
+    access: trusted_vlan
+
+  - port: 5690
+    protocol: tcp
+    name: "Wizarr - Plex Invites"
+    container: wizarr
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 3600
+    protocol: tcp
+    name: "FullDom - Domain Checker"
+    container: fulldom
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 6868
+    protocol: tcp
+    name: "Profilarr - Media Profiles"
+    container: profilarr
+    access: custom
+    sources:
+      - "10.37.70.0/24"  # DMZ (other containers - IPv4)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 9705
+    protocol: tcp
+    name: "Huntarr - Torrent Manager"
+    container: huntarr
+    access: custom
+    sources:
+      - "10.37.70.0/24"  # DMZ (other containers - IPv4)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 6246
+    protocol: tcp
+    name: "Maintainerr - Media Maintenance"
+    container: maintainerr
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 3006
+    protocol: tcp
+    name: "OpenSpeedTest HTTP"
+    container: openspeedtest
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+
+  - port: 3007
+    protocol: tcp
+    name: "OpenSpeedTest HTTPS"
+    container: openspeedtest
+    access: custom
+    sources:
+      - "10.37.70.24"  # proxy_internal (IPv4)
+      - "fd00:1337:1337:70::24"  # proxy_internal (IPv6)
+      - "10.37.20.0/24"  # trusted_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)

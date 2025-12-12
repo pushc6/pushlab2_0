@@ -1,0 +1,34 @@
+---
+- name: Firewall Hardening Test (Single Host)
+  hosts: all
+  become: true
+  serial: 1
+  gather_facts: true
+
+  pre_tasks:
+    - name: Verify Ansible can reach host
+      ansible.builtin.ping:
+
+    - name: Display host being configured
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          Testing Firewall Hardening (DRY RUN)
+          ========================================
+          Host: {{ inventory_hostname }}
+          IP: {{ ansible_host | default('N/A') }}
+          ========================================
+
+  roles:
+    - role: firewall_hardened
+      tags: ['firewall', 'security']
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          ✓ Firewall Test Complete
+          ========================================
+          Host: {{ inventory_hostname }}
+          ========================================

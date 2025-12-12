@@ -1,0 +1,7 @@
+---
+# Firewall configuration for rangernet-vps (192.210.235.136) - Minimal VPS
+
+# Using unified firewall_services structure with rich rules
+# SSH is handled by SSH hardening - no additional services needed
+firewall_ssh_hardening_enabled: false
+firewall_services: []

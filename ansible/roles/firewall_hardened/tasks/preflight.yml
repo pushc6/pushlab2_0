@@ -1,0 +1,58 @@
+---
+# Preflight connectivity checks before applying rules
+
+- name: Validate required variables are defined
+  ansible.builtin.assert:
+    that:
+      - firewall_ssh_allowed_subnets is defined
+      - firewall_ssh_allowed_subnets | length > 0
+      - firewall_trusted_vlan_subnet is defined
+      - firewall_trusted_vlan_subnet | length > 0
+      - firewall_ssh_port is defined
+      - firewall_ssh_port | int > 0
+      - firewall_ssh_port | int < 65536
+    fail_msg: |
+      Required firewall variables not properly defined:
+        - firewall_ssh_allowed_subnets: {{ firewall_ssh_allowed_subnets | default('UNDEFINED') }}
+        - firewall_trusted_vlan_subnet: {{ firewall_trusted_vlan_subnet | default('UNDEFINED') }}
+        - firewall_ssh_port: {{ firewall_ssh_port | default('UNDEFINED') }}
+    success_msg: "All required variables are properly defined"
+
+- name: Verify firewalld is installed
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+  check_mode: true
+  register: firewalld_installed
+  failed_when: firewalld_installed is changed
+
+- name: Verify firewalld is running
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+  check_mode: true
+  register: firewalld_running
+  failed_when: firewalld_running is changed
+
+- name: Check current firewall state
+  ansible.builtin.command: firewall-cmd --list-all
+  register: current_firewall_state
+  changed_when: false
+
+- name: Save current firewall configuration backup
+  ansible.builtin.copy:
+    content: "{{ current_firewall_state.stdout }}"
+    dest: "/tmp/firewall_backup_{{ ansible_date_time.epoch }}.txt"
+    mode: '0644'
+
+- name: Display preflight results
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      Preflight Checks Complete
+      ========================================
+      Firewall Status: {{ firewalld_running.state | default('unknown') }}
+      SSH Allowed Subnets: {{ firewall_ssh_allowed_subnets | join(', ') }}
+      SSH Port: {{ firewall_ssh_port }}
+      Backup saved: /tmp/firewall_backup_{{ ansible_date_time.epoch }}.txt
+      ========================================

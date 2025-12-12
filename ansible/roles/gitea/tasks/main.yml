@@ -8,28 +8,19 @@
       - curl
       - tar
       - git
-      - firewalld
     state: present
 
-- name: Ensure firewalld is running
-  ansible.builtin.service:
-    name: firewalld
-    state: started
-    enabled: true
-
-- name: Open Gitea HTTP port
-  ansible.posix.firewalld:
-    port: "{{ gitea_http_port }}/tcp"
-    permanent: true
-    immediate: true
-    state: enabled
-
-- name: Open Gitea SSH port
-  ansible.posix.firewalld:
-    port: "{{ gitea_ssh_port }}/tcp"
-    permanent: true
-    immediate: true
-    state: enabled
+# Firewall configuration removed - managed by firewall_hardened role
+# Configure firewall_services in host_vars/<hostname>.yml instead:
+#   firewall_services:
+#     - port: "{{ gitea_http_port }}"
+#       protocol: tcp
+#       name: "Gitea HTTP"
+#       access: public
+#     - port: "{{ gitea_ssh_port }}"
+#       protocol: tcp
+#       name: "Gitea SSH"
+#       access: public
 
 - name: Create git user and directories
   ansible.builtin.user:

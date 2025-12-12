@@ -7,6 +7,18 @@
   import_playbook: common_setup.yml
   tags: ['setup', 'users']
 
+- name: Install Docker
+  import_playbook: docker.yml
+  when: "'docker_hosts' in groups"
+  tags: ['docker', 'apps']
+
+- name: Deploy Firewall Hardening
+  hosts: all
+  become: true
+  roles:
+    - firewall_hardened
+  tags: ['firewall', 'security']
+
 - name: Run System Updates
   import_playbook: update_all.yml
   tags: ['updates', 'security']
@@ -20,11 +32,6 @@
   import_playbook: onboard_manual.yml
   when: "'manual' in groups"
   tags: ['onboard', 'manual']
-
-- name: Install Docker
-  import_playbook: docker.yml
-  when: "'docker_hosts' in groups"
-  tags: ['docker', 'apps']
 
 - name: Deploy Technitium
   import_playbook: technitium.yml

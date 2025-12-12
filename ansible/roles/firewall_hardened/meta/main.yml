@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Firewall hardening with source-based access control using firewalld
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+  galaxy_tags:
+    - firewall
+    - security
+    - firewalld
+    - networking
+
+dependencies: []
+
+collections:
+  - ansible.posix
+  - ansible.utils

@@ -1,0 +1,20 @@
+---
+# Firewall configuration for nginx-internal.localdomain (10.37.70.24) - Internal Nginx Reverse Proxy
+
+# Using unified firewall_services structure with rich rules
+firewall_services:
+  # Management services - internal reverse proxy accessible from management subnet
+  - port: 80
+    protocol: tcp
+    name: "HTTP"
+    access: trusted_vlan
+
+  - port: 443
+    protocol: tcp
+    name: "HTTPS"
+    access: trusted_vlan
+
+  - port: 2222
+    protocol: tcp
+    name: "SSH Proxy"
+    access: trusted_vlan

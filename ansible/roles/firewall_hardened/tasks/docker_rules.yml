@@ -1,0 +1,97 @@
+---
+# Configure Docker interfaces in trusted zone
+# Detects ALL Docker bridge interfaces and adds them to the trusted zone
+
+- name: Check if Docker is installed
+  ansible.builtin.command: which docker
+  register: docker_installed
+  changed_when: false
+  failed_when: false
+
+- name: Detect all Docker bridge interfaces
+  ansible.builtin.shell: |
+    set -o pipefail
+    ip link show | grep -E '^[0-9]+: (docker|br-)' | cut -d: -f2 | tr -d ' ' | grep -E '^(docker|br-)'
+  args:
+    executable: /bin/bash
+  register: docker_bridges_detected
+  changed_when: false
+  failed_when: false
+  when: docker_installed.rc == 0
+
+- name: Set Docker interfaces fact
+  ansible.builtin.set_fact:
+    docker_bridge_interfaces: "{{ docker_bridges_detected.stdout_lines | default([]) }}"
+  when:
+    - docker_installed.rc == 0
+    - docker_bridges_detected.stdout_lines | default([]) | length > 0
+
+- name: Add Docker bridge interfaces to trusted zone
+  ansible.posix.firewalld:
+    zone: "{{ firewall_docker_zone }}"
+    interface: "{{ item }}"
+    permanent: true
+    immediate: false
+    state: enabled
+  loop: "{{ docker_bridge_interfaces | default([]) }}"
+  when:
+    - docker_installed.rc == 0
+    - docker_bridge_interfaces | default([]) | length > 0
+  notify: reload firewalld
+
+- name: Verify trusted zone does NOT have SSH service enabled
+  ansible.builtin.command: firewall-cmd --zone=trusted --query-service=ssh
+  register: trusted_ssh_check
+  changed_when: false
+  failed_when: trusted_ssh_check.rc == 0
+  when:
+    - docker_installed.rc == 0
+    - firewall_ssh_hardening_enabled | default(true)
+
+- name: Display trusted zone SSH status
+  ansible.builtin.debug:
+    msg: "✓ Trusted zone does NOT have SSH service (Docker containers cannot bypass SSH hardening)"
+  when:
+    - docker_installed.rc == 0
+    - firewall_ssh_hardening_enabled | default(true)
+    - trusted_ssh_check.rc != 0
+
+- name: Verify Docker interfaces in trusted zone
+  ansible.builtin.command: firewall-cmd --zone=trusted --list-interfaces
+  register: trusted_zone_interfaces
+  changed_when: false
+  failed_when: false
+  when: docker_installed.rc == 0
+
+- name: Display Docker firewall configuration
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      Docker Firewall Configuration
+      ========================================
+      Docker Installed: {{ 'Yes' if docker_installed.rc == 0 else 'No' }}
+      Bridge Interfaces Found: {{ docker_bridge_interfaces | default([]) | length }}
+      Interfaces: {{ docker_bridge_interfaces | default([]) | join(', ') }}
+      Trusted Zone Interfaces: {{ trusted_zone_interfaces.stdout | default('None') }}
+      ========================================
+  when: docker_installed.rc == 0
+
+- name: Warning if no Docker interfaces found
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      WARNING: No Docker Interfaces Found
+      ========================================
+      Host is in docker group but no Docker bridge interfaces detected.
+
+      This is expected if:
+      - Docker hasn't created any networks yet
+      - Docker service is stopped
+
+      Docker bridge interfaces will be added to the trusted zone automatically
+      when Docker creates them. Re-run this playbook after starting Docker
+      and creating networks to apply the firewall configuration.
+      ========================================
+  when:
+    - docker_installed.rc == 0
+    - docker_bridge_interfaces | default([]) | length == 0

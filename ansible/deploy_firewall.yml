@@ -1,0 +1,123 @@
+---
+# ============================================================================
+# FIREWALL HARDENING DEPLOYMENT PLAYBOOK
+# ============================================================================
+#
+# Purpose: Deploy or update firewall hardening to any host or group
+#
+# Usage Examples:
+#   # Deploy to a single host
+#   ansible-playbook -i inventories/manual/on_premise.yml deploy_firewall.yml --limit nginx
+#
+#   # Deploy to a group of hosts
+#   ansible-playbook -i inventories/manual/on_premise.yml deploy_firewall.yml --limit dockerhost
+#
+#   # Deploy to multiple hosts
+#   ansible-playbook -i inventories/manual/on_premise.yml deploy_firewall.yml --limit "docker,nginx"
+#
+#   # Deploy to all hosts (USE WITH CAUTION!)
+#   ansible-playbook -i inventories/manual/on_premise.yml deploy_firewall.yml
+#
+#   # Dry run (check mode - shows what would change)
+#   ansible-playbook -i inventories/manual/on_premise.yml deploy_firewall.yml --limit nginx --check
+#
+# Features:
+#   - Automatic rollback on failure (SSH connectivity preserved)
+#   - Backup of current firewall state before changes
+#   - SSH connectivity verification before removing default SSH service
+#   - Docker bridge auto-detection and trusted zone assignment
+#   - IPv4 and IPv6 support
+#   - Rich rule validation
+#
+# Safety:
+#   - Always creates backup: /tmp/firewall_backup_<timestamp>.txt
+#   - Automatic rollback if SSH connectivity lost
+#   - Verifies SSH access before and after changes
+# ============================================================================
+
+- name: Deploy Firewall Hardening
+  hosts: all
+  become: true
+
+  vars:
+    # Override these as needed via --extra-vars
+    # firewall_rollback_timer: 300  # Seconds before auto-rollback (default: 300)
+    # firewall_enable_ipv6: true    # Enable IPv6 rules (default: true)
+    # firewall_docker_zone: trusted # Zone for Docker bridges (default: trusted)
+
+  pre_tasks:
+    - name: Display deployment information
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          FIREWALL DEPLOYMENT STARTING
+          ========================================
+          Target Host(s): {{ ansible_play_hosts | join(', ') }}
+          Inventory: {{ inventory_file }}
+          User: {{ ansible_user }}
+          ========================================
+      run_once: true
+      delegate_to: localhost
+
+    - name: Confirm deployment (requires manual approval)
+      ansible.builtin.pause:
+        prompt: |
+
+          ⚠️  You are about to deploy firewall hardening to {{ inventory_hostname }}
+
+          This will:
+          - Backup current firewall configuration
+          - Apply hardened SSH rules (rich rules only)
+          - Remove default SSH service
+          - Add Docker bridges to trusted zone (if applicable)
+          - Apply service-specific firewall rules
+
+          Press ENTER to continue, or Ctrl+C then 'A' to abort
+      when:
+        - not (ansible_check_mode | default(false))
+        - firewall_require_approval | default(true)
+
+  roles:
+    - role: firewall_hardened
+      tags:
+        - firewall
+        - security
+
+  post_tasks:
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          FIREWALL DEPLOYMENT COMPLETE
+          ========================================
+          Host: {{ inventory_hostname }}
+          Status: ✓ Success
+
+          Firewall backup saved to:
+          {{ firewall_backup_file | default('/tmp/firewall_backup_*.txt') }}
+
+          SSH Access: ✓ Verified
+          Docker Bridges: {{ docker_bridge_interfaces | default([]) | length }} interfaces in trusted zone
+          Services Configured: {{ normalized_services | default([]) | length }} rules applied
+
+          Next Steps:
+          - Verify services are accessible
+          - Test inter-container communication (if Docker host)
+          - Review firewall logs: journalctl -u firewalld
+          ========================================
+      tags:
+        - always
+
+    - name: Firewall configuration file location
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          CONFIGURATION FILES
+          ========================================
+          Active Firewall Rules: firewall-cmd --list-all
+          Permanent Configuration: /etc/firewalld/
+          Backup Location: /tmp/firewall_backup_*.txt
+          Service Variables: inventories/manual/host_vars/{{ inventory_hostname }}.yml
+          ========================================
+      tags:
+        - always

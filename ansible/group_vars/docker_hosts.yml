@@ -1,0 +1,5 @@
+---
+# Docker-specific firewall settings
+
+firewall_docker_interface: "docker0"
+firewall_docker_zone: "trusted"
