@@ -57,13 +57,14 @@ variable "template_name" {
 variable "alma_iso_url" {
   type        = string
   description = "AlmaLinux 10 ISO URL"
-  default     = "https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10.0-x86_64-boot.iso"
+  default     = "https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10.1-x86_64-boot.iso"
 }
 
 variable "iso_checksum" {
   type        = string
   description = "Checksum for the AlmaLinux ISO"
-  default     = "file:https://repo.almalinux.org/almalinux/10/isos/x86_64/CHECKSUM"
+  # SHA256 for AlmaLinux-10.1-x86_64-boot.iso from https://repo.almalinux.org/almalinux/10/isos/x86_64/CHECKSUM
+  default     = "sha256:68a9e14fa252c817d11a3c80306e5a21b2db37c21173fd3f52a9eb6ced25a4a0"
 }
 
 variable "ssh_private_key_file" {
