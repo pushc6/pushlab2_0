@@ -1,0 +1,50 @@
+---
+# Firewall configuration for docker-secure.localdomain (10.37.20.2)
+
+firewall_services:
+  # ============================================================================
+  # DNS Services - Allow DNS queries from all internal networks
+  # ============================================================================
+
+  - port: 53
+    protocol: tcp
+    name: "DNS TCP"
+    access: custom
+    sources:
+      - "10.37.0.0/16"  # All internal networks
+
+  - port: 53
+    protocol: udp
+    name: "DNS UDP"
+    access: custom
+    sources:
+      - "10.37.0.0/16"  # All internal networks
+
+  # ============================================================================
+  # DHCP Services - Allow DHCP from all internal networks
+  # ============================================================================
+
+  - port: 67
+    protocol: udp
+    name: "DHCP Server"
+    access: custom
+    sources:
+      - "10.37.0.0/16"  # All internal networks
+
+  - port: 68
+    protocol: udp
+    name: "DHCP Client"
+    access: custom
+    sources:
+      - "10.37.0.0/16"  # All internal networks
+
+  # ============================================================================
+  # Technitium DNS Web UI - Management access only
+  # ============================================================================
+
+  - port: 5380
+    protocol: tcp
+    name: "Technitium DNS Web UI"
+    access: custom
+    sources:
+      - "10.37.20.0/24"  # Trusted VLAN only
