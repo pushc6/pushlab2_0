@@ -88,11 +88,7 @@ locals {
           }
         }
         docker_hosts = {
-          hosts = {
-            gitea   = {}
-            dns02   = {}
-            labtest = {}
-          }
+          hosts = { for name, _ in module.vm : name => {} }
         }
       }
     }
