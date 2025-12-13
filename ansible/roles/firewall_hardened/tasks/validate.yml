@@ -182,7 +182,7 @@
       Firewall Configuration
       ========================================
       Host: {{ inventory_hostname }}
-      Date: {{ ansible_date_time.iso8601 }}
+      Date: {{ ansible_facts['date_time']['iso8601'] }}
 
       {{ final_firewall_state.stdout }}
 
@@ -192,7 +192,7 @@
       {{ rich_rules_active.stdout }}
 
       ========================================
-    dest: "/var/log/firewall_config_{{ ansible_date_time.epoch }}.txt"
+    dest: "/var/log/firewall_config_{{ ansible_facts['date_time']['epoch'] }}.txt"
     mode: '0644'
 
 - name: Display validation summary
@@ -220,5 +220,5 @@
       Unprotected Ports: {{ unprotected_ports | default([]) | rejectattr('in_firewall') | list | length }}
 
       Configuration saved to:
-      /var/log/firewall_config_{{ ansible_date_time.epoch }}.txt
+      /var/log/firewall_config_{{ ansible_facts['date_time']['epoch'] }}.txt
       ========================================

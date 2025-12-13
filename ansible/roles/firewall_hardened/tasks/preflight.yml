@@ -42,7 +42,7 @@
 - name: Save current firewall configuration backup
   ansible.builtin.copy:
     content: "{{ current_firewall_state.stdout }}"
-    dest: "/tmp/firewall_backup_{{ ansible_date_time.epoch }}.txt"
+    dest: "/tmp/firewall_backup_{{ ansible_facts['date_time']['epoch'] }}.txt"
     mode: '0644'
 
 - name: Display preflight results
@@ -54,5 +54,5 @@
       Firewall Status: {{ firewalld_running.state | default('unknown') }}
       SSH Allowed Subnets: {{ firewall_ssh_allowed_subnets | join(', ') }}
       SSH Port: {{ firewall_ssh_port }}
-      Backup saved: /tmp/firewall_backup_{{ ansible_date_time.epoch }}.txt
+      Backup saved: /tmp/firewall_backup_{{ ansible_facts['date_time']['epoch'] }}.txt
       ========================================
