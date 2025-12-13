@@ -11,14 +11,16 @@ firewall_services:
     name: "DNS TCP"
     access: custom
     sources:
-      - "10.37.0.0/16"  # All internal networks
+      - "10.37.0.0/16"  # All internal networks (IPv4)
+      - "fd00:1337:1337::/48"  # All internal networks (IPv6)
 
   - port: 53
     protocol: udp
     name: "DNS UDP"
     access: custom
     sources:
-      - "10.37.0.0/16"  # All internal networks
+      - "10.37.0.0/16"  # All internal networks (IPv4)
+      - "fd00:1337:1337::/48"  # All internal networks (IPv6)
 
   # ============================================================================
   # DHCP Services - Allow DHCP from all internal networks
@@ -29,14 +31,14 @@ firewall_services:
     name: "DHCP Server"
     access: custom
     sources:
-      - "10.37.0.0/16"  # All internal networks
+      - "10.37.0.0/16"  # All internal networks (IPv4)
 
   - port: 68
     protocol: udp
     name: "DHCP Client"
     access: custom
     sources:
-      - "10.37.0.0/16"  # All internal networks
+      - "10.37.0.0/16"  # All internal networks (IPv4)
 
   # ============================================================================
   # Technitium DNS Web UI - Management access only
@@ -47,4 +49,5 @@ firewall_services:
     name: "Technitium DNS Web UI"
     access: custom
     sources:
-      - "10.37.20.0/24"  # Trusted VLAN only
+      - "10.37.20.0/24"  # Trusted VLAN (IPv4)
+      - "fd00:1337:1337:20::/64"  # Trusted VLAN (IPv6)
