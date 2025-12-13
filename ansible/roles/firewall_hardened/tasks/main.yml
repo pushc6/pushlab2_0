@@ -133,8 +133,8 @@
 
     - name: Verify emergency SSH access
       ansible.builtin.wait_for:
-        host: "{{ ansible_default_ipv4.address }}"
-        port: 22
+        host: "{{ ansible_host | default(inventory_hostname) }}"
+        port: "{{ firewall_ssh_port | default(22) }}"
         timeout: 15
       delegate_to: localhost
       become: false
