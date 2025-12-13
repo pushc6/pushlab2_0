@@ -14,9 +14,7 @@ firewall_services:
     access: custom
     sources:
       - "10.37.20.0/24"  # Trusted VLAN (IPv4)
-      - "10.37.50.0/24"  # IoT VLAN - Home Assistant access (IPv4)
       - "fd00:1337:1337:20::/64"  # Trusted VLAN (IPv6)
-      - "fd00:1337:1337:50::/64"  # IoT VLAN (IPv6)
       - "10.37.70.20/32"  # HomeAssistant DMZ (IPv4)
       - "fd00:1337:1337:70::20/128"  # HomeAssistant DMZ (IPv6)
 
@@ -30,9 +28,7 @@ firewall_services:
     access: custom
     sources:
       - "10.37.20.0/24"  # Trusted VLAN (IPv4)
-      - "10.37.50.0/24"  # IoT VLAN - Home Assistant access (IPv4)
       - "fd00:1337:1337:20::/64"  # Trusted VLAN (IPv6)
-      - "fd00:1337:1337:50::/64"  # IoT VLAN (IPv6)
       - "10.37.70.20/32"  # HomeAssistant DMZ (IPv4)
       - "fd00:1337:1337:70::20/128"  # HomeAssistant DMZ (IPv6)
 
@@ -42,9 +38,7 @@ firewall_services:
     access: custom
     sources:
       - "10.37.20.0/24"  # Trusted VLAN (IPv4)
-      - "10.37.50.0/24"  # IoT VLAN - Home Assistant access (IPv4)
       - "fd00:1337:1337:20::/64"  # Trusted VLAN (IPv6)
-      - "fd00:1337:1337:50::/64"  # IoT VLAN (IPv6)
       - "10.37.70.20/32"  # HomeAssistant DMZ (IPv4)
       - "fd00:1337:1337:70::20/128"  # HomeAssistant DMZ (IPv6)
 
