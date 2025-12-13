@@ -1,6 +1,8 @@
 ---
-# Configure Docker interfaces in trusted zone
-# Detects ALL Docker bridge interfaces and adds them to the trusted zone
+# Configure Docker interfaces in firewalld
+# NOTE: Docker has its own firewalld integration that manages the 'docker' zone.
+# We should NOT add docker0 to the 'trusted' zone as this conflicts with Docker's management.
+# Only custom bridge networks (br-*) should be added to trusted zone if needed.
 
 - name: Check if Docker is installed
   ansible.builtin.command: which docker
@@ -8,10 +10,22 @@
   changed_when: false
   failed_when: false
 
-- name: Detect all Docker bridge interfaces
+- name: Check if Docker manages its own firewalld zone
+  ansible.builtin.command: firewall-cmd --get-zones
+  register: firewalld_zones
+  changed_when: false
+  failed_when: false
+  when: docker_installed.rc == 0
+
+- name: Set Docker firewalld management fact
+  ansible.builtin.set_fact:
+    docker_manages_firewalld: "{{ 'docker' in firewalld_zones.stdout }}"
+  when: docker_installed.rc == 0
+
+- name: Detect custom Docker bridge interfaces (excluding docker0)
   ansible.builtin.shell: |
     set -o pipefail
-    ip link show | grep -E '^[0-9]+: (docker|br-)' | cut -d: -f2 | tr -d ' ' | grep -E '^(docker|br-)'
+    ip link show | grep -E '^[0-9]+: br-' | cut -d: -f2 | tr -d ' ' | grep -E '^br-'
   args:
     executable: /bin/bash
   register: docker_bridges_detected
@@ -19,14 +33,14 @@
   failed_when: false
   when: docker_installed.rc == 0
 
-- name: Set Docker interfaces fact
+- name: Set Docker interfaces fact (custom bridges only)
   ansible.builtin.set_fact:
     docker_bridge_interfaces: "{{ docker_bridges_detected.stdout_lines | default([]) }}"
   when:
     - docker_installed.rc == 0
     - docker_bridges_detected.stdout_lines | default([]) | length > 0
 
-- name: Add Docker bridge interfaces to trusted zone
+- name: Add custom Docker bridge interfaces to trusted zone
   ansible.posix.firewalld:
     zone: "{{ firewall_docker_zone }}"
     interface: "{{ item }}"
@@ -37,7 +51,15 @@
   when:
     - docker_installed.rc == 0
     - docker_bridge_interfaces | default([]) | length > 0
+    - item != 'docker0'  # Never add docker0 - Docker manages it
   notify: reload firewalld
+
+- name: Info - Docker manages docker0 interface
+  ansible.builtin.debug:
+    msg: "Docker manages docker0 via its own 'docker' zone - skipping to avoid zone conflict"
+  when:
+    - docker_installed.rc == 0
+    - docker_manages_firewalld | default(false)
 
 - name: Verify trusted zone does NOT have SSH service enabled
   ansible.builtin.command: firewall-cmd --zone=trusted --query-service=ssh
