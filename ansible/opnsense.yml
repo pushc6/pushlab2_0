@@ -1,7 +1,19 @@
 ---
+# =============================================================================
+# OPNsense Firewall Configuration Playbook
+# =============================================================================
+#
+# USAGE:
+#   ansible-playbook -i inventories/opnsense/hosts.yml opnsense.yml
+#
+# This playbook uses the ansibleguy.opnsense collection to push firewall
+# rules via API - it does NOT SSH into the device.
+#
+# =============================================================================
+
 - name: Configure OPNsense Firewall
   hosts: opnsense
   gather_facts: false
-  
+
   roles:
     - opnsense_firewall

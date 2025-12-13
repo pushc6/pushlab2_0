@@ -1,6 +1,6 @@
 ---
 - name: Gather facts
-  hosts: all
+  hosts: all:!opnsense
   gather_facts: true
   tasks:
     - name: Ensure facts are gathered

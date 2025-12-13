@@ -3,7 +3,7 @@
 # Description: Adds ansible user to sudo group, configures passwordless sudo, and locks the account
 # Usage: ansible-playbook -i inventory_file debian_ansible_config.yml
 - name: Configure ansible user for Debian systems
-  hosts: all
+  hosts: all:!opnsense
   become: yes
   gather_facts: yes
   

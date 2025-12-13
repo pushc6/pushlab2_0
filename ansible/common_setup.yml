@@ -1,6 +1,6 @@
 ---
 - name: Common Setup for All Hosts
-  hosts: all
+  hosts: all:!opnsense
   become: yes
   gather_facts: yes
 

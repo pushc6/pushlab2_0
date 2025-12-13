@@ -4,7 +4,7 @@
 # Usage: ansible-playbook -i inventory_file rhel_ansible_config.yml
 
 - name: Configure ansible user for RHEL systems
-  hosts: all
+  hosts: all:!opnsense
   become: yes
   gather_facts: yes
   

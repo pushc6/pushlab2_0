@@ -1,6 +1,6 @@
 ---
 - name: Update all systems
-  hosts: all
+  hosts: all:!opnsense
   become: yes
   roles:
     - system_updates

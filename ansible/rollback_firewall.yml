@@ -21,7 +21,7 @@
 # ============================================================================
 
 - name: Rollback Firewall Configuration
-  hosts: all
+  hosts: all:!opnsense
   become: true
 
   vars:

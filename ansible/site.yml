@@ -13,7 +13,7 @@
   tags: ['docker', 'apps']
 
 - name: Deploy Firewall Hardening
-  hosts: all
+  hosts: all:!opnsense
   become: true
   roles:
     - firewall_hardened

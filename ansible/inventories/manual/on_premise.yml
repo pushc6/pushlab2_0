@@ -31,12 +31,9 @@ ansible:
 prusa3dbawkz:
   hosts:
     prusa3dbawkz.localdomain:
-opnsense:
-  hosts:
-    opnsense.localdomain:
-      ansible_host: 10.37.70.1
-      ansible_connection: local
-      ansible_python_interpreter: /usr/bin/python3
+# OPNsense removed - now in dedicated inventory: inventories/opnsense/hosts.yml
+# Reason: OPNsense uses API calls (not SSH) and must never be targeted by
+# general playbooks like site.yml, update_all.yml, deploy_firewall.yml, etc.
 
 # Phased rollout groups for firewall hardening
 phase1_critical:

@@ -4,7 +4,7 @@
 # Usage: ansible-playbook nginx_reverse_proxy.yml -e "proxy_sites='[{\"domain\":\"example.com\",\"backend\":\"http://backend1:8080\"},{\"domain\":\"another.example.com\",\"backend\":\"http://backend2:9000\"}]'"
 
 - name: Configure NGINX Reverse Proxy
-  hosts: all
+  hosts: all:!opnsense
   become: yes
   vars:
     # Default proxy configuration - can be overridden with -e flag

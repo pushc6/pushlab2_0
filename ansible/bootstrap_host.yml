@@ -1,6 +1,6 @@
 ---
 - name: Bootstrap Ansible User
-  hosts: all
+  hosts: all:!opnsense
   gather_facts: yes
   become: yes
 

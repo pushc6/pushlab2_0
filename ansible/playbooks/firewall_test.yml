@@ -1,6 +1,6 @@
 ---
 - name: Firewall Hardening Test (Single Host)
-  hosts: all
+  hosts: all:!opnsense
   become: true
   serial: 1
   gather_facts: true
