@@ -23,11 +23,26 @@
   register: vsphere_plugin_check
   failed_when: vsphere_plugin_check.rc != 0
 
-- name: Verify runner service is active
+- name: Wait for gitea-runner to reach stable state
   ansible.builtin.systemd:
     name: gitea-runner
   register: runner_service_check
-  failed_when: runner_service_check.status.ActiveState != 'active'
+  until: runner_service_check.status.ActiveState in ['active', 'failed']
+  retries: 12
+  delay: 5
+  changed_when: false
+  failed_when: false
+
+- name: Verify runner service is running
+  ansible.builtin.assert:
+    that:
+      - runner_service_check.status.ActiveState == 'active'
+    fail_msg: |
+      gitea-runner service failed to start
+      ActiveState: {{ runner_service_check.status.ActiveState }}
+      SubState: {{ runner_service_check.status.SubState }}
+      Result: {{ runner_service_check.status.Result | default('unknown') }}
+    success_msg: "gitea-runner service is active and running"
 
 - name: Verify runner registration file exists
   ansible.builtin.stat:
