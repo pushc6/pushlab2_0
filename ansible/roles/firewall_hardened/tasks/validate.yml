@@ -69,7 +69,7 @@
 
 - name: Test SSH connectivity from Ansible controller (CRITICAL)
   ansible.builtin.wait_for:
-    host: "{{ ansible_host | default(inventory_hostname) }}"
+    host: "{{ ansible_host | default(ansible_facts['default_ipv4']['address'] | default(inventory_hostname)) }}"
     port: "{{ firewall_ssh_port }}"
     timeout: 10
   delegate_to: localhost
