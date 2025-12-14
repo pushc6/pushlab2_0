@@ -46,6 +46,17 @@ locals {
   # ============================================================================
   # Uses MAC address matching instead of interface names (eth0, eth1) because
   # Linux interface enumeration order is not guaranteed to match vSphere NIC order
+  #
+  # Gateway logic: If any additional interface has ipv4_gateway set, use that.
+  # Otherwise, use the primary interface gateway. Only one default route allowed.
+
+  # Check if any additional interface has a gateway configured
+  additional_has_gateway = anytrue([
+    for iface in var.additional_interfaces : iface.ipv4_gateway != "" && iface.ipv4_gateway != null
+  ])
+
+  # Primary interface only gets gateway if no additional interface has one
+  effective_primary_gateway = local.additional_has_gateway ? "" : var.ipv4_gateway
 
   metadata_yaml = var.use_cloud_init && length(var.ipv4_address) > 0 ? join("\n", concat(
     ["local-hostname: ${var.vm_name}"],
@@ -59,7 +70,12 @@ locals {
     ["      dhcp4: false"],
     ["      addresses:"],
     ["        - ${var.ipv4_address}/${var.ipv4_netmask}"],
-    length(var.ipv4_gateway) > 0 ? ["      gateway4: ${var.ipv4_gateway}"] : [],
+    # Use modern routes syntax instead of deprecated gateway4
+    length(local.effective_primary_gateway) > 0 ? [
+      "      routes:",
+      "        - to: default",
+      "          via: ${local.effective_primary_gateway}"
+    ] : [],
     length(var.dns_server_list) > 0 ? concat(
       ["      nameservers:"],
       ["        addresses:"],
@@ -73,7 +89,13 @@ locals {
         ["        macaddress: \"${local.additional_macs[idx]}\""],
         ["      dhcp4: false"],
         ["      addresses:"],
-        ["        - ${iface.ipv4_address}/${iface.ipv4_netmask}"]
+        ["        - ${iface.ipv4_address}/${iface.ipv4_netmask}"],
+        # Use modern routes syntax for gateway on additional interfaces
+        iface.ipv4_gateway != "" && iface.ipv4_gateway != null ? [
+          "      routes:",
+          "        - to: default",
+          "          via: ${iface.ipv4_gateway}"
+        ] : []
       )
     ])
   )) : ""

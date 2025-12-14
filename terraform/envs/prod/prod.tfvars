@@ -48,17 +48,18 @@ vms = {
 
     ipv4_address = "10.37.10.254"
     ipv4_netmask = 24
-    ipv4_gateway = "10.37.10.1"
+    ipv4_gateway = "" # No gateway - Management VLAN has no WAN access
     dns_servers  = ["10.37.10.2"]
 
     # Cloud-init will configure all additional interfaces with static IPs
+    # Default gateway is set on App VLAN which has WAN access
     additional_interfaces = [
       { network_name = "VLAN 20 - Trusted", ipv4_address = "10.37.20.254", ipv4_netmask = 24 },
       { network_name = "VLAN 30 - Storage", ipv4_address = "10.37.30.254", ipv4_netmask = 24 },
       { network_name = "VLAN 40 - LAN Only (No WAN)", ipv4_address = "10.37.40.254", ipv4_netmask = 24 },
       { network_name = "VLAN 50 - IoT", ipv4_address = "10.37.50.254", ipv4_netmask = 24 },
       { network_name = "VLAN 60 - Guest", ipv4_address = "10.37.60.254", ipv4_netmask = 24 },
-      { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24 },
+      { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24, ipv4_gateway = "10.37.80.1" },
       { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24 }
     ]
   }

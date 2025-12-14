@@ -96,7 +96,16 @@ variable "additional_interfaces" {
     network_name = string
     ipv4_address = string
     ipv4_netmask = number
+    ipv4_gateway = optional(string, "")
   }))
-  description = "List of additional network interfaces to attach to the VM."
+  description = "List of additional network interfaces. Set ipv4_gateway on ONE interface for default route (use routes syntax, not gateway4)."
   default     = []
+
+  validation {
+    condition = length([
+      for iface in var.additional_interfaces : iface.ipv4_gateway
+      if iface.ipv4_gateway != "" && iface.ipv4_gateway != null
+    ]) <= 1
+    error_message = "Only one additional interface can have ipv4_gateway set. Multiple default gateways cause routing conflicts."
+  }
 }
