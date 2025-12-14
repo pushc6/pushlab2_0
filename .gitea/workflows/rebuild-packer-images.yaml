@@ -36,6 +36,7 @@ jobs:
 
       - name: Generate ephemeral SSH key
         run: |
+          rm -f /tmp/ci_key /tmp/ci_key.pub
           ssh-keygen -t ed25519 -N "" -C "ci@packer-build" -f /tmp/ci_key
           echo "SSH_PUBLIC_KEY=$(cat /tmp/ci_key.pub)" >> $GITHUB_ENV
 
