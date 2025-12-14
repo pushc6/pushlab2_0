@@ -20,4 +20,4 @@ gitea_runner_labels:
   - "packer-vm"
 
 # Token passed via --extra-vars from Gitea secret RUNNER_REGISTRATION_TOKEN
-# gitea_runner_registration_token: "{{ gitea_runner_registration_token }}"
+# Example: ansible-playbook packer-builder.yml --extra-vars "gitea_runner_registration_token=$RUNNER_REGISTRATION_TOKEN"

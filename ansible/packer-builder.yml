@@ -1,6 +1,6 @@
 ---
 - name: Configure Packer Build VM with Gitea Runner
-  hosts: packer-builder
+  hosts: packer_builder
   become: true
   gather_facts: true
 

@@ -64,7 +64,7 @@ vms = {
   }
 
   # Dedicated Packer build VM with native Gitea Actions runner
-  "packer-builder" = {
+  "packer_builder" = {
     network          = "VLAN 80 - App"
     hostname         = "packer-builder"
     cpu_count        = 4

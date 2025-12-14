@@ -11,7 +11,7 @@ firewall_services:
     sources:
       - "10.37.70.24"    # proxy_internal
       - "10.37.20.0/24"  # trusted_vlan
-      - "10.37.80.5"     # packer-builder (for git checkout)
+      - "10.37.80.5"     # packer_builder (for git checkout)
 
   - port: 3000
     protocol: tcp
@@ -20,4 +20,4 @@ firewall_services:
     sources:
       - "10.37.70.24"    # proxy_internal
       - "10.37.20.0/24"  # trusted_vlan
-      - "10.37.80.5"     # packer-builder (runner API + checkout)
+      - "10.37.80.5"     # packer_builder (runner API + checkout)
