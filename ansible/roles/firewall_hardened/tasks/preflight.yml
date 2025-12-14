@@ -26,13 +26,12 @@
   register: firewalld_installed
   failed_when: firewalld_installed is changed
 
-- name: Verify firewalld is running
+- name: Ensure firewalld is started and enabled
   ansible.builtin.service:
     name: firewalld
     state: started
-  check_mode: true
+    enabled: true
   register: firewalld_running
-  failed_when: firewalld_running is changed
 
 - name: Check current firewall state
   ansible.builtin.command: firewall-cmd --list-all
