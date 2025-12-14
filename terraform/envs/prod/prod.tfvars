@@ -8,8 +8,8 @@ datastore  = "ssd-local"
 network    = "VLAN 70 - DMZ"
 vm_folder  = "Templates"
 
-# Template to clone
-template_name = "almalinux-10-minimal-template-20251104"
+# Template to clone (rebuilt with cloud-init 2025-12-14)
+template_name = "almalinux-10-minimal-template"
 
 # Per-VM definitions
 vms = {
@@ -36,33 +36,32 @@ vms = {
     domain       = "localdomain"
   }
 
-  # dns02 temporarily removed - rebuild after new template with cloud-init is ready
-  # "dns02" = {
-  #   network          = "VLAN 10 - Management"
-  #   cpu_count        = 2
-  #   memory_mb        = 8192
-  #   disk_size_gb     = 40
-  #   thin_provisioned = true
-  #   hostname         = "dns02"
-  #   domain           = "localdomain"
-  #   # Use cloud-init (same as gitea) - configures all interfaces via guestinfo metadata
-  #
-  #   ipv4_address = "10.37.10.254"
-  #   ipv4_netmask = 24
-  #   ipv4_gateway = "10.37.10.1"
-  #   dns_servers  = ["10.37.10.2"]
-  #
-  #   # Cloud-init will configure all additional interfaces with static IPs
-  #   additional_interfaces = [
-  #     { network_name = "VLAN 20 - Trusted", ipv4_address = "10.37.20.254", ipv4_netmask = 24 },
-  #     { network_name = "VLAN 30 - Storage", ipv4_address = "10.37.30.254", ipv4_netmask = 24 },
-  #     { network_name = "VLAN 40 - LAN Only (No WAN)", ipv4_address = "10.37.40.254", ipv4_netmask = 24 },
-  #     { network_name = "VLAN 50 - IoT", ipv4_address = "10.37.50.254", ipv4_netmask = 24 },
-  #     { network_name = "VLAN 60 - Guest", ipv4_address = "10.37.60.254", ipv4_netmask = 24 },
-  #     { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24 },
-  #     { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24 }
-  #   ]
-  # }
+  # Secondary DNS server - multi-homed across all VLANs
+  "dns02" = {
+    network          = "VLAN 10 - Management"
+    cpu_count        = 2
+    memory_mb        = 8192
+    disk_size_gb     = 40
+    thin_provisioned = true
+    hostname         = "dns02"
+    domain           = "localdomain"
+
+    ipv4_address = "10.37.10.254"
+    ipv4_netmask = 24
+    ipv4_gateway = "10.37.10.1"
+    dns_servers  = ["10.37.10.2"]
+
+    # Cloud-init will configure all additional interfaces with static IPs
+    additional_interfaces = [
+      { network_name = "VLAN 20 - Trusted", ipv4_address = "10.37.20.254", ipv4_netmask = 24 },
+      { network_name = "VLAN 30 - Storage", ipv4_address = "10.37.30.254", ipv4_netmask = 24 },
+      { network_name = "VLAN 40 - LAN Only (No WAN)", ipv4_address = "10.37.40.254", ipv4_netmask = 24 },
+      { network_name = "VLAN 50 - IoT", ipv4_address = "10.37.50.254", ipv4_netmask = 24 },
+      { network_name = "VLAN 60 - Guest", ipv4_address = "10.37.60.254", ipv4_netmask = 24 },
+      { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24 },
+      { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24 }
+    ]
+  }
 
   # Dedicated Packer build VM with native Gitea Actions runner
   "packer_builder" = {
