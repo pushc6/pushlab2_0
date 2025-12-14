@@ -81,7 +81,15 @@ terraform_host_firewall_rules:
     protocol: tcp
     port: 22
     interface: dmz_vlan  # Use friendly name - will be mapped to opt1
-  
+
+  - name: "SSH from Ansible to Packer Builder (cross-VLAN)"
+    description: "Allow Ansible SSH to Packer Builder in App VLAN"
+    source: "ansible_automation"  # 10.37.70.x (DMZ)
+    destination: "packer_builder"  # 10.37.80.5 (App VLAN)
+    protocol: tcp
+    port: 22
+    interface: dmz_vlan  # Use friendly name - will be mapped to opt7
+
   # labtest is NOT listed = no firewall rule (same subnet, not needed)
   
   # Option 2: Use conditional based on subnet matching
