@@ -90,6 +90,14 @@ terraform_host_firewall_rules:
     port: 22
     interface: dmz_vlan  # Use friendly name - will be mapped to opt7
 
+  - name: "Gitea API from Ansible (cross-VLAN)"
+    description: "Allow Ansible to reach Gitea Web/API for pre-flight checks"
+    source: "ansible_automation"  # 10.37.70.27 (DMZ)
+    destination: "gitea_server"  # 10.37.80.4 (App VLAN)
+    protocol: tcp
+    port: 3000
+    interface: dmz_vlan
+
   # labtest is NOT listed = no firewall rule (same subnet, not needed)
   
   # Option 2: Use conditional based on subnet matching
