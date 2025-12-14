@@ -9,13 +9,15 @@ firewall_services:
     name: "Gitea SSH"
     access: custom
     sources:
-      - "10.37.70.24"  # proxy_internal
+      - "10.37.70.24"    # proxy_internal
       - "10.37.20.0/24"  # trusted_vlan
+      - "10.37.80.5"     # packer-builder (for git checkout)
 
   - port: 3000
     protocol: tcp
     name: "Gitea Web UI"
     access: custom
     sources:
-      - "10.37.70.24"  # proxy_internal
+      - "10.37.70.24"    # proxy_internal
       - "10.37.20.0/24"  # trusted_vlan
+      - "10.37.80.5"     # packer-builder (runner API + checkout)

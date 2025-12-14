@@ -1,0 +1,50 @@
+---
+# Packer Builder Role Defaults
+
+# Software versions
+packer_version: "1.11.2"
+terraform_version: "1.7.5"
+act_runner_version: "0.2.11"
+
+# Installation paths
+packer_install_path: "/usr/local/bin/packer"
+terraform_install_path: "/usr/local/bin/terraform"
+act_runner_install_path: "/usr/local/bin/act_runner"
+
+# Download URLs (constructed from versions)
+packer_download_url: "https://releases.hashicorp.com/packer/{{ packer_version }}/packer_{{ packer_version }}_linux_amd64.zip"
+terraform_download_url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
+act_runner_download_url: "https://dl.gitea.com/act_runner/{{ act_runner_version }}/act_runner-{{ act_runner_version }}-linux-amd64"
+
+# Runner configuration
+gitea_runner_data_dir: "/opt/gitea-runner"
+gitea_runner_config_file: "{{ gitea_runner_data_dir }}/config.yaml"
+gitea_runner_work_dir: "{{ gitea_runner_data_dir }}"
+
+# Gitea connection (MUST be overridden in host_vars)
+gitea_instance_url: ""
+gitea_runner_registration_token: ""
+gitea_runner_name: "{{ inventory_hostname }}"
+gitea_runner_labels:
+  - "self-hosted"
+  - "linux"
+  - "x64"
+  - "packer-vm"
+
+# Required packages
+packer_builder_packages:
+  - curl
+  - tar
+  - git
+  - jq
+  - unzip
+  - openssh-clients
+  - python3
+  - wget
+
+# Packer configuration
+packer_config_dir: "/root/.config/packer"
+packer_plugin_dir: "{{ packer_config_dir }}/plugins"
+
+# vSphere plugin
+packer_vsphere_plugin_source: "github.com/hashicorp/vsphere"

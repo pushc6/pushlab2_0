@@ -10,8 +10,9 @@ on:
 
 jobs:
   validate-packer:
-    runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux-cicd:latest
+    # Run on dedicated packer-vm runner (native, not containerized)
+    runs-on: [self-hosted, linux, x64, packer-vm]
+    # No container - run directly on host for network access
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,8 +27,8 @@ jobs:
             packer/alma-template.pkr.hcl
 
   build-packer:
-    runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux-cicd:latest
+    runs-on: [self-hosted, linux, x64, packer-vm]
+    # No container - run directly on host for network access
     needs: [validate-packer]
     steps:
       - name: Checkout
@@ -44,6 +45,8 @@ jobs:
           VSPHERE_USER: ${{ secrets.VSPHERE_USER }}
           VSPHERE_PASSWORD: ${{ secrets.VSPHERE_PASSWORD }}
           SSH_PUBLIC_KEY: ${{ env.SSH_PUBLIC_KEY }}
+          # Ensure Packer HTTP server binds to correct IP
+          PACKER_HTTP_ADDR: "10.37.80.5"
         run: |
           set -euo pipefail
           if [ -z "${VCENTER_SERVER:-}" ] || [ -z "${VSPHERE_USER:-}" ] || [ -z "${VSPHERE_PASSWORD:-}" ]; then
@@ -58,7 +61,7 @@ jobs:
           NORM_VC="${NORM_VC%%/*}"
 
           echo "Using vCenter host: $NORM_VC"
-          
+
           FORCE_ARGS=""
           if [ "${{ github.event.inputs.force_build }}" == "true" ]; then
             FORCE_ARGS="-force"

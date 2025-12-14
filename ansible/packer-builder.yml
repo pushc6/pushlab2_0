@@ -1,0 +1,35 @@
+---
+- name: Configure Packer Build VM with Gitea Runner
+  hosts: packer-builder
+  become: true
+  gather_facts: true
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  pre_tasks:
+    - name: Verify connectivity to Gitea server
+      ansible.builtin.wait_for:
+        host: 10.37.80.4
+        port: 3000
+        timeout: 10
+      delegate_to: localhost
+      become: false
+
+  roles:
+    - role: system_hostname
+      tags: ['hostname']
+    - role: docker
+      tags: ['docker']
+    - role: firewall_hardened
+      tags: ['firewall']
+    - role: packer_builder
+      tags: ['packer', 'builder']
+
+  post_tasks:
+    - name: Display installation summary
+      ansible.builtin.debug:
+        msg:
+          - "Packer Builder VM configured successfully"
+          - "Runner: {{ gitea_runner_name }}"
+          - "Labels: {{ gitea_runner_labels | join(',') }}"

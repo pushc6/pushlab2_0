@@ -1,0 +1,32 @@
+---
+# Packer Builder Role - Main Tasks
+
+- name: Install required packages
+  ansible.builtin.package:
+    name: "{{ packer_builder_packages }}"
+    state: present
+  tags: ['packages']
+
+- name: Install Packer
+  ansible.builtin.include_tasks: install_packer.yml
+  tags: ['packer']
+
+- name: Install Terraform
+  ansible.builtin.include_tasks: install_terraform.yml
+  tags: ['terraform']
+
+- name: Pre-install Packer plugins
+  ansible.builtin.include_tasks: packer_plugins.yml
+  tags: ['packer', 'plugins']
+
+- name: Install act_runner
+  ansible.builtin.include_tasks: install_act_runner.yml
+  tags: ['runner', 'act_runner']
+
+- name: Configure Gitea Actions Runner
+  ansible.builtin.include_tasks: configure_runner.yml
+  tags: ['runner', 'configure']
+
+- name: Verify installation
+  ansible.builtin.include_tasks: verify.yml
+  tags: ['verify']

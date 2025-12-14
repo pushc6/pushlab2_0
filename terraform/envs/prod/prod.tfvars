@@ -62,6 +62,23 @@ vms = {
       { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24 }
     ]
   }
+
+  # Dedicated Packer build VM with native Gitea Actions runner
+  "packer-builder" = {
+    network          = "VLAN 80 - App"
+    hostname         = "packer-builder"
+    cpu_count        = 4
+    memory_mb        = 8192
+    disk_size_gb     = 60
+    thin_provisioned = true
+    prevent_destroy  = false
+
+    ipv4_address = "10.37.80.5"
+    ipv4_netmask = 24
+    ipv4_gateway = "10.37.80.1"
+    dns_servers  = ["10.37.80.2"]
+    domain       = "localdomain"
+  }
 }
 
 vm_ssh_user = "root"

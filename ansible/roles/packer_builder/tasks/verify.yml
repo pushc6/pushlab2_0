@@ -1,0 +1,48 @@
+---
+# Post-installation verification tasks
+
+- name: Verify Packer installation
+  ansible.builtin.command: "{{ packer_install_path }} version"
+  changed_when: false
+  register: packer_version_check
+
+- name: Verify Terraform installation
+  ansible.builtin.command: "{{ terraform_install_path }} version"
+  changed_when: false
+  register: terraform_version_check
+
+- name: Verify vSphere plugin installation
+  ansible.builtin.shell: |
+    set -euo pipefail
+    {{ packer_install_path }} plugins installed | grep -i vsphere
+  args:
+    executable: /bin/bash
+  environment:
+    PACKER_CONFIG_DIR: "{{ packer_config_dir }}"
+  changed_when: false
+  register: vsphere_plugin_check
+  failed_when: vsphere_plugin_check.rc != 0
+
+- name: Verify runner service is active
+  ansible.builtin.systemd:
+    name: gitea-runner
+  register: runner_service_check
+  failed_when: runner_service_check.status.ActiveState != 'active'
+
+- name: Verify runner registration file exists
+  ansible.builtin.stat:
+    path: "{{ gitea_runner_data_dir }}/.runner"
+  register: runner_reg_file
+  failed_when: not runner_reg_file.stat.exists
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Packer Builder Verification ==="
+      - "Packer: {{ packer_version_check.stdout }}"
+      - "Terraform: {{ terraform_version_check.stdout_lines[0] }}"
+      - "vSphere Plugin: Installed"
+      - "Runner Service: {{ runner_service_check.status.ActiveState }}"
+      - "Runner Registered: {{ runner_reg_file.stat.exists }}"
+      - "Runner Name: {{ gitea_runner_name }}"
+      - "Runner Labels: {{ gitea_runner_labels | join(',') }}"

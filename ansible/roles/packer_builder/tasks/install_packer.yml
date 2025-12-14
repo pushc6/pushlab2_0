@@ -1,0 +1,51 @@
+---
+# Idempotent Packer installation
+
+- name: Check if Packer is installed
+  ansible.builtin.stat:
+    path: "{{ packer_install_path }}"
+  register: packer_binary
+
+- name: Get current Packer version
+  ansible.builtin.command: "{{ packer_install_path }} version"
+  register: packer_current_version
+  changed_when: false
+  failed_when: false
+  when: packer_binary.stat.exists
+
+- name: Set Packer installation required fact
+  ansible.builtin.set_fact:
+    packer_install_required: >-
+      {{ not packer_binary.stat.exists or
+         packer_version not in packer_current_version.stdout | default('') }}
+
+- name: Download Packer {{ packer_version }}
+  ansible.builtin.get_url:
+    url: "{{ packer_download_url }}"
+    dest: "/tmp/packer_{{ packer_version }}.zip"
+    mode: '0644'
+  when: packer_install_required | bool
+  register: packer_download
+
+- name: Unzip Packer
+  ansible.builtin.unarchive:
+    src: "/tmp/packer_{{ packer_version }}.zip"
+    dest: "/usr/local/bin"
+    remote_src: true
+    mode: '0755'
+  when: packer_install_required | bool
+
+- name: Clean up Packer zip
+  ansible.builtin.file:
+    path: "/tmp/packer_{{ packer_version }}.zip"
+    state: absent
+  when: packer_install_required | bool
+
+- name: Verify Packer installation
+  ansible.builtin.command: "{{ packer_install_path }} version"
+  changed_when: false
+  register: packer_verify
+
+- name: Display Packer version
+  ansible.builtin.debug:
+    msg: "Installed Packer: {{ packer_verify.stdout }}"

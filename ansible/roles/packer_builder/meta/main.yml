@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Packer build environment with Gitea Actions runner
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+  galaxy_tags:
+    - packer
+    - terraform
+    - gitea
+    - cicd
+    - actions
+    - runner
+
+# NO dependencies - use explicit playbook role ordering
+dependencies: []
+
+collections:
+  - community.general
+  - ansible.posix

@@ -1,0 +1,35 @@
+[Unit]
+Description=Gitea Actions Runner ({{ gitea_runner_name }})
+After=network.target docker.service
+Requires=docker.service
+Documentation=https://docs.gitea.com/usage/actions/act-runner
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory={{ gitea_runner_data_dir }}
+ExecStart={{ act_runner_install_path }} daemon
+Restart=always
+RestartSec=10s
+StartLimitInterval=0
+
+# Environment
+Environment="GITEA_INSTANCE_URL={{ gitea_instance_url }}"
+Environment="GITEA_RUNNER_NAME={{ gitea_runner_name }}"
+
+# Security hardening
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ gitea_runner_data_dir }}
+ReadWritePaths=/var/run/docker.sock
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gitea-runner
+
+[Install]
+WantedBy=multi-user.target

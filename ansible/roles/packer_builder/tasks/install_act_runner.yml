@@ -1,0 +1,37 @@
+---
+# Install act_runner binary
+
+- name: Check if act_runner is installed
+  ansible.builtin.stat:
+    path: "{{ act_runner_install_path }}"
+  register: act_runner_binary
+
+- name: Get current act_runner version
+  ansible.builtin.command: "{{ act_runner_install_path }} --version"
+  register: act_runner_current_version
+  changed_when: false
+  failed_when: false
+  when: act_runner_binary.stat.exists
+
+- name: Set act_runner installation required fact
+  ansible.builtin.set_fact:
+    act_runner_install_required: >-
+      {{ not act_runner_binary.stat.exists or
+         act_runner_version not in act_runner_current_version.stdout | default('') }}
+
+- name: Download act_runner {{ act_runner_version }}
+  ansible.builtin.get_url:
+    url: "{{ act_runner_download_url }}"
+    dest: "{{ act_runner_install_path }}"
+    mode: '0755'
+  when: act_runner_install_required | bool
+  register: act_runner_download
+
+- name: Verify act_runner installation
+  ansible.builtin.command: "{{ act_runner_install_path }} --version"
+  changed_when: false
+  register: act_runner_verify
+
+- name: Display act_runner version
+  ansible.builtin.debug:
+    msg: "Installed act_runner: {{ act_runner_verify.stdout }}"
