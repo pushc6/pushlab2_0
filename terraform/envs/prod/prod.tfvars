@@ -51,6 +51,9 @@ vms = {
     ipv4_gateway = "" # No gateway - Management VLAN has no WAN access
     dns_servers  = ["10.37.10.2"]
 
+    # Use App VLAN IP for Ansible since Management VLAN isn't reachable from CI runner
+    ansible_host = "10.37.80.254"
+
     # Cloud-init will configure all additional interfaces with static IPs
     # Default gateway is set on App VLAN which has WAN access
     additional_interfaces = [

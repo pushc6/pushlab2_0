@@ -33,6 +33,8 @@ variable "vms" {
     hostname = optional(string)
     # Optional safety brake: block destroy/recreate of this VM
     prevent_destroy = optional(bool)
+    # Optional ansible_host override (for multi-homed VMs reachable via different IP)
+    ansible_host = optional(string)
     # Static IP settings (when ipv4_address is non-empty)
     ipv4_address = string
     ipv4_netmask = number
@@ -43,6 +45,7 @@ variable "vms" {
       network_name = string
       ipv4_address = string
       ipv4_netmask = number
+      ipv4_gateway = optional(string, "")
     })), [])
   }))
   default = {}

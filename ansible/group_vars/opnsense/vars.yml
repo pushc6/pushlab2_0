@@ -38,12 +38,12 @@ opnsense_aliases:
       - "10.37.70.27"
     description: "Ansible Automation Platform (AAP) server"
 
-  # DNS02 - Secondary DNS server (Management VLAN)
+  # DNS02 - Secondary DNS server (App VLAN IP for Ansible access)
   - name: "dns02"
     type: host
     content:
-      - "10.37.10.254"
-    description: "Secondary DNS server in Management VLAN"
+      - "10.37.80.254"
+    description: "Secondary DNS server - App VLAN IP for cross-VLAN Ansible access"
 
   # Network aliases (CIDR ranges)
   - name: "internal_networks"

@@ -81,7 +81,8 @@ locals {
           children = {
             almalinux = {
               hosts = { for name, m in module.vm : name => {
-                ansible_host    = (try(var.vms[name].ipv4_address, "") != "" ? var.vms[name].ipv4_address : m.vm_ip)
+                # Use ansible_host override if provided, otherwise primary IP
+                ansible_host    = coalesce(try(var.vms[name].ansible_host, null), var.vms[name].ipv4_address, m.vm_ip)
                 system_hostname = try(var.vms[name].hostname, name)
               } }
             }
