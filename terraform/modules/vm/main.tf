@@ -78,14 +78,24 @@ locals {
     ])
   )) : ""
 
+  # Cloud-init userdata for hostname and SSH key injection
+  userdata_yaml = var.use_cloud_init && length(var.ipv4_address) > 0 ? join("\n", concat(
+    ["#cloud-config"],
+    ["fqdn: ${var.vm_name}.${var.domain}"],
+    ["manage_etc_hosts: true"],
+    # Inject SSH public key if provided
+    length(var.ssh_public_key) > 0 ? [
+      "users:",
+      "  - name: root",
+      "    ssh_authorized_keys:",
+      "      - ${var.ssh_public_key}"
+    ] : []
+  )) : ""
+
   cloud_init_extra = var.use_cloud_init && length(var.ipv4_address) > 0 ? {
     "guestinfo.metadata"          = base64encode(local.metadata_yaml),
     "guestinfo.metadata.encoding" = "base64",
-    "guestinfo.userdata" = base64encode(join("\n", [
-      "#cloud-config",
-      "fqdn: ${var.vm_name}.${var.domain}",
-      "manage_etc_hosts: true"
-    ])),
+    "guestinfo.userdata"          = base64encode(local.userdata_yaml),
     "guestinfo.userdata.encoding" = "base64"
   } : {}
 
