@@ -1,6 +1,13 @@
 ---
 # Firewall configuration for nginx (10.37.70.5) - Nginx Reverse Proxy
 
+# SSH access (host-specific)
+firewall_ssh_allowed_subnets:
+  - "10.37.20.0/24"   # trusted_vlan
+  - "10.37.90.0/24"   # wireguard_vlan
+  - "10.37.70.27/32"  # ansible.localdomain
+  - "10.37.70.21/32"  # AAP controller
+
 # Using unified firewall_services structure with access levels
 firewall_services:
   - port: 80

@@ -1,6 +1,13 @@
 ---
 # Firewall configuration for ansible.localdomain - Ansible Automation Platform
 
+# SSH access (host-specific)
+firewall_ssh_allowed_subnets:
+  - "10.37.20.0/24"   # trusted_vlan
+  - "10.37.90.0/24"   # wireguard_vlan
+  - "10.37.70.27/32"  # ansible.localdomain (self)
+  - "10.37.70.21/32"  # AAP controller
+
 # Using unified firewall_services structure with rich rules
 firewall_services:
   # Proxy-accessible services - accessible from reverse proxies + management

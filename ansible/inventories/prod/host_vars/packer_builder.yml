@@ -1,6 +1,12 @@
 ---
 # Host variables for packer-builder VM
 
+# SSH access (host-specific)
+firewall_ssh_allowed_subnets:
+  - "10.37.20.0/24"   # trusted_vlan
+  - "10.37.90.0/24"   # wireguard_vlan
+  - "10.37.70.27/32"  # ansible.localdomain
+
 # Firewall configuration (firewall_hardened role)
 firewall_services:
   - port: 8080

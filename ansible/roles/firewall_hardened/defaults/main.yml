@@ -38,13 +38,20 @@ firewall_dmz_vlan_subnet_ipv6: "fd00:1337:1337:70::/64"
 firewall_wireguard_vlan_subnet: "10.37.90.0/24"
 firewall_wireguard_vlan_subnet_ipv6: "fd00:1337:1337:90::/64"
 
-# SSH Access - Allow SSH from these subnets (IPv4)
+# SSH Access - Define per-host in host_vars for full customization
+# Example:
+# firewall_ssh_allowed_subnets:
+#   - "10.37.20.0/24"   # trusted_vlan
+#   - "10.37.90.0/24"   # wireguard_vlan
+#   - "10.37.70.27/32"  # ansible.localdomain
+#   - "10.37.70.21/32"  # AAP controller
+#
+# Anti-lockout safeguard: trusted_vlan always has SSH access by default
+# Override in host_vars if different access is needed (e.g., VPS with public SSH)
 firewall_ssh_allowed_subnets:
-  - "{{ firewall_trusted_vlan_subnet }}"
-  - "{{ firewall_wireguard_vlan_subnet }}"
-  - "10.37.70.27/32"  # Ansible controller host (ansible.localdomain)
+  - "{{ firewall_trusted_vlan_subnet }}"  # Anti-lockout safeguard
 
-# SSH Access - Allow SSH from these subnets (IPv6)
+# SSH Access - Allow SSH from these subnets (IPv6) - optional
 firewall_ssh_allowed_subnets_ipv6:
   - "{{ firewall_trusted_vlan_subnet_ipv6 }}"
   - "{{ firewall_wireguard_vlan_subnet_ipv6 }}"

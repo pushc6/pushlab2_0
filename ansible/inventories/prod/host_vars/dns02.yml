@@ -1,6 +1,12 @@
 ---
 # Firewall configuration for dns02 (10.37.20.2) - Technitium DNS Server
 
+# SSH access (host-specific)
+firewall_ssh_allowed_subnets:
+  - "10.37.20.0/24"   # trusted_vlan
+  - "10.37.90.0/24"   # wireguard_vlan
+  - "10.37.70.27/32"  # ansible.localdomain
+
 # Using unified firewall_services structure with rich rules
 firewall_services:
   # Custom services - DNS accessible from local networks

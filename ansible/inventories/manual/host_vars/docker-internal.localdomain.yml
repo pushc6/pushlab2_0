@@ -2,6 +2,13 @@
 # Firewall configuration for docker-internal.localdomain (10.37.70.7) - Internal Docker Host
 # Updated with actual running containers and IPv6 support
 
+# SSH access (host-specific)
+firewall_ssh_allowed_subnets:
+  - "10.37.20.0/24"   # trusted_vlan
+  - "10.37.90.0/24"   # wireguard_vlan
+  - "10.37.70.27/32"  # ansible.localdomain
+  - "10.37.70.21/32"  # AAP controller
+
 # Using unified firewall_services structure with rich rules
 firewall_services:
 
