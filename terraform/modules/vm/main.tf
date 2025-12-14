@@ -14,47 +14,71 @@ locals {
   # Ensure we never shrink the OS disk below the template's base disk size (vSphere disallows shrinking on clone)
   effective_os_disk_size_gb = max(var.disk_size_gb, try(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size_gb))
 
-  # Construct the primary interface config
-  primary_iface_config = length(var.ipv4_address) > 0 ? {
-    eth0 = {
-      dhcp4       = false
-      addresses   = [format("%s/%d", var.ipv4_address, var.ipv4_netmask)]
-      gateway4    = var.ipv4_gateway
-      nameservers = { addresses = var.dns_server_list }
-    }
-  } : {}
+  # ============================================================================
+  # MAC ADDRESS GENERATION
+  # ============================================================================
+  # Generate deterministic MAC addresses using MD5 hash of VM name + interface
+  # VMware manual MAC range: 00:50:56:00:00:00 to 00:50:56:3F:FF:FF
+  # First byte of last 3 octets must be 0-63 (0x00-0x3F)
 
-  # Construct additional interfaces config
-  additional_iface_config = {
-    for idx, iface in var.additional_interfaces : "eth${idx + 1}" => {
-      dhcp4     = false
-      addresses = [format("%s/%d", iface.ipv4_address, iface.ipv4_netmask)]
-    }
-  }
+  # Primary interface MAC
+  primary_mac_hash = md5("${var.vm_name}-primary")
+  primary_mac = format("00:50:56:%02x:%02x:%02x",
+    parseint(substr(local.primary_mac_hash, 0, 2), 16) % 64, # 0-63 range
+    parseint(substr(local.primary_mac_hash, 2, 2), 16),
+    parseint(substr(local.primary_mac_hash, 4, 2), 16)
+  )
 
-  network_config_ethernets = merge(local.primary_iface_config, local.additional_iface_config)
+  # Additional interface MACs - use network name in hash for stability
+  additional_macs = [
+    for idx, iface in var.additional_interfaces : format("00:50:56:%02x:%02x:%02x",
+      parseint(substr(md5("${var.vm_name}-${iface.network_name}"), 0, 2), 16) % 64,
+      parseint(substr(md5("${var.vm_name}-${iface.network_name}"), 2, 2), 16),
+      parseint(substr(md5("${var.vm_name}-${iface.network_name}"), 4, 2), 16)
+    )
+  ]
 
-  # Build network metadata as proper YAML for cloud-init
-  # We construct YAML manually to avoid yamlencode() issues with quoted keys
-  metadata_yaml = var.use_cloud_init && length(local.network_config_ethernets) > 0 ? join("\n", concat(
+  # All MACs in order (primary first, then additional)
+  all_macs = concat([local.primary_mac], local.additional_macs)
+
+  # ============================================================================
+  # CLOUD-INIT NETWORK CONFIGURATION (MAC-based matching)
+  # ============================================================================
+  # Uses MAC address matching instead of interface names (eth0, eth1) because
+  # Linux interface enumeration order is not guaranteed to match vSphere NIC order
+
+  metadata_yaml = var.use_cloud_init && length(var.ipv4_address) > 0 ? join("\n", concat(
     ["local-hostname: ${var.vm_name}"],
     ["network:"],
     ["  version: 2"],
     ["  ethernets:"],
+    # Primary interface
+    ["    primary:"],
+    ["      match:"],
+    ["        macaddress: \"${local.primary_mac}\""],
+    ["      dhcp4: false"],
+    ["      addresses:"],
+    ["        - ${var.ipv4_address}/${var.ipv4_netmask}"],
+    length(var.ipv4_gateway) > 0 ? ["      gateway4: ${var.ipv4_gateway}"] : [],
+    length(var.dns_server_list) > 0 ? concat(
+      ["      nameservers:"],
+      ["        addresses:"],
+      [for ns in var.dns_server_list : "          - ${ns}"]
+    ) : [],
+    # Additional interfaces
     flatten([
-      for iface_name, iface_cfg in local.network_config_ethernets : concat(
-        ["    ${iface_name}:"],
-        ["      dhcp4: ${iface_cfg.dhcp4}"],
+      for idx, iface in var.additional_interfaces : concat(
+        ["    ${replace(lower(iface.network_name), " ", "-")}:"],
+        ["      match:"],
+        ["        macaddress: \"${local.additional_macs[idx]}\""],
+        ["      dhcp4: false"],
         ["      addresses:"],
-        [for addr in iface_cfg.addresses : "        - ${addr}"],
-        can(iface_cfg.gateway4) ? ["      gateway4: ${iface_cfg.gateway4}"] : [],
-        can(iface_cfg.nameservers) ? ["      nameservers:", "        addresses:"] : [],
-        can(iface_cfg.nameservers) ? [for ns in iface_cfg.nameservers.addresses : "          - ${ns}"] : []
+        ["        - ${iface.ipv4_address}/${iface.ipv4_netmask}"]
       )
     ])
   )) : ""
 
-  cloud_init_extra = var.use_cloud_init && length(local.network_config_ethernets) > 0 ? {
+  cloud_init_extra = var.use_cloud_init && length(var.ipv4_address) > 0 ? {
     "guestinfo.metadata"          = base64encode(local.metadata_yaml),
     "guestinfo.metadata.encoding" = "base64",
     "guestinfo.userdata" = base64encode(join("\n", [
@@ -149,16 +173,22 @@ resource "vsphere_virtual_machine" "vm_unprotected" {
   firmware  = local.vm_config.firmware
   scsi_type = local.vm_config.scsi_type
 
+  # Primary network interface with static MAC for cloud-init matching
   network_interface {
-    network_id   = local.network_interface_config.network_id
-    adapter_type = local.network_interface_config.adapter_type
+    network_id     = local.network_interface_config.network_id
+    adapter_type   = local.network_interface_config.adapter_type
+    use_static_mac = true
+    mac_address    = local.primary_mac
   }
 
+  # Additional network interfaces with static MACs
   dynamic "network_interface" {
-    for_each = data.vsphere_network.additional
+    for_each = { for idx, net in data.vsphere_network.additional : idx => net }
     content {
-      network_id   = network_interface.value.id
-      adapter_type = local.network_interface_config.adapter_type
+      network_id     = network_interface.value.id
+      adapter_type   = local.network_interface_config.adapter_type
+      use_static_mac = true
+      mac_address    = local.additional_macs[network_interface.key]
     }
   }
 
@@ -231,16 +261,22 @@ resource "vsphere_virtual_machine" "vm_protected" {
   firmware  = local.vm_config.firmware
   scsi_type = local.vm_config.scsi_type
 
+  # Primary network interface with static MAC for cloud-init matching
   network_interface {
-    network_id   = local.network_interface_config.network_id
-    adapter_type = local.network_interface_config.adapter_type
+    network_id     = local.network_interface_config.network_id
+    adapter_type   = local.network_interface_config.adapter_type
+    use_static_mac = true
+    mac_address    = local.primary_mac
   }
 
+  # Additional network interfaces with static MACs
   dynamic "network_interface" {
-    for_each = data.vsphere_network.additional
+    for_each = { for idx, net in data.vsphere_network.additional : idx => net }
     content {
-      network_id   = network_interface.value.id
-      adapter_type = local.network_interface_config.adapter_type
+      network_id     = network_interface.value.id
+      adapter_type   = local.network_interface_config.adapter_type
+      use_static_mac = true
+      mac_address    = local.additional_macs[network_interface.key]
     }
   }
 
