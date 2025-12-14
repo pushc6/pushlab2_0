@@ -67,15 +67,20 @@
     success_msg: "SSH service is correctly enabled globally"
   when: not (firewall_ssh_hardening_enabled | default(true))
 
+- name: Set target host for SSH connectivity test
+  ansible.builtin.set_fact:
+    _ssh_test_host: "{{ ansible_host | default(ansible_facts['default_ipv4']['address'] | default(omit)) }}"
+
 - name: Test SSH connectivity from Ansible controller (CRITICAL)
   ansible.builtin.wait_for:
-    host: "{{ ansible_host | default(ansible_facts['default_ipv4']['address'] | default(inventory_hostname)) }}"
+    host: "{{ _ssh_test_host }}"
     port: "{{ firewall_ssh_port }}"
     timeout: 10
   delegate_to: localhost
   become: false
   vars:
     ansible_connection: local
+  when: _ssh_test_host is defined and _ssh_test_host | length > 0
 
 - name: Verify configured services are present in firewall
   ansible.builtin.assert:
