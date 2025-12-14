@@ -18,13 +18,9 @@ StartLimitInterval=0
 Environment="GITEA_INSTANCE_URL={{ gitea_instance_url }}"
 Environment="GITEA_RUNNER_NAME={{ gitea_runner_name }}"
 
-# Security hardening
+# Security hardening (relaxed - runner needs access to docker and packer)
 PrivateTmp=true
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths={{ gitea_runner_data_dir }}
-ReadWritePaths=/var/run/docker.sock
+ProtectHome=read-only
 
 # Logging
 StandardOutput=journal
