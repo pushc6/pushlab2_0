@@ -183,6 +183,9 @@ resource "vsphere_virtual_machine" "vm_unprotected" {
   firmware  = local.vm_config.firmware
   scsi_type = local.vm_config.scsi_type
 
+  # Prevent reboots when extra_config changes - cloud-init only runs on first boot
+  extra_config_reboot_required = false
+
   # Primary network interface with static MAC for cloud-init matching
   network_interface {
     network_id     = local.network_interface_config.network_id
@@ -270,6 +273,9 @@ resource "vsphere_virtual_machine" "vm_protected" {
   guest_id  = local.vm_config.guest_id
   firmware  = local.vm_config.firmware
   scsi_type = local.vm_config.scsi_type
+
+  # Prevent reboots when extra_config changes - cloud-init only runs on first boot
+  extra_config_reboot_required = false
 
   # Primary network interface with static MAC for cloud-init matching
   network_interface {
