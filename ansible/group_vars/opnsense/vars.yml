@@ -98,6 +98,14 @@ terraform_host_firewall_rules:
     port: 3000
     interface: dmz_vlan
 
+  - name: "Packer to vCenter (cross-VLAN)"
+    description: "Allow Packer Builder to reach vCenter API for VM builds"
+    source: "packer_builder"  # 10.37.80.5 (App VLAN)
+    destination: "10.37.10.35"  # vCenter
+    protocol: tcp
+    port: 443
+    interface: app_vlan
+
   # labtest is NOT listed = no firewall rule (same subnet, not needed)
   
   # Option 2: Use conditional based on subnet matching

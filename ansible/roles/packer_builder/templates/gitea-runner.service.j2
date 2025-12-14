@@ -18,9 +18,8 @@ StartLimitInterval=0
 Environment="GITEA_INSTANCE_URL={{ gitea_instance_url }}"
 Environment="GITEA_RUNNER_NAME={{ gitea_runner_name }}"
 
-# Security hardening (relaxed - runner needs access to docker and packer)
+# Security hardening (minimal - runner needs full system access for Packer builds)
 PrivateTmp=true
-ProtectHome=read-only
 
 # Logging
 StandardOutput=journal

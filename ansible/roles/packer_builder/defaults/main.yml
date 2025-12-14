@@ -41,6 +41,7 @@ packer_builder_packages:
   - openssh-clients
   - python3
   - wget
+  - nodejs  # Required for Gitea Actions checkout
 
 # Packer configuration
 packer_config_dir: "/root/.config/packer"
