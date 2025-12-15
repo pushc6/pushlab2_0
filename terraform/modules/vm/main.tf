@@ -62,6 +62,10 @@ locals {
     ["local-hostname: ${var.vm_name}"],
     ["network:"],
     ["  version: 2"],
+    # CRITICAL: AlmaLinux/RHEL 9+ requires explicit renderer specification
+    # Cloud-init incorrectly auto-selects sysconfig renderer which has routing bugs
+    # See: https://github.com/canonical/cloud-init/issues/5612
+    ["  renderer: NetworkManager"],
     ["  ethernets:"],
     # Primary interface
     ["    primary:"],
