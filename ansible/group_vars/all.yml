@@ -31,3 +31,44 @@ firewall_reverse_proxy_ips:
 firewall_rollback_timer: 300
 firewall_enable_preflight: true
 firewall_enable_validation: true
+
+# Veeam Backup Server (alias: veeammachine)
+veeam_server_ip: "10.37.70.21"
+
+# Global firewall services applied to ALL hosts
+firewall_services:
+  # Veeam Backup & Replication ports (from veeammachine)
+  - port: 6162
+    protocol: tcp
+    name: "Veeam Installer Service"
+    access: custom
+    sources:
+      - "{{ veeam_server_ip }}/32"
+
+  - port: "2500-3300"
+    protocol: tcp
+    name: "Veeam Data Transfer"
+    access: custom
+    sources:
+      - "{{ veeam_server_ip }}/32"
+
+  - port: 111
+    protocol: tcp
+    name: "Veeam vPower NFS Portmapper"
+    access: custom
+    sources:
+      - "{{ veeam_server_ip }}/32"
+
+  - port: 1058
+    protocol: tcp
+    name: "Veeam Mount Service"
+    access: custom
+    sources:
+      - "{{ veeam_server_ip }}/32"
+
+  - port: 2049
+    protocol: tcp
+    name: "Veeam NFS"
+    access: custom
+    sources:
+      - "{{ veeam_server_ip }}/32"

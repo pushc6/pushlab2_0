@@ -31,6 +31,24 @@ firewall_defaults:
 # Custom firewall aliases
 # These will be created/updated in OPNsense for use in rules
 opnsense_aliases:
+  # Veeam Backup Server
+  - name: "veeammachine"
+    type: host
+    content:
+      - "{{ veeam_server_ip }}"
+    description: "Veeam Backup & Replication server"
+
+  # Veeam ports alias
+  - name: "veeam_ports"
+    type: port
+    content:
+      - "6162"
+      - "2500:3300"
+      - "111"
+      - "1058"
+      - "2049"
+    description: "Veeam Backup & Replication ports"
+
   # AAP/Ansible Controller
   - name: "ansible_automation"
     type: host
