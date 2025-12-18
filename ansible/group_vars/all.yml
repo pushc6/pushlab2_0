@@ -35,8 +35,8 @@ firewall_enable_validation: true
 # Veeam Backup Server (alias: veeammachine)
 veeam_server_ip: "10.37.70.21"
 
-# Global firewall services applied to ALL hosts
-firewall_services:
+# Global firewall services applied to ALL hosts (merged with host-specific rules)
+firewall_global_services:
   # Veeam Backup & Replication ports (from veeammachine)
   - port: 6162
     protocol: tcp

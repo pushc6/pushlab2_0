@@ -2,10 +2,11 @@
 # Apply firewall services using unified structure
 # FIXED: Handles both new unified format and legacy variables
 
-- name: Merge legacy variables into unified firewall_services
+- name: Merge global and host-specific firewall services
   ansible.builtin.set_fact:
     unified_services: >-
       {{
+        firewall_global_services | default([]) +
         firewall_services | default([]) +
         (firewall_public_services | default([]) | map('combine', {'access': 'public'}) | list) +
         (firewall_management_services | default([]) | map('combine', {'access': 'trusted_vlan'}) | list) +
