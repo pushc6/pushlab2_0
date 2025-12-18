@@ -17,8 +17,10 @@
   ansible.builtin.set_fact:
     normalized_services: "{{ normalized_services | default([]) + [normalized_item] }}"
   vars:
-    # Handle both string format "9000/tcp" and structured format
-    port_value: "{{ item.port if item.port is number else item.port.split('/')[0] | int }}"
+    # Handle single ports, port ranges (2500-3300), and string format "9000/tcp"
+    # Port ranges are kept as strings, single ports can be int or string
+    raw_port: "{{ item.port if item.port is number else item.port.split('/')[0] }}"
+    port_value: "{{ raw_port | string }}"
     protocol_value: >-
       {{
         item.protocol | default(
@@ -37,8 +39,9 @@
 - name: Validate normalized services
   ansible.builtin.assert:
     that:
-      - item.port | int > 0
-      - item.port | int < 65536
+      # Handle both single ports and port ranges (e.g., "2500-3300")
+      - (item.port | string | regex_search('^[0-9]+-[0-9]+$')) or (item.port | int > 0)
+      - (item.port | string | regex_search('^[0-9]+-[0-9]+$')) or (item.port | int < 65536)
       - item.protocol in ['tcp', 'udp']
       - item.access in ['public', 'management_vlan', 'trusted_vlan', 'dmz_vlan', 'wireguard_vlan', 'proxy', 'custom']
       - item.access != 'custom' or (item.sources | length > 0)
