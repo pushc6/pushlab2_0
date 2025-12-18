@@ -103,6 +103,9 @@ firewall_docker_zone: "trusted"
 
 firewall_services: []
 
+# Global services applied to ALL hosts (from group_vars/all.yml)
+firewall_global_services: []
+
 # LEGACY VARIABLES (for backward compatibility, will be merged into firewall_services)
 firewall_public_services: []
 firewall_management_services: []

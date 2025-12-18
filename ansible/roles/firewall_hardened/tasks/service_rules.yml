@@ -40,8 +40,8 @@
   ansible.builtin.assert:
     that:
       # Handle both single ports and port ranges (e.g., "2500-3300")
-      - (item.port | string | regex_search('^[0-9]+-[0-9]+$')) or (item.port | int > 0)
-      - (item.port | string | regex_search('^[0-9]+-[0-9]+$')) or (item.port | int < 65536)
+      - (item.port | string is match('^[0-9]+-[0-9]+$')) or (item.port | int > 0)
+      - (item.port | string is match('^[0-9]+-[0-9]+$')) or (item.port | int < 65536)
       - item.protocol in ['tcp', 'udp']
       - item.access in ['public', 'management_vlan', 'trusted_vlan', 'dmz_vlan', 'wireguard_vlan', 'proxy', 'custom']
       - item.access != 'custom' or (item.sources | length > 0)

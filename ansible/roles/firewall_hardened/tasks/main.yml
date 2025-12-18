@@ -62,6 +62,7 @@
     - name: Configure firewall services
       ansible.builtin.include_tasks: service_rules.yml
       when: >
+        (firewall_global_services is defined and firewall_global_services | length > 0) or
         (firewall_services is defined and firewall_services | length > 0) or
         (firewall_public_services is defined and firewall_public_services | length > 0) or
         (firewall_management_services is defined and firewall_management_services | length > 0) or
