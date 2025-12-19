@@ -398,6 +398,14 @@ firewall_services:
   # Infrastructure Services
   # ============================================================================
 
+  - port: 8086
+    protocol: tcp
+    name: "InfluxDB"
+    container: influxdb2
+    access: custom
+    sources:
+      - "10.37.70.20/32"  # Home Assistant
+
   - port: 3493
     protocol: tcp
     name: "NUT - UPS Monitoring"
