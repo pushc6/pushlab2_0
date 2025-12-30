@@ -144,7 +144,19 @@ oauth2_services:
       X-Environment: "production"
     # Traditional proxy with caching disabled for real-time data
     enable_caching: false
-    
+
+  - name: "semaphore"
+    domain: "semaphore.push-lab.com"
+    backend_host: "10.37.70.25"
+    backend_port: "3004"
+    auth_type: "none"              # Semaphore has built-in auth
+    proxy_mode: "traditional"       # Traditional proxy mode
+    ssl_domain: "push-lab.com"
+    description: "Semaphore Ansible UI"
+    category: "automation"
+    health_check: "/api/ping"
+    enable_caching: false
+
   - name: "lidarr"
     domain: "lidarr.push-lab.com"
     backend_host: "10.37.70.7"

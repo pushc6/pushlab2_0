@@ -31,6 +31,9 @@ ansible:
 prusa3dbawkz:
   hosts:
     prusa3dbawkz.localdomain:
+scrypted:
+  hosts:
+    scrypted.localdomain:
 # OPNsense removed - now in dedicated inventory: inventories/opnsense/hosts.yml
 # Reason: OPNsense uses API calls (not SSH) and must never be targeted by
 # general playbooks like site.yml, update_all.yml, deploy_firewall.yml, etc.
