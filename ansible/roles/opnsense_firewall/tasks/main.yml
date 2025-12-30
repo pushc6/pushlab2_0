@@ -39,6 +39,7 @@
     description: "Hosts created by Terraform automation"
     state: present
   register: terraform_alias
+  when: groups['terraform_created'] is defined and groups['terraform_created'] | length > 0
 
 - name: Create individual host aliases
   ansibleguy.opnsense.alias:
@@ -51,8 +52,9 @@
     content: ["{{ hostvars[item].ansible_host }}"]
     description: "Terraform host: {{ item }}"
     state: present
-  loop: "{{ groups['terraform_created'] }}"
+  loop: "{{ groups['terraform_created'] | default([]) }}"
   register: host_aliases
+  when: groups['terraform_created'] is defined and groups['terraform_created'] | length > 0
 
 - name: Build firewall rules list
   set_fact:
@@ -103,7 +105,7 @@
     ssl_verify: "{{ opnsense_validate_certs }}"
     target: 'rule'
   when: >
-    (custom_aliases is defined and custom_aliases.changed) or
-    terraform_alias.changed or
-    host_aliases.changed or
-    firewall_rules.changed
+    (custom_aliases is defined and custom_aliases.changed | default(false)) or
+    (terraform_alias is defined and terraform_alias.changed | default(false)) or
+    (host_aliases is defined and host_aliases.changed | default(false)) or
+    (firewall_rules is defined and firewall_rules.changed | default(false))
