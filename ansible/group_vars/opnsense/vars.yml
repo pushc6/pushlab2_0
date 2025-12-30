@@ -56,6 +56,13 @@ opnsense_aliases:
       - "10.37.70.27"
     description: "Ansible Automation Platform (AAP) server"
 
+  # Semaphore - Ansible UI
+  - name: "semaphore"
+    type: host
+    content:
+      - "10.37.70.25"
+    description: "Semaphore Ansible UI server"
+
   # DNS02 - Secondary DNS server (App VLAN IP for Ansible access)
   - name: "dns02"
     type: host
@@ -130,6 +137,23 @@ terraform_host_firewall_rules:
     protocol: tcp
     port: 443
     interface: app_vlan
+
+  # Semaphore cross-VLAN SSH access
+  - name: "SSH from Semaphore to DNS02 (cross-VLAN)"
+    description: "Allow Semaphore SSH to DNS02 in Trusted VLAN"
+    source: "semaphore"  # 10.37.70.25 (DMZ)
+    destination: "dns02"  # 10.37.20.2 (Trusted VLAN)
+    protocol: tcp
+    port: 22
+    interface: dmz_vlan
+
+  - name: "SSH from Semaphore to RaspberryPi-HA (cross-VLAN)"
+    description: "Allow Semaphore SSH to RaspberryPi-HA in IoT VLAN"
+    source: "semaphore"  # 10.37.70.25 (DMZ)
+    destination: "10.37.50.12"  # raspberrypi-ha.localdomain (IoT VLAN)
+    protocol: tcp
+    port: 22
+    interface: dmz_vlan
 
   # labtest is NOT listed = no firewall rule (same subnet, not needed)
   

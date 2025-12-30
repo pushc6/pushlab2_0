@@ -7,6 +7,7 @@ firewall_ssh_allowed_subnets:
   - "10.37.90.0/24"   # wireguard_vlan
   - "10.37.70.27/32"  # ansible.localdomain
   - "10.37.70.21/32"  # AAP controller
+  - "10.37.70.25/32"  # semaphore
 
 # Public services (no source restrictions)
 firewall_public_services:
