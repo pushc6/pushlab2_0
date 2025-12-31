@@ -362,249 +362,80 @@ jobs:
           git tag -a "$SNAP_VERSION" -m "IaC snapshot prod apply $SNAP_VERSION" || true
           git push origin "$SNAP_VERSION" || true
 
-  ansible-aap:
+  ansible-semaphore:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux-cicd:latest
     needs: [terraform]
     if: ${{ needs.terraform.outputs.apply == 'true' || needs.terraform.outputs.ansible_changed == 'true' }}
     steps:
-      - name: Checkout (for diff analysis)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Calculate AAP Tags
-        id: tags
-        run: |
-          set -euo pipefail
-          # Re-detect changes to be precise about tags
-          # (Or we could pass specific flags from the terraform job, but re-diffing is cheap)
-          git config --global --add safe.directory '*'
-          
-          # Default: Run everything if TF changed or Apply happened
-          TAGS=""
-          
-          if [ "${{ needs.terraform.outputs.apply }}" == "true" ]; then
-            echo "Terraform applied (or inventory changed); running ALL tags."
-            TAGS="" # Empty tags means run all
-          else
-            # Ansible-only change. Calculate specific tags.
-            # Check for specific paths
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-            
-            TAG_LIST=()
-            
-            # If site.yml or group_vars changed, run all
-            if echo "$CHANGED_FILES" | grep -E 'ansible/site.yml|ansible/group_vars' -q; then
-               echo "Core Ansible files changed; running ALL tags."
-               TAGS=""
-            else
-               # Check individual components
-               if echo "$CHANGED_FILES" | grep -E 'ansible/roles/gitea|ansible/gitea.yml' -q; then
-                 TAG_LIST+=("gitea")
-               fi
-               if echo "$CHANGED_FILES" | grep -E 'ansible/roles/docker|ansible/docker.yml' -q; then
-                 TAG_LIST+=("docker")
-               fi
-               if echo "$CHANGED_FILES" | grep -E 'ansible/roles/system_updates|ansible/update_all.yml' -q; then
-                 TAG_LIST+=("updates")
-               fi
-               if echo "$CHANGED_FILES" | grep -E 'ansible/onboard' -q; then
-                 TAG_LIST+=("onboard")
-               fi
-               
-               # Join tags with comma
-               TAGS=$(IFS=, ; echo "${TAG_LIST[*]}")
-            fi
-          fi
-          
-          echo "Calculated Tags: '$TAGS'"
-          echo "TAGS=$TAGS" >> "$GITHUB_ENV"
-
-      - name: Trigger AAP Job Template
+      - name: Trigger Semaphore Task
         env:
-          # Prefer variable for AAP_URL to avoid storing non-sensitive base URL as secret
-          AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-          # OAuth2 Application Credentials
-          AAP_CLIENT_ID: ${{ secrets.AAP_CLIENT_ID }}
-          AAP_CLIENT_SECRET: ${{ secrets.AAP_CLIENT_SECRET }}
-          AAP_USERNAME: ${{ vars.AAP_USERNAME }}
-          AAP_PASSWORD: ${{ secrets.AAP_PASSWORD }}
-          # Fallback
-          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
-          # Prefer explicit ID secret; fallback to name lookup via AAP_JOB_TEMPLATE_NAME variable
-          AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
-          AAP_JOB_TEMPLATE_NAME: ${{ vars.AAP_JOB_TEMPLATE_NAME }}
-          ENVIRONMENT: ${{ needs.terraform.outputs.environment }}
+          SEMAPHORE_URL: ${{ vars.SEMAPHORE_URL || 'https://semaphore.push-lab.com' }}
+          SEMAPHORE_TOKEN: ${{ secrets.SEMAPHORE_TOKEN }}
+          SEMAPHORE_PROJECT_ID: ${{ vars.SEMAPHORE_PROJECT_ID }}
+          SEMAPHORE_TEMPLATE_ID: ${{ vars.SEMAPHORE_TEMPLATE_ID }}
         run: |
           set -euo pipefail
-          
-          if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
-          
-          AAP_TOKEN_FINAL=""
-          
-          # Priority 1: OAuth2 Password Grant Flow (Required by AAP Config)
-          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ] && [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
-             echo "Performing OAuth2 Password Grant Token Exchange..."
-             
-             # Encode Client ID:Secret for Basic Auth
-             AUTH_STRING=$(printf "%s:%s" "$AAP_CLIENT_ID" "$AAP_CLIENT_SECRET" | base64 | tr -d '\n')
-             
-             # Request Token from /o/token/
-             TOKEN_RESP=$(curl -s -X POST "$AAP_URL/o/token/" \
-               -H "Authorization: Basic $AUTH_STRING" \
-               -H "Content-Type: application/x-www-form-urlencoded" \
-               -d "grant_type=password" \
-               -d "username=$AAP_USERNAME" \
-               -d "password=$AAP_PASSWORD")
-             
-             AAP_TOKEN_FINAL=$(echo "$TOKEN_RESP" | jq -r '.access_token // empty')
-             
-             if [ -z "$AAP_TOKEN_FINAL" ]; then
-                echo "OAuth2 Token Exchange Failed."
-                echo "Response: $TOKEN_RESP"
-                echo "::error::Failed to obtain OAuth2 token. Check credentials and AAP configuration."
-                exit 1
-             fi
-             echo "Successfully obtained OAuth2 Bearer Token."
-             
-          # Priority 2: Static PAT (Legacy/Manual)
-          elif [ -n "$AAP_TOKEN" ]; then
-             echo "Using static AAP_TOKEN..."
-             AAP_TOKEN_FINAL=$(echo "$AAP_TOKEN" | xargs)
-          else
-             echo "No credentials found (AAP_CLIENT_ID/SECRET or AAP_TOKEN); skipping"
-             exit 0
+
+          if [ -z "$SEMAPHORE_TOKEN" ]; then
+            echo "SEMAPHORE_TOKEN not set; skipping"
+            exit 0
           fi
 
-          AUTH_HEADER="Authorization: Bearer $AAP_TOKEN_FINAL"
-          
-          # If ID not provided, attempt lookup by name
-          if [ -z "${{ secrets.AAP_JOB_TEMPLATE_ID }}" ]; then
-            if [ -n "${{ vars.AAP_JOB_TEMPLATE_NAME }}" ]; then
-              echo "Looking up Job Template ID for name: ${{ vars.AAP_JOB_TEMPLATE_NAME }}"
-              RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/?name=$(printf '%s' "${{ vars.AAP_JOB_TEMPLATE_NAME }}" | jq -s -R -r @uri)") || {
-                echo "Failed to query AAP job templates"; exit 0; }
-              AAP_JOB_TEMPLATE_ID=$(echo "$RESP" | jq -r '.results[0].id // empty')
-              if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
-                echo "Could not resolve Job Template name '${{ vars.AAP_JOB_TEMPLATE_NAME }}'; skipping"
-                exit 0
-              fi
-              echo "Resolved Job Template ID: $AAP_JOB_TEMPLATE_ID"
-            else
-              echo "No AAP_JOB_TEMPLATE_ID or AAP_JOB_TEMPLATE_NAME provided; skipping"
-              exit 0
-            fi
-          else
-             AAP_JOB_TEMPLATE_ID="${{ secrets.AAP_JOB_TEMPLATE_ID }}"
+          if [ -z "$SEMAPHORE_PROJECT_ID" ] || [ -z "$SEMAPHORE_TEMPLATE_ID" ]; then
+            echo "SEMAPHORE_PROJECT_ID or SEMAPHORE_TEMPLATE_ID not set; skipping"
+            exit 0
           fi
 
-          # --- Project Sync Logic ---
-          echo "Retrieving Project ID for Job Template: $AAP_JOB_TEMPLATE_ID"
-          JT_RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/$AAP_JOB_TEMPLATE_ID/")
-          PROJECT_ID=$(echo "$JT_RESP" | jq -r '.project // empty')
-          
-          if [ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "null" ]; then
-            echo "Triggering Project Update for Project ID: $PROJECT_ID"
-            UPDATE_RESP=$(curl -s -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" "$AAP_URL/api/controller/v2/projects/$PROJECT_ID/update/")
-            UPDATE_JOB_ID=$(echo "$UPDATE_RESP" | jq -r '.id // empty')
-            
-            if [ -n "$UPDATE_JOB_ID" ] && [ "$UPDATE_JOB_ID" != "null" ]; then
-              echo "Project Update Job ID: $UPDATE_JOB_ID. Waiting for completion..."
-              while true; do
-                sleep 5
-                JOB_STATUS=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/project_updates/$UPDATE_JOB_ID/" | jq -r '.status')
-                echo "Project Update Status: $JOB_STATUS"
-                if [ "$JOB_STATUS" == "successful" ]; then
-                  echo "Project Update Successful."
-                  break
-                elif [ "$JOB_STATUS" == "failed" ] || [ "$JOB_STATUS" == "error" ] || [ "$JOB_STATUS" == "canceled" ]; then
-                  echo "::error::Project Update Failed with status: $JOB_STATUS"
-                  exit 1
-                fi
-              done
-            else
-              echo "Warning: Failed to trigger project update. Response: $UPDATE_RESP"
-            fi
-          else
-            echo "Warning: Could not determine Project ID for Job Template. Skipping sync."
-          fi
+          echo "Triggering Semaphore task (Project: $SEMAPHORE_PROJECT_ID, Template: $SEMAPHORE_TEMPLATE_ID)"
 
-          # --- Inventory Sync Logic ---
-          echo "Retrieving Inventory ID for Job Template: $AAP_JOB_TEMPLATE_ID"
-          INVENTORY_ID=$(echo "$JT_RESP" | jq -r '.inventory // empty')
-          
-          if [ -n "$INVENTORY_ID" ] && [ "$INVENTORY_ID" != "null" ]; then
-            echo "Found Inventory ID: $INVENTORY_ID. Checking for inventory sources..."
-            
-            # Get inventory sources
-            INV_SOURCES=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/inventories/$INVENTORY_ID/inventory_sources/")
-            SOURCE_IDS=$(echo "$INV_SOURCES" | jq -r '.results[].id // empty')
-            
-            if [ -n "$SOURCE_IDS" ]; then
-              for SOURCE_ID in $SOURCE_IDS; do
-                echo "Triggering Inventory Source Update for Source ID: $SOURCE_ID"
-                INV_UPDATE_RESP=$(curl -s -X POST -H "$AUTH_HEADER" -H "Content-Type: application/json" "$AAP_URL/api/controller/v2/inventory_sources/$SOURCE_ID/update/")
-                INV_UPDATE_JOB_ID=$(echo "$INV_UPDATE_RESP" | jq -r '.id // empty')
-                
-                if [ -n "$INV_UPDATE_JOB_ID" ] && [ "$INV_UPDATE_JOB_ID" != "null" ]; then
-                  echo "Inventory Source Update Job ID: $INV_UPDATE_JOB_ID. Waiting for completion..."
-                  while true; do
-                    sleep 3
-                    INV_JOB_STATUS=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/inventory_updates/$INV_UPDATE_JOB_ID/" | jq -r '.status')
-                    echo "Inventory Update Status: $INV_JOB_STATUS"
-                    if [ "$INV_JOB_STATUS" == "successful" ]; then
-                      echo "Inventory Update Successful."
-                      break
-                    elif [ "$INV_JOB_STATUS" == "failed" ] || [ "$INV_JOB_STATUS" == "error" ] || [ "$INV_JOB_STATUS" == "canceled" ]; then
-                      echo "::warning::Inventory Update Failed with status: $INV_JOB_STATUS"
-                      break
-                    fi
-                  done
-                else
-                  echo "Warning: Failed to trigger inventory source update for Source ID: $SOURCE_ID"
-                fi
-              done
-            else
-              echo "No inventory sources found for Inventory ID: $INVENTORY_ID. Skipping inventory sync."
-            fi
-          else
-            echo "Warning: Could not determine Inventory ID for Job Template. Skipping inventory sync."
-          fi
-
-          echo "Triggering AAP Job Template ID: $AAP_JOB_TEMPLATE_ID"
-          
-          if [ "$ENVIRONMENT" == "prod" ]; then
-            DATA="{\"extra_vars\": {\"target_env\": \"prod\"}}"
-          else
-            DATA="{\"extra_vars\": {\"target_env\": \"$TARGET_ENV\"}}"
-          fi
-          
-          # Updated API Path: /api/controller/v2
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SEMAPHORE_URL/api/project/$SEMAPHORE_PROJECT_ID/tasks" \
+            -H "Authorization: Bearer $SEMAPHORE_TOKEN" \
             -H "Content-Type: application/json" \
-            -H "$AUTH_HEADER" \
-            -d "$DATA")
+            -d "{\"template_id\": $SEMAPHORE_TEMPLATE_ID}")
+
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')
+
           echo "HTTP Status: $HTTP_CODE"
-          echo "Response Body:"
-          echo "$BODY"
+
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "$BODY" | jq . || echo "Warning: Response is not valid JSON"
+            TASK_ID=$(echo "$BODY" | jq -r '.id')
+            echo "Task launched successfully. Task ID: $TASK_ID"
+
+            # Wait for task completion
+            echo "Waiting for task to complete..."
+            while true; do
+              sleep 5
+              STATUS_RESP=$(curl -s -H "Authorization: Bearer $SEMAPHORE_TOKEN" \
+                "$SEMAPHORE_URL/api/project/$SEMAPHORE_PROJECT_ID/tasks/$TASK_ID")
+              STATUS=$(echo "$STATUS_RESP" | jq -r '.status')
+              echo "Task status: $STATUS"
+
+              if [ "$STATUS" = "success" ]; then
+                echo "Task completed successfully"
+                break
+              elif [ "$STATUS" = "error" ] || [ "$STATUS" = "stopped" ]; then
+                echo "::error::Task failed with status: $STATUS"
+                exit 1
+              fi
+              # Continue polling for "waiting", "running", etc.
+            done
           else
-            echo "Error: AAP API returned HTTP $HTTP_CODE"
+            echo "Error: Semaphore API returned HTTP $HTTP_CODE"
+            echo "$BODY"
             exit 1
           fi
 
-  aap-skip-report:
+  semaphore-skip-report:
     runs-on: [self-hosted, linux, x64, alma]
     needs: [terraform]
     if: ${{ needs.terraform.outputs.apply != 'true' && needs.terraform.outputs.ansible_changed != 'true' }}
     steps:
-      - name: Explain why AAP was skipped
+      - name: Explain why Semaphore was skipped
         run: |
-          echo "AAP trigger job was skipped. Details:" 
-          echo "- needs.terraform.outputs.apply=${{ needs.terraform.outputs.apply }}" 
+          echo "Semaphore trigger job was skipped. Details:"
+          echo "- needs.terraform.outputs.apply=${{ needs.terraform.outputs.apply }}"
           echo "- needs.terraform.outputs.ansible_changed=${{ needs.terraform.outputs.ansible_changed }}"
-          echo "AAP triggers only when (apply == 'true') OR (ansible_changed == 'true')."
+          echo "Semaphore triggers only when (apply == 'true') OR (ansible_changed == 'true')."
