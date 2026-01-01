@@ -63,6 +63,13 @@ opnsense_aliases:
       - "10.37.70.25"
     description: "Semaphore Ansible UI server"
 
+  # Cupsserver - CUPS Print Server (IoT VLAN)
+  - name: "cupsserver"
+    type: host
+    content:
+      - "10.37.50.9"
+    description: "CUPS print server in IoT VLAN"
+
   # DNS02 - Secondary DNS server (App VLAN IP for Ansible access)
   - name: "dns02"
     type: host
@@ -167,6 +174,14 @@ terraform_host_firewall_rules:
     description: "Allow Semaphore SSH to RaspberryPi-HA in IoT VLAN"
     source: "semaphore"  # 10.37.70.25 (DMZ)
     destination: "10.37.50.12"  # raspberrypi-ha.localdomain (IoT VLAN)
+    protocol: tcp
+    port: 22
+    interface: dmz_vlan
+
+  - name: "SSH from Semaphore to Cupsserver (cross-VLAN)"
+    description: "Allow Semaphore SSH to Cupsserver in IoT VLAN"
+    source: "semaphore"  # 10.37.70.25 (DMZ)
+    destination: "cupsserver"  # 10.37.50.9 (IoT VLAN)
     protocol: tcp
     port: 22
     interface: dmz_vlan
