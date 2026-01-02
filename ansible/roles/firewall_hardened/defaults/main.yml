@@ -77,8 +77,9 @@ firewall_ssh_hardening_enabled: true
 # DOCKER CONFIGURATION
 # ============================================================================
 
-firewall_docker_interface: "docker0"
-firewall_docker_zone: "trusted"
+# Docker hosts just need forwarding + masquerade enabled.
+# Docker manages its own iptables chains for container networking.
+# No need to add bridges to trusted zone - that was overengineered.
 
 # ============================================================================
 # SERVICE CONFIGURATION (UNIFIED STRUCTURE)
