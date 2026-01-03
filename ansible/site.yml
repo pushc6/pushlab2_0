@@ -1,7 +1,7 @@
 ---
 # Master Playbook
 # This playbook orchestrates the execution of all other playbooks based on host groups.
-# AAP should point to this playbook.
+# Semaphore should point to this playbook.
 
 - name: Run Common Setup
   import_playbook: common_setup.yml

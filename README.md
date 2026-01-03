@@ -1,16 +1,18 @@
 # AlmaLinux 10 on vSphere — IaC Project
 
-This README is a brief overview. For the full, step-by-step guide to bootstrap this environment, see the new docs:
+This README is a brief overview. For detailed documentation, see the **[docs/](docs/README.md)** directory:
 
-- docs/overview.md — high-level picture
-- docs/prerequisites.md — access, tools, and required secrets
-- docs/setup-secrets.md — where to put secrets (CI vs local)
-- docs/packer.md — how the vSphere template is built
-- docs/terraform.md — how VMs are cloned and configured
-- docs/ansible.md — what the Gitea role does and key variables
-- docs/ci-cd.md — workflows, gating, and triggers (includes AAP skip reason logging)
-- docs/bootstrapping.md — from zero to running, step-by-step
-- docs/troubleshooting.md — common issues and fixes
+| Document | Description |
+|----------|-------------|
+| [Overview](docs/overview.md) | High-level architecture |
+| [Prerequisites](docs/prerequisites.md) | Required access, tools, and secrets |
+| [Bootstrapping](docs/bootstrapping.md) | From zero to running, step-by-step |
+| [Packer](docs/packer.md) | How the vSphere template is built |
+| [Terraform](docs/terraform.md) | How VMs are cloned and configured |
+| [Ansible](docs/ansible.md) | Roles and configuration management |
+| [CI/CD](docs/ci-cd.md) | Workflows, triggers, and automation |
+| [Secrets Setup](docs/setup-secrets.md) | Where to put secrets (CI vs local) |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and fixes |
 
 This repo manages a full image lifecycle with IaC:
 
@@ -28,7 +30,7 @@ This repo manages a full image lifecycle with IaC:
 - terraform/
   - main.tf, variables.tf, outputs.tf, terraform.tfvars
 - ansible/
-  - inventory.ini, site.yml
+  - inventories/, site.yml, roles/
 
 ## Typical flow
 
@@ -105,9 +107,9 @@ Typical workflow (set your tfvars and provider details):
 
 ```sh
 # From repo root
-terraform init
-terraform plan -var-file=env/prod.tfvars
-terraform apply -var-file=env/prod.tfvars
+terraform -chdir=terraform/envs/prod init
+terraform -chdir=terraform/envs/prod plan -var-file=prod.tfvars
+terraform -chdir=terraform/envs/prod apply -var-file=prod.tfvars
 ```
 
 Expected result: a VM at 10.37.80.4 with cloud-init applying the static IP.
@@ -304,8 +306,6 @@ git push origin main --tags
 
 Workflows live under `.gitea/workflows/` and run on the self-hosted Docker runner (labels: `self-hosted, linux, x64, alma`). Job containers use `almalinux:10` for reproducibility.
 
-- `ping.yaml` and `ping-container.yaml`: canaries to verify events and containerized jobs.
-- `orchestrate-min.yaml`: minimal pipeline sanity check on push.
 - `orchestrate-push.yaml` (push-only):
   - Triggers: push to branches like `orchestrate`, `orchestrate-*`.
   - Actions: validate, then Terraform plan by default.
@@ -316,7 +316,7 @@ Workflows live under `.gitea/workflows/` and run on the self-hosted Docker runne
     - `environment`: e.g., `prod`.
     - `action`: `plan` or `apply`.
     - `build_packer`: `true`/`false` to optionally build the template first.
-  - Performs: optional Packer build → Terraform (plan/apply) → optional AAP trigger.
+  - Performs: optional Packer build → Terraform (plan/apply) → optional Semaphore trigger.
  
 If the Gitea UI doesn’t show a manual Run option, use `orchestrate-push.yaml` by pushing an empty commit to the `orchestrate` branch:
 

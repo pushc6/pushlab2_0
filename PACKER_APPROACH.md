@@ -25,7 +25,7 @@ brew install packer
 - `alma-template.pkr.hcl` - Packer configuration
 - `kickstart.cfg` - AlmaLinux automated installation
 - `scripts/cleanup.sh` - Template preparation script
-- `.github/workflows/build-template.yml` - GitHub Actions CI/CD
+- `.gitea/workflows/rebuild-packer-images.yaml` - Gitea Actions CI/CD
 
 ## Usage
 

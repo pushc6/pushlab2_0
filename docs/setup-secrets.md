@@ -2,26 +2,69 @@
 
 This project supports local and CI execution. CI uses repository Secrets; local runs can use example files checked into the repo.
 
-vSphere
-- VCENTER_SERVER: Hostname or IP of vCenter (no http/https, no paths). Example: `10.37.10.35`
-- VSPHERE_USER / VSPHERE_PASSWORD: vCenter credentials
+## vSphere Credentials
 
-Terraform Remote State (S3-compatible)
-- AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (/ AWS_SESSION_TOKEN): Credentials for B2 (or S3)
-- Region: `us-east-005` for Backblaze B2
-- In CI: Terraform init reads backend config from `backend.hcl` and uses AWS_* env for credentials
-- Locally: create `backend.s3.secrets.hcl` from the example; CI ignores it
+| Secret | Example | Notes |
+|--------|---------|-------|
+| `VCENTER_SERVER` | `10.37.10.35` | Hostname or IP only (no http/https, no paths) |
+| `VSPHERE_USER` | `administrator@vsphere.local` | vCenter username |
+| `VSPHERE_PASSWORD` | - | vCenter password |
 
-Ansible Automation Platform (optional)
-- AAP_URL: e.g., `https://aap.example.com`
-- AAP_TOKEN: OAuth token or PAT for API
-- AAP_JOB_TEMPLATE_ID: The numeric ID to launch via API
+## Terraform Remote State (S3-compatible)
 
-Gitea app configuration (Ansible)
-- Store in Ansible inventory `host_vars`:
-  - `gitea_admin_username`, `gitea_admin_password`, `gitea_admin_email`
-  - Optional: `gitea_runner_registration_token` to register a Gitea Actions runner
+For Backblaze B2 or other S3-compatible backends:
 
-Local-only files
-- `terraform/envs/*/backend.s3.secrets.hcl` (from `.example`) for local state init
-- `ansible/inventories/*/host_vars/<host>/secrets.yml` for application secrets (ignored by VCS)
+| Secret | Purpose |
+|--------|---------|
+| `AWS_ACCESS_KEY_ID` | B2 Application Key ID |
+| `AWS_SECRET_ACCESS_KEY` | B2 Application Key |
+| `AWS_SESSION_TOKEN` | (Optional) If using STS |
+
+**Region:** `us-east-005` for Backblaze B2
+
+**How it works:**
+- **CI:** Terraform init reads backend config from `backend.hcl` and uses AWS_* env vars
+- **Local:** Create `backend.s3.secrets.hcl` from the `.example` file; CI ignores it
+
+## Semaphore (Optional)
+
+For automated Ansible triggering from CI:
+
+| Secret | Example | Purpose |
+|--------|---------|---------|
+| `SEMAPHORE_URL` | `https://semaphore.example.com` | Semaphore server URL |
+| `SEMAPHORE_TOKEN` | - | API token for authentication |
+| `SEMAPHORE_PROJECT_ID` | `1` | Project ID to trigger tasks |
+| `SEMAPHORE_TEMPLATE_ID` | `5` | Task template ID |
+
+See [CI/CD docs](ci-cd.md) for workflow configuration.
+
+## Gitea App Configuration (Ansible)
+
+Store in Ansible inventory `host_vars/<hostname>/secrets.yml`:
+
+```yaml
+gitea_admin_username: "admin"
+gitea_admin_password: "secure-password"
+gitea_admin_email: "admin@example.com"
+
+# Optional: register a Gitea Actions runner
+gitea_runner_registration_token: "token-from-gitea-ui"
+```
+
+See [Ansible docs](ansible.md) for role configuration.
+
+## Local-only Files
+
+These files are gitignored and used only for local development:
+
+| File | Purpose |
+|------|---------|
+| `terraform/envs/*/backend.s3.secrets.hcl` | Local state backend credentials |
+| `ansible/inventories/*/host_vars/<host>/secrets.yml` | Application secrets |
+
+Create from `.example` templates where provided.
+
+---
+
+**Next:** Follow the [Bootstrapping guide](bootstrapping.md) to deploy.

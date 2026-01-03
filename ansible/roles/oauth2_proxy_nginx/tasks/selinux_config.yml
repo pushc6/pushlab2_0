@@ -1,6 +1,6 @@
 ---
 # roles/oauth2_proxy_nginx/tasks/selinux_config.yml
-# Automatic SELinux configuration for OAuth2 backend ports (Fixed for AAP)
+# Automatic SELinux configuration for OAuth2 backend ports (Fixed)
 
 - name: Check if SELinux is enabled
   command: getenforce

@@ -234,7 +234,7 @@ jobs:
           terraform -chdir="$TF_DIR" plan -var-file="$TF_VARS_FILE" -out=tfplan.out
           terraform -chdir="$TF_DIR" apply -auto-approve tfplan.out
 
-      - name: Sync inventories from Terraform outputs (pre-AAP)
+      - name: Sync inventories from Terraform outputs (pre-Ansible)
         if: env.APPLY == 'true'
         env:
           GIT_AUTHOR_NAME: ${{ vars.GIT_BOT_NAME || 'ci-bot' }}
@@ -248,7 +248,7 @@ jobs:
           if [ -n "$(git status --porcelain ansible/inventories)" ]; then
             echo "Inventory changes detected."
             git add ansible/inventories
-            git commit -m "Inventory sync (pre-AAP): prod [skip ci]"
+            git commit -m "Inventory sync (pre-Ansible): prod [skip ci]"
             git push
           else
             echo "No inventory changes."

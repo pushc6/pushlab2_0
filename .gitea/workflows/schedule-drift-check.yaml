@@ -10,95 +10,39 @@ jobs:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux-cicd:latest
     steps:
-      - name: Trigger AAP (Full Convergence)
+      - name: Trigger Semaphore (Full Convergence)
         env:
-          AAP_URL: ${{ vars.AAP_URL || secrets.AAP_URL }}
-          # OAuth2 Application Credentials
-          AAP_CLIENT_ID: ${{ secrets.AAP_CLIENT_ID }}
-          AAP_CLIENT_SECRET: ${{ secrets.AAP_CLIENT_SECRET }}
-          AAP_USERNAME: ${{ vars.AAP_USERNAME }}
-          AAP_PASSWORD: ${{ secrets.AAP_PASSWORD }}
-          # Fallback
-          AAP_TOKEN: ${{ secrets.AAP_TOKEN }}
-          AAP_JOB_TEMPLATE_ID: ${{ secrets.AAP_JOB_TEMPLATE_ID }}
-          AAP_JOB_TEMPLATE_NAME: ${{ vars.AAP_JOB_TEMPLATE_NAME }}
+          SEMAPHORE_URL: ${{ vars.SEMAPHORE_URL || secrets.SEMAPHORE_URL }}
+          SEMAPHORE_TOKEN: ${{ secrets.SEMAPHORE_TOKEN }}
+          SEMAPHORE_PROJECT_ID: ${{ vars.SEMAPHORE_PROJECT_ID || secrets.SEMAPHORE_PROJECT_ID }}
+          SEMAPHORE_TEMPLATE_ID: ${{ vars.SEMAPHORE_TEMPLATE_ID || secrets.SEMAPHORE_TEMPLATE_ID }}
         run: |
           set -euo pipefail
-          
-          if [ -z "$AAP_URL" ]; then echo "AAP_URL not set; skipping"; exit 0; fi
-          
-          AAP_TOKEN_FINAL=""
-          
-          # Priority 1: OAuth2 Password Grant Flow (Required by AAP Config)
-          if [ -n "$AAP_CLIENT_ID" ] && [ -n "$AAP_CLIENT_SECRET" ] && [ -n "$AAP_USERNAME" ] && [ -n "$AAP_PASSWORD" ]; then
-             echo "Performing OAuth2 Password Grant Token Exchange..."
-             
-             # Encode Client ID:Secret for Basic Auth
-             AUTH_STRING=$(printf "%s:%s" "$AAP_CLIENT_ID" "$AAP_CLIENT_SECRET" | base64 | tr -d '\n')
-             
-             # Request Token from /o/token/
-             TOKEN_RESP=$(curl -s -X POST "$AAP_URL/o/token/" \
-               -H "Authorization: Basic $AUTH_STRING" \
-               -H "Content-Type: application/x-www-form-urlencoded" \
-               -d "grant_type=password" \
-               -d "username=$AAP_USERNAME" \
-               -d "password=$AAP_PASSWORD")
-             
-             AAP_TOKEN_FINAL=$(echo "$TOKEN_RESP" | jq -r '.access_token // empty')
-             
-             if [ -z "$AAP_TOKEN_FINAL" ]; then
-                echo "OAuth2 Token Exchange Failed."
-                echo "Response: $TOKEN_RESP"
-                echo "::error::Failed to obtain OAuth2 token. Check credentials and AAP configuration."
-                exit 1
-             fi
-             echo "Successfully obtained OAuth2 Bearer Token."
-             
-          # Priority 2: Static PAT (Legacy/Manual)
-          elif [ -n "$AAP_TOKEN" ]; then
-             echo "Using static AAP_TOKEN..."
-             AAP_TOKEN_FINAL=$(echo "$AAP_TOKEN" | xargs)
-          else
-             echo "No credentials found (AAP_CLIENT_ID/SECRET or AAP_TOKEN); skipping"
-             exit 0
-          fi
 
-          AUTH_HEADER="Authorization: Bearer $AAP_TOKEN_FINAL"
-          
-          # If ID not provided, attempt lookup by name
-          if [ -z "${AAP_JOB_TEMPLATE_ID:-}" ]; then
-            if [ -n "${AAP_JOB_TEMPLATE_NAME:-}" ]; then
-              echo "Looking up Job Template ID for name: $AAP_JOB_TEMPLATE_NAME"
-              
-              RESP=$(curl -s -H "$AUTH_HEADER" "$AAP_URL/api/controller/v2/job_templates/?name=$(printf '%s' "$AAP_JOB_TEMPLATE_NAME" | jq -s -R -r @uri)")
-              
-              AAP_JOB_TEMPLATE_ID=$(echo "$RESP" | jq -r '.results[0].id // empty')
-              if [ -z "$AAP_JOB_TEMPLATE_ID" ]; then
-                echo "Could not resolve Job Template name '$AAP_JOB_TEMPLATE_NAME'; skipping"
-                exit 0
-              fi
-              echo "Resolved Job Template ID: $AAP_JOB_TEMPLATE_ID"
-            else
-              echo "No AAP_JOB_TEMPLATE_ID or AAP_JOB_TEMPLATE_NAME provided; skipping"
-                exit 0
-            fi
-          fi
+          if [ -z "${SEMAPHORE_URL:-}" ]; then echo "SEMAPHORE_URL not set; skipping"; exit 0; fi
+          if [ -z "${SEMAPHORE_TOKEN:-}" ]; then echo "SEMAPHORE_TOKEN not set; skipping"; exit 0; fi
+          if [ -z "${SEMAPHORE_PROJECT_ID:-}" ]; then echo "SEMAPHORE_PROJECT_ID not set; skipping"; exit 0; fi
+          if [ -z "${SEMAPHORE_TEMPLATE_ID:-}" ]; then echo "SEMAPHORE_TEMPLATE_ID not set; skipping"; exit 0; fi
 
-          echo "Triggering AAP Job Template ID: $AAP_JOB_TEMPLATE_ID"
-          
-          # Updated API Path: /api/controller/v2
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$AAP_URL/api/controller/v2/job_templates/${AAP_JOB_TEMPLATE_ID}/launch/" \
+          echo "Triggering Semaphore Task Template ID: $SEMAPHORE_TEMPLATE_ID"
+
+          # Trigger task via Semaphore API
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${SEMAPHORE_URL}/api/project/${SEMAPHORE_PROJECT_ID}/tasks" \
+            -H "Authorization: Bearer $SEMAPHORE_TOKEN" \
             -H "Content-Type: application/json" \
-            -H "$AUTH_HEADER" \
-            -d '{"extra_vars": {"target_env": "prod", "drift_check": "true"}}')
+            -d "{\"template_id\": ${SEMAPHORE_TEMPLATE_ID}, \"environment\": \"{\\\"drift_check\\\": \\\"true\\\"}\"}")
+
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')
+
           echo "HTTP Status: $HTTP_CODE"
           echo "Response Body:"
           echo "$BODY"
+
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "$BODY" | jq . || echo "Warning: Response is not valid JSON"
+            echo "$BODY" | jq . || echo "Task triggered successfully"
           else
-            echo "Error: AAP API returned HTTP $HTTP_CODE"
+            echo "Error: Semaphore API returned HTTP $HTTP_CODE"
             exit 1
           fi

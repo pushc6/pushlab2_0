@@ -70,7 +70,7 @@ module "vm" {
 }
 
 // Note: Inventory and SSH key files are no longer managed by Terraform.
-// AAP will pull the repo and use committed inventory files; SSH key is provided via AAP credentials.
+// Semaphore will pull the repo and use committed inventory files; SSH key is provided via Semaphore credentials.
 
 // YAML inventory compatible with Ansible (for CI generation via outputs)
 locals {

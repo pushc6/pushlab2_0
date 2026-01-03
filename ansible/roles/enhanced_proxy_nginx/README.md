@@ -1,4 +1,4 @@
-# Enhanced Proxy Configuration for Ansible Automation Platform
+# Enhanced Proxy Configuration for Semaphore
 
 This enhanced proxy configuration supports both **OAuth2-protected** and **traditional proxy** modes, giving you complete flexibility in how services are exposed.
 
@@ -128,9 +128,9 @@ oauth2_services:
     - enhanced_proxy_nginx
 ```
 
-### Example 4: Using AAP Survey
+### Example 4: Using Semaphore Survey
 
-When using Ansible Automation Platform, you can create a survey with:
+When using Semaphore, you can create a survey with:
 
 ```yaml
 survey_spec:

@@ -6,7 +6,7 @@ Deployment Information:
 Timestamp: {{ deployment_timestamp | default(ansible_date_time.iso8601_basic | default('UNKNOWN')) }}
 Target Host: {{ inventory_hostname | default('UNKNOWN_HOST') }}
 Ansible User: {{ ansible_user | default('ansible') }}
-Deployment Method: {{ deployment_method | default('Ansible Automation Platform (AAP)') }}
+Deployment Method: {{ deployment_method | default('Semaphore') }}
 
 OAuth2-Proxy Configuration:
 ---------------------------

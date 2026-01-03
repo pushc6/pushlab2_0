@@ -49,12 +49,12 @@ opnsense_aliases:
       - "2049"
     description: "Veeam Backup & Replication ports"
 
-  # AAP/Ansible Controller
+  # Ansible Controller
   - name: "ansible_automation"
     type: host
     content:
       - "10.37.70.27"
-    description: "Ansible Automation Platform (AAP) server"
+    description: "Ansible controller server"
 
   # Semaphore - Ansible UI
   - name: "semaphore"

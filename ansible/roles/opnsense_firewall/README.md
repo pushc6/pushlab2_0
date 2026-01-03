@@ -6,7 +6,7 @@ Automatically manages **granular** OPNsense firewall rules for Terraform-created
 
 - `puzzle.opnsense` collection
 - OPNsense API enabled with valid credentials
-- Management access from AAP to OPNsense API
+- Management access from Ansible controller to OPNsense API
 
 ## Role Variables
 
@@ -69,8 +69,8 @@ Rules are defined in `group_vars/opnsense/vars.yml`:
 
 ```yaml
 terraform_host_firewall_rules:
-  - name: "SSH from AAP to Terraform hosts"
-    description: "Allow AAP to SSH to all Terraform hosts"
+  - name: "SSH from Ansible to Terraform hosts"
+    description: "Allow Ansible controller to SSH to all Terraform hosts"
     source: "ansible.localdomain"  # Can be IP, hostname, or OPNsense alias
     destination: "terraform_hosts"  # Auto-created alias of all Terraform hosts
     protocol: tcp
@@ -204,7 +204,7 @@ None
 
 The workflow automatically:
 1. Runs **BEFORE** host onboarding (after Terraform apply)
-2. Creates firewall rules allowing SSH from AAP
+2. Creates firewall rules allowing SSH from Ansible controller
 3. Ensures connectivity before attempting host onboarding
 
 **Workflow order:**
@@ -212,13 +212,13 @@ The workflow automatically:
 Terraform Apply → Configure Firewall → Onboard Hosts → Run Site
 ```
 
-## AAP Setup Required
+## Semaphore Setup Required
 
 ### Create Job Template
 - **Name**: `Configure OPNsense Firewall`
 - **Playbook**: `ansible/opnsense.yml`
 - **Inventory**: Select inventory containing `opnsense` group
-- **Credentials**: SSH credential for AAP (connection is local)
+- **Credentials**: SSH credential for Semaphore (connection is local)
 - **Extra Variables**:
   ```yaml
   opnsense_api_key: "{{ lookup('env', 'OPNSENSE_API_KEY') }}"

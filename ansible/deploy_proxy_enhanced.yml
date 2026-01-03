@@ -1,5 +1,5 @@
 ---
-# Enhanced Proxy Deployment for Ansible Automation Platform (FIXED)
+# Enhanced Proxy Deployment for Semaphore
 # Supports both OAuth2-Proxy and Traditional Proxy modes
 
 - name: Deploy Proxy Configuration (OAuth2 or Traditional)
@@ -9,7 +9,7 @@
   gather_facts: yes
 
   vars:
-    # AAP Survey variables (overridden by survey responses)
+    # Survey variables (set via Semaphore Survey or extra-vars)
     target_group: "nginx_internal"
     deploy_all_services: "true"  # String from survey
     target_services_input: ""     # Comma-separated service names
@@ -136,10 +136,10 @@
       delegate_to: localhost
       run_once: true
       
-    - name: AAP deployment summary
+    - name: Deployment summary
       debug:
         msg:
-          - "✅ Proxy deployment completed via Ansible Automation Platform"
+          - "Proxy deployment completed"
           - "Target hosts: {{ ansible_play_hosts }}"
           - "Proxy mode: {{ proxy_mode }}"
           - "OAuth2-protected services: {{ oauth2_protected_services | length }}"

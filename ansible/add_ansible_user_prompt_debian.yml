@@ -1,7 +1,7 @@
 ---
 # Playbook: Configure ansible user for Debian systems
 # Description: Adds ansible user to sudo group, configures passwordless sudo, and sets up SSH key authentication
-# Usage: Run via Ansible Automation Platform with Survey
+# Usage: Run via Semaphore with Survey
 - name: Configure ansible user for Debian systems v2
   hosts: "{{ target_host }}"
   become: yes
@@ -14,7 +14,7 @@
     ansible_user: "{{ initial_username }}"  # Will be provided by survey
     ansible_password: "{{ initial_password }}"  # Will be provided by survey
     ansible_become_password: "{{ sudo_password }}"  # Will be provided by survey
-    ssh_key_name: "ansible_automation_key"  # Name of the credential in AAP
+    ssh_key_name: "ansible_automation_key"  # Name of the credential in Semaphore
   
   # Rest of your playbook tasks remain the same
   tasks:
@@ -69,7 +69,7 @@
         user: ansible
         state: present
         key: "{{ ansible_ssh_public_key }}"  # This comes from the credential injection
-        comment: "Added by Ansible Automation Platform"
+        comment: "Added by Semaphore"
         
     - name: Set correct permissions on authorized_keys
       file:
