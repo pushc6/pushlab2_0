@@ -15,6 +15,23 @@
       firewall_ssh_allowed_subnets: {{ firewall_ssh_allowed_subnets | default(['NOT SET']) }}
       ========================================
 
+- name: Check if host_vars file exists in inventory clone
+  ansible.builtin.stat:
+    path: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
+  register: host_vars_file
+  delegate_to: localhost
+
+- name: Debug - host_vars file status
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      DEBUG - host_vars File Check
+      ========================================
+      Expected path: {{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml
+      File exists: {{ host_vars_file.stat.exists | default(false) }}
+      File size: {{ host_vars_file.stat.size | default('N/A') }} bytes
+      ========================================
+
 - name: Validate required variables are defined
   ansible.builtin.assert:
     that:
