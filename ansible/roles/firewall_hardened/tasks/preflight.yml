@@ -33,6 +33,23 @@
       File size: {{ host_vars_file.stat.size | default('N/A') }} bytes
       ========================================
 
+- name: Test - Explicitly load host_vars file
+  ansible.builtin.include_vars:
+    file: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
+    name: loaded_host_vars
+  delegate_to: localhost
+  become: false
+
+- name: Debug - Explicitly loaded host_vars
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      DEBUG - Explicitly Loaded host_vars
+      ========================================
+      firewall_services count: {{ loaded_host_vars.firewall_services | default([]) | length }}
+      firewall_ssh_allowed_subnets: {{ loaded_host_vars.firewall_ssh_allowed_subnets | default(['NOT FOUND']) }}
+      ========================================
+
 - name: Validate required variables are defined
   ansible.builtin.assert:
     that:
