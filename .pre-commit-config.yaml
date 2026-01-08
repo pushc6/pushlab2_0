@@ -21,3 +21,13 @@ repos:
   #   rev: v24.2.0
   #   hooks:
   #     - id: ansible-lint
+
+  # Local hooks
+  - repo: local
+    hooks:
+      - id: sync-inventory-symlinks
+        name: "Sync inventory host_vars/group_vars symlinks"
+        entry: scripts/sync-inventory-symlinks.sh
+        language: script
+        files: ^ansible/inventories/.*/host_vars/|^ansible/inventories/.*/group_vars/
+        pass_filenames: false
