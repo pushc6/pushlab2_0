@@ -20,6 +20,7 @@
     path: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
   register: host_vars_file
   delegate_to: localhost
+  become: false
 
 - name: Debug - host_vars file status
   ansible.builtin.debug:
