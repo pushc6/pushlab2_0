@@ -1,7 +1,7 @@
 ---
 # Preflight connectivity checks before applying rules
 
-- name: Debug - Show variable sources (before workaround)
+- name: Debug - Show variable sources
   ansible.builtin.debug:
     msg: |
       ========================================
@@ -10,123 +10,9 @@
       Inventory File: {{ inventory_file | default('UNKNOWN') }}
       Inventory Dir: {{ inventory_dir | default('UNKNOWN') }}
       Playbook Dir: {{ playbook_dir | default('UNKNOWN') }}
-      Dual-clone detected: {{ (inventory_dir | dirname | dirname) != playbook_dir }}
+      Same directory: {{ (inventory_dir | dirname | dirname) == playbook_dir }}
       firewall_services count: {{ firewall_services | default([]) | length }}
       firewall_ssh_allowed_subnets: {{ firewall_ssh_allowed_subnets | default(['NOT SET']) }}
-      ========================================
-
-# ============================================================================
-# SEMAPHORE DUAL-CLONE WORKAROUND
-# ============================================================================
-# Semaphore clones the repo twice: once for playbook, once for inventory.
-# This breaks Ansible's automatic host_vars loading. We detect this condition
-# and explicitly load host_vars from the inventory directory.
-#
-# Multi-host safe: Each host loads its own host_vars file based on inventory_hostname
-# ============================================================================
-
-- name: Check for host_vars file (.yml extension)
-  ansible.builtin.stat:
-    path: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
-  register: host_vars_yml
-  delegate_to: localhost
-  become: false
-
-- name: Check for host_vars file (.yaml extension)
-  ansible.builtin.stat:
-    path: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yaml"
-  register: host_vars_yaml
-  delegate_to: localhost
-  become: false
-
-- name: Check for host_vars directory
-  ansible.builtin.stat:
-    path: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}"
-  register: host_vars_dir
-  delegate_to: localhost
-  become: false
-
-- name: Set host_vars file path
-  ansible.builtin.set_fact:
-    _host_vars_path: >-
-      {%- if host_vars_yml.stat.exists | default(false) -%}
-        {{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml
-      {%- elif host_vars_yaml.stat.exists | default(false) -%}
-        {{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yaml
-      {%- elif host_vars_dir.stat.isdir | default(false) -%}
-        {{ inventory_dir }}/host_vars/{{ inventory_hostname }}
-      {%- else -%}
-        none
-      {%- endif -%}
-    _host_vars_exists: "{{ host_vars_yml.stat.exists | default(false) or host_vars_yaml.stat.exists | default(false) or host_vars_dir.stat.isdir | default(false) }}"
-
-- name: Debug - host_vars detection
-  ansible.builtin.debug:
-    msg: |
-      ========================================
-      DEBUG - host_vars Detection ({{ inventory_hostname }})
-      ========================================
-      .yml exists: {{ host_vars_yml.stat.exists | default(false) }}
-      .yaml exists: {{ host_vars_yaml.stat.exists | default(false) }}
-      directory exists: {{ host_vars_dir.stat.isdir | default(false) }}
-      Selected path: {{ _host_vars_path }}
-      ========================================
-  when: _host_vars_exists
-
-- name: Load host_vars from inventory directory (file)
-  ansible.builtin.include_vars:
-    file: "{{ _host_vars_path }}"
-    name: _inventory_host_vars
-  delegate_to: localhost
-  become: false
-  when:
-    - _host_vars_exists
-    - _host_vars_path != 'none'
-    - not (host_vars_dir.stat.isdir | default(false))
-
-- name: Load host_vars from inventory directory (directory)
-  ansible.builtin.include_vars:
-    dir: "{{ _host_vars_path }}"
-    name: _inventory_host_vars
-  delegate_to: localhost
-  become: false
-  when:
-    - _host_vars_exists
-    - host_vars_dir.stat.isdir | default(false)
-
-- name: Debug - Loaded inventory host_vars
-  ansible.builtin.debug:
-    msg: |
-      ========================================
-      DEBUG - Inventory host_vars loaded ({{ inventory_hostname }})
-      ========================================
-      Variables found: {{ _inventory_host_vars.keys() | list }}
-      firewall_services count: {{ _inventory_host_vars.firewall_services | default([]) | length }}
-      firewall_ssh_allowed_subnets: {{ _inventory_host_vars.firewall_ssh_allowed_subnets | default(['NOT IN FILE']) }}
-      ========================================
-  when: _inventory_host_vars is defined
-
-# Apply ALL host_vars dynamically - this handles any variable defined in host_vars
-# Only apply if the variable exists in the loaded host_vars file
-- name: Apply inventory host_vars (Semaphore workaround)
-  ansible.builtin.set_fact:
-    "{{ item.key }}": "{{ item.value }}"
-  loop: "{{ _inventory_host_vars | dict2items }}"
-  loop_control:
-    label: "{{ item.key }}"
-  when:
-    - _inventory_host_vars is defined
-    - _inventory_host_vars | length > 0
-
-- name: Debug - Final variable values after workaround
-  ansible.builtin.debug:
-    msg: |
-      ========================================
-      DEBUG - Final Values ({{ inventory_hostname }})
-      ========================================
-      firewall_services count: {{ firewall_services | default([]) | length }}
-      firewall_ssh_allowed_subnets: {{ firewall_ssh_allowed_subnets | default(['NOT SET']) }}
-      Workaround applied: {{ _inventory_host_vars is defined and _inventory_host_vars | length > 0 }}
       ========================================
 
 - name: Validate required variables are defined
