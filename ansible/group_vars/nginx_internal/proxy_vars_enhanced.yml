@@ -15,7 +15,7 @@ service_proxy_overrides:
   # All other services will use the default_proxy_mode
 
 # OAuth2-Proxy server settings (used only for OAuth2 mode services)
-oauth2_proxy_host: "sso.push-lab.com"
+oauth2_proxy_host: "10.37.70.25"
 oauth2_proxy_port: "4180"
 
 # Traditional proxy configuration

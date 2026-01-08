@@ -3,7 +3,7 @@
 # Enhanced OAuth2-Proxy Configuration with Modular Components
 
 # OAuth2-Proxy server settings
-oauth2_proxy_host: "sso.push-lab.com"
+oauth2_proxy_host: "10.37.70.25"
 oauth2_proxy_port: "4180"
 
 # Debug mode for troubleshooting
