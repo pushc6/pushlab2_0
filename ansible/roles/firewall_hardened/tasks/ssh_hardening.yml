@@ -90,6 +90,7 @@
         state: enabled
       loop: "{{ firewall_ssh_allowed_subnets }}"
       register: ssh_rich_rules_ipv4
+      notify: reload firewalld
 
     - name: Add rich rules for SSH from allowed subnets (IPv6)
       ansible.posix.firewalld:
