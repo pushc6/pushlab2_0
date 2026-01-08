@@ -33,21 +33,50 @@
       File size: {{ host_vars_file.stat.size | default('N/A') }} bytes
       ========================================
 
-- name: Test - Explicitly load host_vars file
+- name: Load host_vars from inventory directory
   ansible.builtin.include_vars:
     file: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
-    name: loaded_host_vars
+    name: inventory_host_vars
   delegate_to: localhost
   become: false
+  when: host_vars_file.stat.exists | default(false)
 
-- name: Debug - Explicitly loaded host_vars
+- name: Debug - Loaded inventory host_vars
   ansible.builtin.debug:
     msg: |
       ========================================
-      DEBUG - Explicitly Loaded host_vars
+      DEBUG - Inventory host_vars (manually loaded)
       ========================================
-      firewall_services count: {{ loaded_host_vars.firewall_services | default([]) | length }}
-      firewall_ssh_allowed_subnets: {{ loaded_host_vars.firewall_ssh_allowed_subnets | default(['NOT FOUND']) }}
+      firewall_services count: {{ inventory_host_vars.firewall_services | default([]) | length }}
+      firewall_ssh_allowed_subnets: {{ inventory_host_vars.firewall_ssh_allowed_subnets | default(['NOT FOUND']) }}
+      ========================================
+  when: inventory_host_vars is defined
+
+# Workaround for Semaphore dual-clone issue: Apply inventory host_vars if auto-loading failed
+- name: Apply firewall_services from inventory host_vars
+  ansible.builtin.set_fact:
+    firewall_services: "{{ inventory_host_vars.firewall_services }}"
+  when:
+    - inventory_host_vars is defined
+    - inventory_host_vars.firewall_services is defined
+    - (firewall_services | default([]) | length) < (inventory_host_vars.firewall_services | length)
+
+- name: Apply firewall_ssh_allowed_subnets from inventory host_vars
+  ansible.builtin.set_fact:
+    firewall_ssh_allowed_subnets: "{{ inventory_host_vars.firewall_ssh_allowed_subnets }}"
+  when:
+    - inventory_host_vars is defined
+    - inventory_host_vars.firewall_ssh_allowed_subnets is defined
+    - (firewall_ssh_allowed_subnets | default([]) | length) < (inventory_host_vars.firewall_ssh_allowed_subnets | length)
+
+- name: Debug - Final variable values after workaround
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      DEBUG - Final Variable Values
+      ========================================
+      firewall_services count: {{ firewall_services | default([]) | length }}
+      firewall_ssh_allowed_subnets: {{ firewall_ssh_allowed_subnets | default(['NOT SET']) }}
       ========================================
 
 - name: Validate required variables are defined
