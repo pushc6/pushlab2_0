@@ -1,6 +1,20 @@
 ---
 # Preflight connectivity checks before applying rules
 
+- name: Debug - Show variable sources
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      DEBUG - Variable Sources
+      ========================================
+      Inventory File: {{ inventory_file | default('UNKNOWN') }}
+      Inventory Dir: {{ inventory_dir | default('UNKNOWN') }}
+      Playbook Dir: {{ playbook_dir | default('UNKNOWN') }}
+      Host: {{ inventory_hostname }}
+      firewall_services count: {{ firewall_services | default([]) | length }}
+      firewall_ssh_allowed_subnets: {{ firewall_ssh_allowed_subnets | default(['NOT SET']) }}
+      ========================================
+
 - name: Validate required variables are defined
   ansible.builtin.assert:
     that:

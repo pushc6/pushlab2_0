@@ -34,10 +34,3 @@ prusa3dbawkz:
 # OPNsense removed - now in dedicated inventory: inventories/opnsense/hosts.yml
 # Reason: OPNsense uses API calls (not SSH) and must never be targeted by
 # general playbooks like site.yml, update_all.yml, deploy_firewall.yml, etc.
-
-# Phased rollout groups for firewall hardening
-phase1_critical:
-  hosts:
-    nginx:
-    docker:
-    "nginx-internal.localdomain":
