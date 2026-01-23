@@ -97,6 +97,22 @@
       notify: reload nginx
       tags: [nginx, mqtt]
 
+    - name: Configure SELinux for MQTT port
+      when: ansible_selinux.status == "enabled"
+      tags: [selinux, mqtt]
+      block:
+        - name: Install SELinux management tools
+          ansible.builtin.package:
+            name: policycoreutils-python-utils
+            state: present
+
+        - name: Allow nginx to bind to MQTT port (SELinux)
+          community.general.seport:
+            ports: "{{ mqtt_listen_port }}"
+            proto: tcp
+            setype: http_port_t
+            state: present
+
     - name: Validate nginx configuration
       ansible.builtin.command:
         cmd: nginx -t
