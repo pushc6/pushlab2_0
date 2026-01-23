@@ -60,6 +60,11 @@ ssl_certificates:
     key_path: "/etc/nginx/ssl/push-lab.com/push-lab.com.key"
     dhparam_path: "/etc/nginx/ssl/push-lab.com/dhparams.pem"
 
+  rangernet.dev:
+    cert_path: "/etc/nginx/ssl/rangernet.dev/rangernet.dev.fullchain.cer"
+    key_path: "/etc/nginx/ssl/rangernet.dev/rangernet.dev.key"
+    dhparam_path: "/etc/nginx/ssl/rangernet.dev/dhparams.pem"
+
 # Enhanced Service definitions with proxy mode support
 oauth2_services:
   - name: "sonarr"

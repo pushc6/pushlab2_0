@@ -1,0 +1,40 @@
+# {{ ansible_managed }}
+# MQTT Stream Proxy Configuration
+# Terminates TLS and forwards to Mosquitto backend
+# Domain: {{ mqtt_domain }}
+
+# MQTT upstream backend
+upstream mqtt_backend {
+    server {{ mqtt_backend_host }}:{{ mqtt_backend_port }};
+}
+
+# MQTTS server (TLS termination on port {{ mqtt_listen_port }})
+server {
+    listen {{ mqtt_listen_port }} ssl;
+    listen [::]:{{ mqtt_listen_port }} ssl;
+
+    # SSL Configuration
+    ssl_certificate {{ mqtt_ssl_cert }};
+    ssl_certificate_key {{ mqtt_ssl_key }};
+
+    # TLS protocols and ciphers (modern configuration)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:MQTT_SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    # Proxy settings
+    proxy_pass mqtt_backend;
+    proxy_timeout {{ mqtt_proxy_timeout | default('600s') }};
+    proxy_connect_timeout {{ mqtt_connect_timeout | default('10s') }};
+
+{% if mqtt_allowed_networks is defined and mqtt_allowed_networks | length > 0 %}
+    # IP access control
+{% for network in mqtt_allowed_networks %}
+    allow {{ network }};
+{% endfor %}
+    deny all;
+{% endif %}
+}

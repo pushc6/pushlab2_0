@@ -1,0 +1,22 @@
+---
+# group_vars/reverse_proxies/mqtt.yml
+# MQTT Stream Proxy Configuration
+
+# Backend Mosquitto server
+mqtt_backend_host: "10.37.70.25"
+mqtt_backend_port: 1883
+
+# Proxy listen port (standard MQTTS port)
+mqtt_listen_port: 8883
+
+# SSL certificate paths (using rangernet.dev wildcard)
+mqtt_ssl_cert: "/etc/nginx/ssl/rangernet.dev/rangernet.dev.fullchain.cer"
+mqtt_ssl_key: "/etc/nginx/ssl/rangernet.dev/rangernet.dev.key"
+
+# Domain for MQTT service
+mqtt_domain: "mqtt.rangernet.dev"
+
+# Optional: Restrict access to specific networks (comment out for public access)
+# mqtt_allowed_networks:
+#   - "10.37.0.0/16"
+#   - "192.168.0.0/16"

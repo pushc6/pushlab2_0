@@ -1,0 +1,119 @@
+---
+# deploy_mqtt_proxy.yml
+# Deploys MQTT stream proxy to nginx reverse proxies
+#
+# Usage:
+#   ansible-playbook -i inventories/manual/on_premise.yml deploy_mqtt_proxy.yml
+#
+# Prerequisites:
+#   - Cloudflare API credentials (ACME_CF_TOKEN, ACME_CF_ACCOUNT_ID)
+#   - Mosquitto running on backend host (10.37.70.25:1883)
+#
+# What this playbook does:
+#   1. Issues/renews rangernet.dev wildcard certificate via acme.sh
+#   2. Configures nginx stream block (if not present)
+#   3. Deploys MQTT stream proxy configuration
+#   4. Deploys firewall rules
+#   5. Reloads nginx
+
+- name: Deploy MQTT Stream Proxy
+  hosts: reverse_proxies
+  become: true
+  gather_facts: true
+
+  vars:
+    nginx_stream_dir: "/etc/nginx/stream.d"
+    # Skip dhparams for stream-only deployment (faster)
+    acme_generate_dhparams: false
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - acme_cf_token is defined and acme_cf_token | length > 0
+          - acme_cf_account_id is defined and acme_cf_account_id | length > 0
+          - mqtt_backend_host is defined
+          - mqtt_backend_port is defined
+        fail_msg: >
+          Required variables are not set. Ensure ACME_CF_TOKEN and ACME_CF_ACCOUNT_ID
+          environment variables are provided in Semaphore.
+
+  roles:
+    - role: acme_sh
+      tags: [acme, certs]
+
+  tasks:
+    - name: Ensure nginx stream.d directory exists
+      ansible.builtin.file:
+        path: "{{ nginx_stream_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      tags: [nginx, stream]
+
+    - name: Check if stream block exists in nginx.conf
+      ansible.builtin.command:
+        cmd: grep -q "stream {" /etc/nginx/nginx.conf
+      register: stream_block_check
+      changed_when: false
+      failed_when: false
+      tags: [nginx, stream]
+
+    - name: Add stream block to nginx.conf if not present
+      ansible.builtin.blockinfile:
+        path: /etc/nginx/nginx.conf
+        marker: "# {mark} ANSIBLE MANAGED STREAM"
+        block: |
+          stream {
+              include {{ nginx_stream_dir }}/*.conf;
+          }
+        insertafter: EOF
+      when: stream_block_check.rc != 0
+      notify: reload nginx
+      tags: [nginx, stream]
+
+    - name: Verify SSL certificate exists
+      ansible.builtin.stat:
+        path: "{{ mqtt_ssl_cert }}"
+      register: ssl_cert_check
+      tags: [nginx, mqtt]
+
+    - name: Fail if SSL certificate not found
+      ansible.builtin.fail:
+        msg: >
+          SSL certificate not found at {{ mqtt_ssl_cert }}.
+          Ensure the acme_sh role completed successfully.
+      when: not ssl_cert_check.stat.exists
+      tags: [nginx, mqtt]
+
+    - name: Deploy MQTT stream configuration
+      ansible.builtin.template:
+        src: templates/mqtt-stream.conf.j2
+        dest: "{{ nginx_stream_dir }}/mqtt.conf"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: reload nginx
+      tags: [nginx, mqtt]
+
+    - name: Validate nginx configuration
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
+      tags: [nginx, validate]
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded
+
+- name: Deploy firewall rules for MQTT
+  hosts: reverse_proxies:docker_internal
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: firewall_hardened
+      tags: [firewall]

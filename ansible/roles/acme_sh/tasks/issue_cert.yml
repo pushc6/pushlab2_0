@@ -1,0 +1,54 @@
+---
+# tasks/issue_cert.yml - Issue and deploy a single certificate
+
+- name: "Set certificate variables for {{ cert.domain }}"
+  ansible.builtin.set_fact:
+    cert_domain: "{{ cert.domain }}"
+    cert_wildcard: "{{ cert.wildcard | default(false) }}"
+    cert_key_length: "{{ cert.key_length | default(acme_default_key_length) }}"
+
+- name: "Check if certificate exists for {{ cert_domain }}"
+  ansible.builtin.command:
+    cmd: "{{ acme_sh_install_dir }}/acme.sh --list"
+  register: cert_list
+  changed_when: false
+
+- name: "Check if certificate is already deployed for {{ cert_domain }}"
+  ansible.builtin.stat:
+    path: "{{ acme_cert_deploy_dir }}/{{ cert_domain }}/{{ cert_domain }}.fullchain.cer"
+  register: cert_deployed
+
+- name: "Issue certificate for {{ cert_domain }}"
+  ansible.builtin.command:
+    cmd: >
+      {{ acme_sh_install_dir }}/acme.sh --issue
+      --dns {{ acme_dns_provider }}
+      -d {{ cert_domain }}
+      {% if cert_wildcard %}-d '*.{{ cert_domain }}'{% endif %}
+      --keylength {{ cert_key_length }}
+      --server {{ acme_default_ca }}
+  register: issue_result
+  changed_when: "'Cert success' in issue_result.stdout"
+  failed_when:
+    - issue_result.rc != 0
+    - "'Domains not changed' not in issue_result.stdout"
+    - "'Skip' not in issue_result.stdout"
+    - "'already renewed' not in issue_result.stdout.lower()"
+  when: cert_domain not in cert_list.stdout
+
+- name: "Deploy certificate for {{ cert_domain }}"
+  ansible.builtin.command:
+    cmd: >
+      {{ acme_sh_install_dir }}/acme.sh --install-cert
+      -d {{ cert_domain }}
+      {% if cert_wildcard %}-d '*.{{ cert_domain }}'{% endif %}
+      --key-file {{ acme_cert_deploy_dir }}/{{ cert_domain }}/{{ cert_domain }}.key
+      --cert-file {{ acme_cert_deploy_dir }}/{{ cert_domain }}/{{ cert_domain }}.cer
+      --fullchain-file {{ acme_cert_deploy_dir }}/{{ cert_domain }}/{{ cert_domain }}.fullchain.cer
+      --reloadcmd "{{ acme_reload_cmd }}"
+  register: deploy_result
+  changed_when: "'Installing' in deploy_result.stdout or 'Reload' in deploy_result.stdout"
+  when: >
+    (issue_result is defined and issue_result.changed) or
+    (not cert_deployed.stat.exists)
+  notify: reload nginx

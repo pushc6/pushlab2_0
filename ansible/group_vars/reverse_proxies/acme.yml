@@ -1,0 +1,20 @@
+---
+# group_vars/reverse_proxies/acme.yml
+# acme.sh certificate management configuration
+#
+# Cloudflare credentials should be provided via Semaphore environment variables:
+#   - ACME_CF_TOKEN
+#   - ACME_CF_ACCOUNT_ID
+#
+# Or via ansible-vault encrypted variables in this file.
+
+# Cloudflare API credentials (override via extra-vars or environment)
+acme_cf_token: "{{ lookup('env', 'ACME_CF_TOKEN') | default(vault_acme_cf_token, true) }}"
+acme_cf_account_id: "{{ lookup('env', 'ACME_CF_ACCOUNT_ID') | default(vault_acme_cf_account_id, true) }}"
+
+# Account email for Let's Encrypt notifications
+acme_email: "ryan.pampush@gmail.com"
+
+# Default certificate settings
+acme_default_key_length: "ec-256"
+acme_auto_upgrade: true

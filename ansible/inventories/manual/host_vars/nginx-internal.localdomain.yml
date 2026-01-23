@@ -26,3 +26,8 @@ firewall_services:
     protocol: tcp
     name: "SSH Proxy"
     access: trusted_vlan
+
+  - port: 8883
+    protocol: tcp
+    name: "MQTTS - MQTT over TLS"
+    access: trusted_vlan  # Internal MQTT access

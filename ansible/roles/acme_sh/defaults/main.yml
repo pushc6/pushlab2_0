@@ -1,0 +1,29 @@
+---
+# defaults/main.yml - acme.sh role defaults
+
+# acme.sh installation
+acme_sh_install_dir: "/root/.acme.sh"
+acme_sh_git_repo: "https://github.com/acmesh-official/acme.sh.git"
+
+# Default CA server (Let's Encrypt)
+acme_default_ca: "https://acme-v02.api.letsencrypt.org/directory"
+
+# Default key length for new certificates
+# Options: "2048", "4096", "ec-256", "ec-384"
+acme_default_key_length: "ec-256"
+
+# Auto-upgrade acme.sh
+acme_auto_upgrade: true
+
+# Certificate deployment paths
+acme_cert_deploy_dir: "/etc/nginx/ssl"
+
+# Nginx reload command after cert deployment
+acme_reload_cmd: "systemctl reload nginx"
+
+# DNS provider (currently only cloudflare supported)
+acme_dns_provider: "dns_cf"
+
+# Generate dhparams if not exists
+acme_generate_dhparams: true
+acme_dhparams_bits: 2048

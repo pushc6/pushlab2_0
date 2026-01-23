@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+# acme.sh account configuration
+
+#LOG_FILE="{{ acme_sh_install_dir }}/acme.sh.log"
+#LOG_LEVEL=1
+
+AUTO_UPGRADE='{{ "1" if acme_auto_upgrade else "0" }}'
+
+#NO_TIMESTAMP=1
+
+{% if acme_email is defined %}
+ACCOUNT_EMAIL='{{ acme_email }}'
+{% endif %}
+
+DEFAULT_ACME_SERVER='{{ acme_default_ca }}'
+
+# Cloudflare DNS API credentials
+SAVED_CF_Token='{{ acme_cf_token }}'
+SAVED_CF_Account_ID='{{ acme_cf_account_id }}'
+
+USER_PATH='{{ ansible_env.PATH }}'

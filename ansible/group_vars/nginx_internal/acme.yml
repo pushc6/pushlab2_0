@@ -1,0 +1,23 @@
+---
+# group_vars/nginx_internal/acme.yml
+# Certificate configuration for Internal proxy (10.37.70.24)
+#
+# NOTE: Existing certificates (push-lab.com, ryanpampush.com)
+# are already managed by acme.sh on the host. Only add NEW domains here.
+# To fully migrate existing certs to Ansible management, ensure key_length
+# matches the existing cert (check with: acme.sh --list)
+
+acme_certificates:
+  # New domain for MQTT
+  - domain: "rangernet.dev"
+    wildcard: true
+    key_length: "ec-256"
+
+  # Uncomment to manage existing certs (verify key_length matches first):
+  # - domain: "push-lab.com"
+  #   wildcard: true
+  #   key_length: "4096"  # NOTE: Internal has RSA 4096, not ec-256!
+  #
+  # - domain: "ryanpampush.com"
+  #   wildcard: true
+  #   key_length: "ec-256"

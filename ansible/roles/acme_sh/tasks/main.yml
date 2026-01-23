@@ -1,0 +1,84 @@
+---
+# tasks/main.yml - acme.sh role main tasks
+
+- name: Check if acme.sh is installed
+  ansible.builtin.stat:
+    path: "{{ acme_sh_install_dir }}/acme.sh"
+  register: acme_sh_installed
+
+- name: Install acme.sh
+  when: not acme_sh_installed.stat.exists
+  block:
+    - name: Install git (required for acme.sh installation)
+      ansible.builtin.package:
+        name: git
+        state: present
+
+    - name: Clone acme.sh repository
+      ansible.builtin.git:
+        repo: "{{ acme_sh_git_repo }}"
+        dest: "/tmp/acme.sh"
+        version: master
+        depth: 1
+
+    - name: Run acme.sh installer
+      ansible.builtin.command:
+        cmd: ./acme.sh --install --home {{ acme_sh_install_dir }}
+        chdir: /tmp/acme.sh
+      register: acme_install_result
+      changed_when: acme_install_result.rc == 0
+
+    - name: Clean up installer
+      ansible.builtin.file:
+        path: /tmp/acme.sh
+        state: absent
+
+- name: Deploy acme.sh account configuration
+  ansible.builtin.template:
+    src: account.conf.j2
+    dest: "{{ acme_sh_install_dir }}/account.conf"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Process certificates
+  when: acme_certificates is defined and acme_certificates | length > 0
+  block:
+    - name: Ensure certificate deployment directories exist
+      ansible.builtin.file:
+        path: "{{ acme_cert_deploy_dir }}/{{ item.domain }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop: "{{ acme_certificates }}"
+      loop_control:
+        label: "{{ item.domain }}"
+
+    - name: Generate dhparams for domains that need it
+      when: acme_generate_dhparams | default(true)
+      block:
+        - name: Check for existing dhparams
+          ansible.builtin.stat:
+            path: "{{ acme_cert_deploy_dir }}/{{ item.domain }}/dhparams.pem"
+          loop: "{{ acme_certificates }}"
+          register: dhparams_stat
+          loop_control:
+            label: "{{ item.domain }}"
+
+        - name: Generate dhparams (this may take a while)
+          ansible.builtin.command:
+            cmd: openssl dhparam -out {{ acme_cert_deploy_dir }}/{{ item.item.domain }}/dhparams.pem {{ acme_dhparams_bits }}
+          loop: "{{ dhparams_stat.results }}"
+          when: not item.stat.exists
+          loop_control:
+            label: "{{ item.item.domain }}"
+          async: 300
+          poll: 10
+
+    - name: Issue and deploy certificates
+      ansible.builtin.include_tasks: issue_cert.yml
+      loop: "{{ acme_certificates }}"
+      loop_control:
+        loop_var: cert
+        label: "{{ cert.domain }}"

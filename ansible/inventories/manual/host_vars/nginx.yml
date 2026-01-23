@@ -20,3 +20,14 @@ firewall_services:
     protocol: tcp
     name: "HTTPS"
     access: public  # Publicly accessible web server
+
+  - port: 8883
+    protocol: tcp
+    name: "MQTTS - MQTT over TLS"
+    access: public  # Publicly accessible MQTT broker
+    # To restrict to specific IPs, change access to 'custom' and uncomment sources:
+    # access: custom
+    # sources:
+    #   - "10.37.0.0/16"      # Internal networks (IPv4)
+    #   - "192.168.0.0/16"    # Home networks (IPv4)
+    #   - "fd00::/8"          # ULA IPv6

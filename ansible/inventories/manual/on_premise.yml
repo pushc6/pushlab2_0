@@ -1,3 +1,8 @@
+reverse_proxies:
+  children:
+    nginxdmz:
+    nginx_internal:
+
 nginxdmz:
   hosts:
     nginx:
