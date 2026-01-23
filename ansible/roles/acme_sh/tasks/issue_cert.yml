@@ -6,12 +6,43 @@
     cert_domain: "{{ cert.domain }}"
     cert_wildcard: "{{ cert.wildcard | default(false) }}"
     cert_key_length: "{{ cert.key_length | default(acme_default_key_length) }}"
+    cert_ecc_suffix: "{{ '_ecc' if (cert.key_length | default(acme_default_key_length)) in ['ec-256', 'ec-384'] else '' }}"
 
-- name: "Check if certificate exists for {{ cert_domain }}"
+- name: "Check if certificate exists in acme.sh for {{ cert_domain }}"
   ansible.builtin.command:
     cmd: "{{ acme_sh_install_dir }}/acme.sh --list"
   register: cert_list
   changed_when: false
+
+- name: "Check if certificate file actually exists for {{ cert_domain }}"
+  ansible.builtin.stat:
+    path: "{{ acme_sh_install_dir }}/{{ cert_domain }}{{ cert_ecc_suffix }}/{{ cert_domain }}.cer"
+  register: cert_file_check
+
+- name: "Clean up failed/partial issuance for {{ cert_domain }}"
+  when:
+    - cert_domain in cert_list.stdout
+    - not cert_file_check.stat.exists
+  block:
+    - name: "Remove failed cert from acme.sh registry for {{ cert_domain }}"
+      ansible.builtin.command:
+        cmd: "{{ acme_sh_install_dir }}/acme.sh --remove -d {{ cert_domain }}"
+      register: remove_result
+      failed_when: false
+      changed_when: "'has been removed' in remove_result.stdout"
+
+    - name: "Clean up partial certificate directory for {{ cert_domain }}"
+      ansible.builtin.file:
+        path: "{{ acme_sh_install_dir }}/{{ cert_domain }}{{ cert_ecc_suffix }}"
+        state: absent
+
+    - name: "Update cert_list after cleanup"
+      ansible.builtin.set_fact:
+        cert_needs_issue: true
+
+- name: "Set cert_needs_issue flag"
+  ansible.builtin.set_fact:
+    cert_needs_issue: "{{ cert_domain not in cert_list.stdout or (cert_needs_issue | default(false)) }}"
 
 - name: "Check if certificate is already deployed for {{ cert_domain }}"
   ansible.builtin.stat:
@@ -34,7 +65,7 @@
     - "'Domains not changed' not in issue_result.stdout"
     - "'Skip' not in issue_result.stdout"
     - "'already renewed' not in issue_result.stdout.lower()"
-  when: cert_domain not in cert_list.stdout
+  when: cert_needs_issue | bool
 
 - name: "Deploy certificate for {{ cert_domain }}"
   ansible.builtin.command:
