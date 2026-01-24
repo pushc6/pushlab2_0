@@ -204,6 +204,7 @@
 - name: Remove stale rich rules
   ansible.posix.firewalld:
     rich_rule: "{{ item }}"
+    zone: "{{ firewall_default_zone | default('public') }}"
     permanent: true
     immediate: false
     state: absent
