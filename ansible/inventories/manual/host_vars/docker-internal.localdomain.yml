@@ -14,6 +14,23 @@ firewall_ssh_allowed_subnets:
 firewall_services:
 
   # ============================================================================
+  # Automation & CI/CD
+  # ============================================================================
+
+  - port: 3000
+    protocol: tcp
+    name: "Semaphore - Ansible Automation UI"
+    container: semaphore
+    access: custom
+    sources:
+      - "10.37.70.5/32"   # nginx-dmz (IPv4)
+      - "10.37.70.24/32"  # nginx-internal (IPv4)
+      - "10.37.20.0/24"   # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::5/128"   # nginx-dmz (IPv6)
+      - "fd00:1337:1337:70::24/128"  # nginx-internal (IPv6)
+      - "fd00:1337:1337:20::/64"     # trusted_vlan (IPv6)
+
+  # ============================================================================
   # Authentication Services
   # ============================================================================
 
@@ -165,6 +182,90 @@ firewall_services:
       - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
       - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
       - "fd00:1337:1337:80::/64"  # servers_vlan (IPv6)
+
+  - port: 8089
+    protocol: udp
+    name: "VictoriaMetrics - InfluxDB Line Protocol (UDP)"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24"   # trusted_vlan (IPv4)
+      - "10.37.70.0/24"   # DMZ (IPv4)
+      - "10.37.80.0/24"   # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64"  # servers_vlan (IPv6)
+
+  - port: 4242
+    protocol: tcp
+    name: "VictoriaMetrics - OpenTSDB Protocol"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24"   # trusted_vlan (IPv4)
+      - "10.37.70.0/24"   # DMZ (IPv4)
+      - "10.37.80.0/24"   # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64"  # servers_vlan (IPv6)
+
+  - port: 2003
+    protocol: tcp
+    name: "VictoriaMetrics - Graphite Protocol"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24"   # trusted_vlan (IPv4)
+      - "10.37.70.0/24"   # DMZ (IPv4)
+      - "10.37.80.0/24"   # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64"  # servers_vlan (IPv6)
+
+  - port: 2003
+    protocol: udp
+    name: "VictoriaMetrics - Graphite Protocol (UDP)"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24"   # trusted_vlan (IPv4)
+      - "10.37.70.0/24"   # DMZ (IPv4)
+      - "10.37.80.0/24"   # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64"  # servers_vlan (IPv6)
+
+  # ============================================================================
+  # Logging
+  # ============================================================================
+
+  - port: 9428
+    protocol: tcp
+    name: "VictoriaLogs - HTTP API"
+    container: victorialogs
+    access: custom
+    sources:
+      - "10.37.20.0/24"   # trusted_vlan (IPv4)
+      - "10.37.70.0/24"   # DMZ (IPv4)
+      - "10.37.80.0/24"   # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64"  # servers_vlan (IPv6)
+
+  # ============================================================================
+  # Automation
+  # ============================================================================
+
+  - port: 3004
+    protocol: tcp
+    name: "Semaphore - Ansible Automation UI"
+    container: semaphore
+    access: custom
+    sources:
+      - "10.37.70.24/32"  # nginx-external (IPv4)
+      - "10.37.20.0/24"   # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::24/128"  # nginx-external (IPv6)
+      - "fd00:1337:1337:20::/64"     # trusted_vlan (IPv6)
 
   # ============================================================================
   # Security

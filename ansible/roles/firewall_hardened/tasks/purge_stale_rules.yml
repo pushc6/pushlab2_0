@@ -4,6 +4,11 @@
 #
 # Enable with: firewall_purge_stale_rules: true
 
+# Ensure proxy_sources is defined (in case service_rules.yml didn't set it)
+- name: Ensure proxy_sources is defined
+  ansible.builtin.set_fact:
+    proxy_sources: "{{ proxy_sources | default(firewall_reverse_proxy_ips | default([]) + [firewall_management_vlan_subnet | default('10.37.10.0/24')]) }}"
+
 - name: Get current rich rules from firewalld
   ansible.builtin.command: firewall-cmd --list-rich-rules
   register: current_rich_rules
