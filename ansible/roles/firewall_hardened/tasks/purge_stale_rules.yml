@@ -207,7 +207,7 @@
     zone: "{{ firewall_default_zone | default('public') }}"
     permanent: true
     immediate: false
-    state: absent
+    state: disabled
   loop: "{{ stale_rules }}"
   loop_control:
     label: "{{ item | truncate(80) }}"
