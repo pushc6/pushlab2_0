@@ -155,7 +155,7 @@
     - "':' in item.1"
     - firewall_enable_ipv6 | default(true)
 
-# Custom rich rules (legacy)
+# Custom rich rules (legacy) - added as-is, user responsible for format
 - name: Add expected custom rich rules
   ansible.builtin.set_fact:
     expected_rules_list: "{{ expected_rules_list + [item.rule] }}"
@@ -171,6 +171,7 @@
         'rule family="ipv4" source address="' + item + '" port port="' + (firewall_ssh_port | default(22) | string) + '" protocol="tcp" accept'
       ] }}
   loop: "{{ firewall_ssh_allowed_subnets | default([]) }}"
+  when: firewall_ssh_hardening_enabled | default(true)
 
 # SSH rules from ssh_hardening (IPv6) - uses separate variable
 - name: Add expected SSH rules (IPv6)
@@ -180,15 +181,52 @@
         'rule family="ipv6" source address="' + item + '" port port="' + (firewall_ssh_port | default(22) | string) + '" protocol="tcp" accept'
       ] }}
   loop: "{{ firewall_ssh_allowed_subnets_ipv6 | default([]) }}"
-  when: firewall_enable_ipv6 | default(true)
+  when:
+    - firewall_enable_ipv6 | default(true)
+    - firewall_ssh_hardening_enabled | default(true)
+
+# ============================================================================
+# NORMALIZE RULES FOR COMPARISON
+# Firewalld is inconsistent with /32 and /128 - sometimes strips them, sometimes not
+# We normalize both sides by removing /32" and /128" suffixes
+# ============================================================================
+
+- name: Normalize current rules (strip /32 and /128 for consistent comparison)
+  ansible.builtin.set_fact:
+    current_rules_normalized: "{{ current_rules_list | map('regex_replace', '/32\"', '\"') | map('regex_replace', '/128\"', '\"') | list }}"
+
+- name: Normalize expected rules (strip /32 and /128 for consistent comparison)
+  ansible.builtin.set_fact:
+    expected_rules_normalized: "{{ expected_rules_list | map('regex_replace', '/32\"', '\"') | map('regex_replace', '/128\"', '\"') | list }}"
 
 # ============================================================================
 # CALCULATE AND REMOVE STALE RULES
 # ============================================================================
 
-- name: Calculate stale rules to remove
+- name: Calculate stale rules to remove (using normalized comparison)
   ansible.builtin.set_fact:
-    stale_rules: "{{ current_rules_list | difference(expected_rules_list) }}"
+    stale_rules_normalized: "{{ current_rules_normalized | difference(expected_rules_normalized) }}"
+
+# Map back to original rules for removal (we need the actual rule string to remove it)
+- name: Build list of actual rules to remove
+  ansible.builtin.set_fact:
+    stale_rules: >-
+      {{ current_rules_list | select('in',
+         current_rules_list | zip(current_rules_normalized) | selectattr('1', 'in', stale_rules_normalized) | map(attribute='0') | list
+      ) | list }}
+
+# Simpler approach - just use the index mapping
+- name: Map stale normalized rules back to original rules
+  ansible.builtin.set_fact:
+    stale_rules: []
+
+- name: Find original rules that match stale normalized rules
+  ansible.builtin.set_fact:
+    stale_rules: "{{ stale_rules + [item.0] }}"
+  loop: "{{ current_rules_list | zip(current_rules_normalized) | list }}"
+  loop_control:
+    label: "checking rule"
+  when: item.1 in stale_rules_normalized
 
 - name: Display stale rules found
   ansible.builtin.debug:

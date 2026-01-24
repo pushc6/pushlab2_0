@@ -115,6 +115,8 @@ firewall_services:
       - "fd00:1337:1337:70::5/128"  # nginx dmz/external (IPv6)
       - "10.37.70.24/32"  # nginx internal (IPv4)
       - "fd00:1337:1337:70::24/128"  # nginx internal (IPv6)
+      - "10.37.70.20/32"  # HomeAssistant (IPv4)
+      - "fd00:1337:1337:70::20/128"  # HomeAssistant (IPv6)
       - "10.37.20.0/24"  # trusted_vlan (IPv4)
       - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
       - "10.37.50.0/24"  # IoT (TVs, streaming devices - IPv4)
