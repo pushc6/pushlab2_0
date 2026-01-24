@@ -31,6 +31,7 @@ firewall_reverse_proxy_ips:
 firewall_rollback_timer: 300
 firewall_enable_preflight: true
 firewall_enable_validation: true
+firewall_purge_stale_rules: true
 
 # Veeam Backup Server (alias: veeammachine)
 veeam_server_ip: "10.37.70.21"

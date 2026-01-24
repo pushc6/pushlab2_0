@@ -56,17 +56,6 @@ firewall_services:
       - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
       - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
 
-  - port: 3100
-    protocol: tcp
-    name: "Loki - Log Aggregation"
-    container: loki
-    access: custom
-    sources:
-      - "10.37.70.0/24"   # DMZ hosts sending logs (IPv4)
-      - "10.37.20.0/24"   # trusted_vlan (IPv4)
-      - "fd00:1337:1337:70::/64"  # DMZ (IPv6)
-      - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
-
   # ============================================================================
   # Telemetry Collection (Alloy/Grafana Agent)
   # ============================================================================

@@ -73,6 +73,18 @@
         - services
 
     # ========================================================================
+    # PURGE STALE RULES (declarative management)
+    # ========================================================================
+
+    - name: Purge stale firewall rules not in configuration
+      ansible.builtin.include_tasks: purge_stale_rules.yml
+      when: firewall_purge_stale_rules | default(false)
+      tags:
+        - firewall
+        - services
+        - purge
+
+    # ========================================================================
     # FLUSH HANDLERS (apply all pending firewall reloads)
     # ========================================================================
 

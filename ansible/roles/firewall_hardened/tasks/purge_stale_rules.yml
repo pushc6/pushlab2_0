@@ -1,0 +1,225 @@
+---
+# Purge firewall rules that are no longer in configuration
+# This makes firewall management declarative - rules removed from config get removed from host
+#
+# Enable with: firewall_purge_stale_rules: true
+
+- name: Get current rich rules from firewalld
+  ansible.builtin.command: firewall-cmd --list-rich-rules
+  register: current_rich_rules
+  changed_when: false
+
+- name: Parse current rich rules into list
+  ansible.builtin.set_fact:
+    current_rules_list: "{{ current_rich_rules.stdout_lines | default([]) }}"
+
+- name: Build list of expected rich rules from configuration
+  ansible.builtin.set_fact:
+    expected_rules_list: []
+
+# ============================================================================
+# BUILD EXPECTED RULES - must match exact format firewalld uses
+# ============================================================================
+
+# Management VLAN rules (IPv4)
+- name: Add expected management VLAN rules (IPv4)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv4" source address="' + firewall_management_vlan_subnet + '" port port="' + item.port | string + '" protocol="' + item.protocol + '" accept'
+      ] }}
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'management_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# Management VLAN rules (IPv6)
+- name: Add expected management VLAN rules (IPv6)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv6" source address="' + firewall_management_vlan_subnet_ipv6 + '" port port="' + item.port | string + '" protocol="' + item.protocol + '" accept'
+      ] }}
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'management_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: firewall_enable_ipv6 | default(true)
+
+# Trusted VLAN rules (IPv4)
+- name: Add expected trusted VLAN rules (IPv4)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv4" source address="' + firewall_trusted_vlan_subnet + '" port port="' + item.port | string + '" protocol="' + item.protocol + '" accept'
+      ] }}
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'trusted_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# Trusted VLAN rules (IPv6)
+- name: Add expected trusted VLAN rules (IPv6)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv6" source address="' + firewall_trusted_vlan_subnet_ipv6 + '" port port="' + item.port | string + '" protocol="' + item.protocol + '" accept'
+      ] }}
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'trusted_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: firewall_enable_ipv6 | default(true)
+
+# DMZ VLAN rules (IPv4)
+- name: Add expected DMZ VLAN rules (IPv4)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv4" source address="' + firewall_dmz_vlan_subnet + '" port port="' + item.port | string + '" protocol="' + item.protocol + '" accept'
+      ] }}
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'dmz_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# DMZ VLAN rules (IPv6)
+- name: Add expected DMZ VLAN rules (IPv6)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv6" source address="' + firewall_dmz_vlan_subnet_ipv6 + '" port port="' + item.port | string + '" protocol="' + item.protocol + '" accept'
+      ] }}
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'dmz_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: firewall_enable_ipv6 | default(true)
+
+# WireGuard VLAN rules (IPv4)
+- name: Add expected WireGuard VLAN rules (IPv4)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv4" source address="' + firewall_wireguard_vlan_subnet + '" port port="' + item.port | string + '" protocol="' + item.protocol + '" accept'
+      ] }}
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'wireguard_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# WireGuard VLAN rules (IPv6)
+- name: Add expected WireGuard VLAN rules (IPv6)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv6" source address="' + firewall_wireguard_vlan_subnet_ipv6 + '" port port="' + item.port | string + '" protocol="' + item.protocol + '" accept'
+      ] }}
+  loop: "{{ normalized_services | default([]) | selectattr('access', 'equalto', 'wireguard_vlan') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: firewall_enable_ipv6 | default(true)
+
+# Proxy rules (IPv4 only, multiple sources)
+- name: Add expected proxy rules
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv4" source address="' + item.1 + '" port port="' + item.0.port | string + '" protocol="' + item.0.protocol + '" accept'
+      ] }}
+  loop: "{{ (normalized_services | default([]) | selectattr('access', 'equalto', 'proxy') | list) | product(proxy_sources | default([])) | list }}"
+  loop_control:
+    label: "{{ item.0.name }} from {{ item.1 }}"
+
+# Custom access rules (IPv4)
+- name: Add expected custom access rules (IPv4)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv4" source address="' + item.1 + '" port port="' + item.0.port | string + '" protocol="' + item.0.protocol + '" accept'
+      ] }}
+  loop: "{{ (normalized_services | default([]) | selectattr('access', 'equalto', 'custom') | list) | subelements('sources') }}"
+  loop_control:
+    label: "{{ item.0.name }} from {{ item.1 }}"
+  when: "':' not in item.1"
+
+# Custom access rules (IPv6)
+- name: Add expected custom access rules (IPv6)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv6" source address="' + item.1 + '" port port="' + item.0.port | string + '" protocol="' + item.0.protocol + '" accept'
+      ] }}
+  loop: "{{ (normalized_services | default([]) | selectattr('access', 'equalto', 'custom') | list) | subelements('sources') }}"
+  loop_control:
+    label: "{{ item.0.name }} from {{ item.1 }}"
+  when:
+    - "':' in item.1"
+    - firewall_enable_ipv6 | default(true)
+
+# Custom rich rules (legacy)
+- name: Add expected custom rich rules
+  ansible.builtin.set_fact:
+    expected_rules_list: "{{ expected_rules_list + [item.rule] }}"
+  loop: "{{ firewall_custom_rich_rules | default([]) }}"
+  loop_control:
+    label: "{{ item.rule | truncate(50) }}"
+
+# SSH rules from ssh_hardening (IPv4)
+- name: Add expected SSH rules (IPv4)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv4" source address="' + item + '" port port="' + (firewall_ssh_port | default(22) | string) + '" protocol="tcp" accept'
+      ] }}
+  loop: "{{ firewall_ssh_allowed_subnets | default([]) }}"
+  when: "':' not in item"
+
+# SSH rules from ssh_hardening (IPv6)
+- name: Add expected SSH rules (IPv6)
+  ansible.builtin.set_fact:
+    expected_rules_list: >-
+      {{ expected_rules_list + [
+        'rule family="ipv6" source address="' + item + '" port port="' + (firewall_ssh_port | default(22) | string) + '" protocol="tcp" accept'
+      ] }}
+  loop: "{{ firewall_ssh_allowed_subnets | default([]) }}"
+  when:
+    - "':' in item"
+    - firewall_enable_ipv6 | default(true)
+
+# ============================================================================
+# CALCULATE AND REMOVE STALE RULES
+# ============================================================================
+
+- name: Calculate stale rules to remove
+  ansible.builtin.set_fact:
+    stale_rules: "{{ current_rules_list | difference(expected_rules_list) }}"
+
+- name: Display stale rules found
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      Stale Firewall Rules Detected
+      ========================================
+      Found {{ stale_rules | length }} rule(s) to remove:
+      {% for rule in stale_rules %}
+      - {{ rule }}
+      {% endfor %}
+      ========================================
+  when: stale_rules | length > 0
+
+- name: Remove stale rich rules
+  ansible.posix.firewalld:
+    rich_rule: "{{ item }}"
+    permanent: true
+    immediate: false
+    state: absent
+  loop: "{{ stale_rules }}"
+  loop_control:
+    label: "{{ item | truncate(80) }}"
+  notify: reload firewalld
+  when: stale_rules | length > 0
+
+- name: Display purge summary
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      Firewall Rule Purge Complete
+      ========================================
+      Current rules on host: {{ current_rules_list | length }}
+      Expected rules from config: {{ expected_rules_list | length }}
+      Stale rules removed: {{ stale_rules | length }}
+      ========================================

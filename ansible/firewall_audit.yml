@@ -1,0 +1,34 @@
+---
+# Audit playbook - compare configured vs actual firewall rules
+# Usage: ansible-playbook -i inventories/manual/hosts.yml firewall_audit.yml
+- name: Audit firewall rules across hosts
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Get current rich rules from firewalld
+      ansible.builtin.command: firewall-cmd --list-rich-rules
+      register: current_rules
+      changed_when: false
+      failed_when: false
+
+    - name: Get open ports
+      ansible.builtin.command: firewall-cmd --list-ports
+      register: current_ports
+      changed_when: false
+      failed_when: false
+
+    - name: Display current firewall state
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          HOST: {{ inventory_hostname }}
+          ========================================
+          OPEN PORTS:
+          {{ current_ports.stdout | default('none') }}
+
+          RICH RULES ({{ current_rules.stdout_lines | default([]) | length }}):
+          {% for rule in current_rules.stdout_lines | default([]) %}
+          - {{ rule }}
+          {% endfor %}
+          ========================================

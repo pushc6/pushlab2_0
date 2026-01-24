@@ -17,6 +17,10 @@ firewall_enable_validation: true
 # Enable strict mode (remove unmanaged rules)
 firewall_strict_mode: false
 
+# Purge stale rules - removes firewall rules that are no longer in configuration
+# This makes firewall management declarative (recommended for production)
+firewall_purge_stale_rules: false
+
 # ============================================================================
 # NETWORK CONFIGURATION
 # ============================================================================
