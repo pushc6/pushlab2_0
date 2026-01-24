@@ -1,14 +1,25 @@
 ---
 # Audit playbook - compare configured vs actual firewall rules
+# Shows both firewall configuration AND what's actually listening
 # Usage: ansible-playbook -i inventories/manual/hosts.yml firewall_audit.yml
 - name: Audit firewall rules across hosts
   hosts: all
   gather_facts: false
   become: true
   tasks:
-    - name: Get current rich rules from firewalld
-      ansible.builtin.command: firewall-cmd --list-rich-rules
-      register: current_rules
+    # ========================================================================
+    # FIREWALL CONFIGURATION
+    # ========================================================================
+
+    - name: Get default zone
+      ansible.builtin.command: firewall-cmd --get-default-zone
+      register: default_zone
+      changed_when: false
+      failed_when: false
+
+    - name: Get enabled services
+      ansible.builtin.command: firewall-cmd --list-services
+      register: enabled_services
       changed_when: false
       failed_when: false
 
@@ -18,17 +29,69 @@
       changed_when: false
       failed_when: false
 
-    - name: Display current firewall state
+    - name: Get current rich rules from firewalld
+      ansible.builtin.command: firewall-cmd --list-rich-rules
+      register: current_rules
+      changed_when: false
+      failed_when: false
+
+    # ========================================================================
+    # ACTUALLY LISTENING PORTS
+    # ========================================================================
+
+    - name: Get listening TCP ports
+      ansible.builtin.shell: ss -tlnp | tail -n +2 | awk '{print $4, $6}' | sed 's/users:(("/[/g' | sed 's/".*//g'
+      register: listening_tcp
+      changed_when: false
+      failed_when: false
+
+    - name: Get listening UDP ports
+      ansible.builtin.shell: ss -ulnp | tail -n +2 | awk '{print $4, $5}' | sed 's/users:(("/[/g' | sed 's/".*//g'
+      register: listening_udp
+      changed_when: false
+      failed_when: false
+
+    # ========================================================================
+    # DISPLAY RESULTS
+    # ========================================================================
+
+    - name: Display comprehensive firewall audit
       ansible.builtin.debug:
         msg: |
-          ========================================
-          HOST: {{ inventory_hostname }}
-          ========================================
-          OPEN PORTS:
+          ================================================================================
+          HOST: {{ inventory_hostname }} ({{ ansible_host | default(inventory_hostname) }})
+          ================================================================================
+
+          FIREWALL ZONE: {{ default_zone.stdout | default('unknown') }}
+
+          ENABLED SERVICES:
+          {{ enabled_services.stdout | default('none') }}
+
+          OPEN PORTS (direct):
           {{ current_ports.stdout | default('none') }}
 
           RICH RULES ({{ current_rules.stdout_lines | default([]) | length }}):
           {% for rule in current_rules.stdout_lines | default([]) %}
-          - {{ rule }}
+            {{ rule }}
           {% endfor %}
-          ========================================
+          {% if current_rules.stdout_lines | default([]) | length == 0 %}
+            (none)
+          {% endif %}
+
+          --------------------------------------------------------------------------------
+          LISTENING TCP PORTS (what's actually running):
+          {% for line in listening_tcp.stdout_lines | default([]) %}
+            {{ line }}
+          {% endfor %}
+          {% if listening_tcp.stdout_lines | default([]) | length == 0 %}
+            (none)
+          {% endif %}
+
+          LISTENING UDP PORTS:
+          {% for line in listening_udp.stdout_lines | default([]) %}
+            {{ line }}
+          {% endfor %}
+          {% if listening_udp.stdout_lines | default([]) | length == 0 %}
+            (none)
+          {% endif %}
+          ================================================================================
