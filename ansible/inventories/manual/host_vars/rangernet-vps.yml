@@ -16,6 +16,7 @@ crowdsec_enabled: true
 crowdsec_mode: agent
 crowdsec_lapi_url: "http://crowdsec.crane-beaver.ts.net:8080"
 crowdsec_lapi_host: "crowdsec.localdomain"  # For bouncer registration
+crowdsec_wait_for_approval: false           # No interactive prompts (for Semaphore/CI)
 
 crowdsec_collections:
   - crowdsecurity/linux
@@ -28,10 +29,9 @@ crowdsec_acquis:
       - /var/log/nginx/error.log
     labels:
       type: nginx
-  - name: syslog
-    filenames:
-      - /var/log/messages
-      - /var/log/secure
+  - name: sshd
+    journalctl_filter:
+      - "_SYSTEMD_UNIT=sshd.service"
     labels:
       type: syslog
 
