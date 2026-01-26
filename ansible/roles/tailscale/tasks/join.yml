@@ -1,0 +1,117 @@
+---
+# Tailscale network join tasks
+# Uses secure OAuth flow: get token -> generate short-lived auth key -> join
+
+- name: Check current Tailscale status
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status_result
+  changed_when: false
+  failed_when: false
+
+- name: Parse Tailscale status
+  ansible.builtin.set_fact:
+    tailscale_is_running: "{{ (tailscale_status_result.stdout | from_json).BackendState | default('') == 'Running' }}"
+    tailscale_current_hostname: "{{ (tailscale_status_result.stdout | from_json).Self.HostName | default('') }}"
+  when: tailscale_status_result.rc == 0 and tailscale_status_result.stdout | length > 0
+
+- name: Set default status if not connected
+  ansible.builtin.set_fact:
+    tailscale_is_running: false
+    tailscale_current_hostname: ""
+  when: tailscale_status_result.rc != 0 or tailscale_status_result.stdout | length == 0
+
+- name: Determine if join is needed
+  ansible.builtin.set_fact:
+    tailscale_needs_join: "{{ not tailscale_is_running or tailscale_force_rejoin }}"
+
+- name: Display Tailscale status
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      Tailscale Status
+      ========================================
+      Currently Running: {{ tailscale_is_running }}
+      Current Hostname: {{ tailscale_current_hostname | default('N/A') }}
+      Desired Hostname: {{ tailscale_hostname }}
+      Desired Tags: {{ tailscale_tags | join(', ') }}
+      Needs Join: {{ tailscale_needs_join }}
+      Force Rejoin: {{ tailscale_force_rejoin }}
+      ========================================
+
+- name: Join Tailscale network
+  when: tailscale_needs_join
+  block:
+    - name: Logout from Tailscale if forcing rejoin
+      ansible.builtin.command: tailscale logout
+      when: tailscale_is_running and tailscale_force_rejoin
+      changed_when: true
+
+    # Step 1: Obtain OAuth access token (short-lived, ~1 hour)
+    - name: Obtain OAuth access token from Tailscale API
+      ansible.builtin.uri:
+        url: "https://api.tailscale.com/api/v2/oauth/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          client_id: "{{ tailscale_oauth_client_id }}"
+          client_secret: "{{ tailscale_oauth_client_secret }}"
+        status_code: 200
+      register: tailscale_oauth_token
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+    # Step 2: Generate short-lived auth key with tags
+    - name: Generate auth key via Tailscale API
+      ansible.builtin.uri:
+        url: "https://api.tailscale.com/api/v2/tailnet/{{ tailscale_tailnet }}/keys"
+        method: POST
+        body_format: json
+        body:
+          tags: "{{ tailscale_tags }}"
+          description: "Ansible: {{ inventory_hostname }} @ {{ ansible_date_time.iso8601 }}"
+          expirySeconds: "{{ tailscale_authkey_expiry_seconds }}"
+        headers:
+          Authorization: "Bearer {{ tailscale_oauth_token.json.access_token }}"
+        status_code: 200
+      register: tailscale_authkey_response
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+    # Step 3: Join the tailnet
+    - name: Join tailnet with generated auth key
+      ansible.builtin.command: >-
+        tailscale up
+        --authkey={{ tailscale_authkey_response.json.key }}
+        --hostname={{ tailscale_hostname }}
+        {% if not tailscale_accept_dns %}--accept-dns=false{% endif %}
+        {% if tailscale_accept_routes %}--accept-routes{% endif %}
+        {% if tailscale_advertise_routes | length > 0 %}--advertise-routes={{ tailscale_advertise_routes | join(',') }}{% endif %}
+        {% if tailscale_ssh %}--ssh{% endif %}
+        {{ tailscale_extra_args }}
+      changed_when: true
+      no_log: true
+
+    # Step 4: Verify connection
+    - name: Wait for Tailscale connection to establish
+      ansible.builtin.command: tailscale status
+      register: tailscale_verify
+      changed_when: false
+      retries: 5
+      delay: 3
+      until: tailscale_verify.rc == 0
+
+- name: Get final Tailscale status
+  ansible.builtin.command: tailscale status
+  register: tailscale_final_status
+  changed_when: false
+
+- name: Display Tailscale connection info
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      Tailscale Connected
+      ========================================
+      {{ tailscale_final_status.stdout }}
+      ========================================

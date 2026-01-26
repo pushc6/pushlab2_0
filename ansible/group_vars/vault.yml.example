@@ -1,0 +1,11 @@
+---
+# Tailscale OAuth credentials
+# Copy this file to vault.yml and encrypt with: ansible-vault encrypt vault.yml
+#
+# Create OAuth client at: https://login.tailscale.com/admin/settings/oauth
+# Required settings:
+#   - Scopes: auth_keys (write)
+#   - Tags: tag:crowdsec-lapi, tag:crowdsec-agent, tag:server-client (all tags you'll use)
+
+tailscale_oauth_client_id: "k..."
+tailscale_oauth_client_secret: "tskey-client-..."

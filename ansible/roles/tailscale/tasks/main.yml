@@ -1,0 +1,29 @@
+---
+# Tailscale role - main task orchestration
+
+- name: Tailscale deployment
+  when: tailscale_enabled | default(false)
+  tags:
+    - tailscale
+  block:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - tailscale_oauth_client_id | length > 0
+          - tailscale_oauth_client_secret | length > 0
+          - tailscale_tags | length > 0
+        fail_msg: |
+          Missing required Tailscale variables:
+          - tailscale_oauth_client_id: {{ 'SET' if tailscale_oauth_client_id else 'MISSING' }}
+          - tailscale_oauth_client_secret: {{ 'SET' if tailscale_oauth_client_secret else 'MISSING' }}
+          - tailscale_tags: {{ tailscale_tags if tailscale_tags else 'MISSING (at least one tag required)' }}
+
+    - name: Include installation tasks
+      ansible.builtin.include_tasks: install.yml
+
+    - name: Include join tasks
+      ansible.builtin.include_tasks: join.yml
+
+    - name: Include firewall tasks
+      ansible.builtin.include_tasks: firewall.yml
+      when: tailscale_configure_firewall | default(true)

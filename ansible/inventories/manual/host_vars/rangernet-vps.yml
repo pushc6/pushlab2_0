@@ -1,5 +1,17 @@
 ---
-# Firewall configuration for rangernet-vps (192.210.235.136) - Minimal VPS
+# Configuration for rangernet-vps (192.210.235.136) - External VPS
+
+# =============================================================================
+# Tailscale Configuration
+# =============================================================================
+tailscale_enabled: true
+tailscale_hostname: "rangernet-vps"
+tailscale_tags:
+  - "tag:crowdsec-agent"
+
+# =============================================================================
+# Firewall Configuration
+# =============================================================================
 
 # VPS-specific: SSH must remain publicly accessible (no SSH hardening)
 firewall_ssh_hardening_enabled: false

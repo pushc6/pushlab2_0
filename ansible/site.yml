@@ -19,6 +19,13 @@
     - firewall_hardened
   tags: ['firewall', 'security']
 
+- name: Deploy Tailscale
+  hosts: all:!opnsense
+  become: true
+  roles:
+    - tailscale
+  tags: ['tailscale', 'networking']
+
 - name: Run System Updates
   import_playbook: update_all.yml
   tags: ['updates', 'security']

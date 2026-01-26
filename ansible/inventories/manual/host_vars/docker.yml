@@ -382,7 +382,7 @@ firewall_services:
       - "10.37.20.0/24"  # trusted_vlan (IPv4)
       - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
 
-  - port: 5901
+  - port: 8180
     protocol: tcp
     name: "VNC - Remote Desktop"
     container: vnc

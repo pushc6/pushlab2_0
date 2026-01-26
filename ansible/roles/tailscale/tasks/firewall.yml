@@ -1,0 +1,36 @@
+---
+# Tailscale firewall integration tasks
+# Adds tailscale0 interface to trusted zone for seamless access
+
+- name: Configure firewall for Tailscale (RHEL/AlmaLinux)
+  when: ansible_os_family == "RedHat"
+  block:
+    - name: Check if firewalld is running
+      ansible.builtin.systemd:
+        name: firewalld
+      register: firewalld_status
+
+    - name: Add tailscale0 interface to trusted zone
+      ansible.posix.firewalld:
+        interface: tailscale0
+        zone: trusted
+        permanent: true
+        immediate: true
+        state: enabled
+      when: firewalld_status.status.ActiveState == "active"
+
+- name: Configure firewall for Tailscale (Debian/Ubuntu with ufw)
+  when: ansible_os_family == "Debian"
+  block:
+    - name: Check if ufw is available
+      ansible.builtin.command: which ufw
+      register: ufw_available
+      changed_when: false
+      failed_when: false
+
+    - name: Allow Tailscale interface in ufw
+      community.general.ufw:
+        rule: allow
+        interface_in: tailscale0
+        direction: in
+      when: ufw_available.rc == 0
