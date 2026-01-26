@@ -73,11 +73,25 @@
           expirySeconds: "{{ tailscale_authkey_expiry_seconds }}"
         headers:
           Authorization: "Bearer {{ tailscale_oauth_token.json.access_token }}"
-        status_code: 200
+        status_code: [200, 400, 401, 403, 500]
       register: tailscale_authkey_response
       delegate_to: localhost
       become: false
-      no_log: true
+      # no_log: true  # Temporarily disabled for debugging
+
+    - name: Fail with helpful message if auth key generation failed
+      ansible.builtin.fail:
+        msg: |
+          Failed to generate Tailscale auth key!
+
+          Status: {{ tailscale_authkey_response.status }}
+          Response: {{ tailscale_authkey_response.json | default(tailscale_authkey_response.msg) }}
+
+          Common causes:
+          - OAuth client doesn't have the required tags ({{ tailscale_tags | join(', ') }})
+          - Tags not owned by tag:ansible-managed in ACL
+          - Tailnet name wrong (using: {{ tailscale_tailnet }})
+      when: tailscale_authkey_response.status != 200
 
     # Step 3: Join the tailnet
     - name: Join tailnet with generated auth key
