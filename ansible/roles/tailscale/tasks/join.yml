@@ -69,7 +69,7 @@
         body_format: json
         body:
           tags: "{{ tailscale_tags }}"
-          description: "Ansible: {{ inventory_hostname }} @ {{ ansible_date_time.iso8601 }}"
+          description: "Ansible provisioned {{ inventory_hostname }}"
           expirySeconds: "{{ tailscale_authkey_expiry_seconds }}"
         headers:
           Authorization: "Bearer {{ tailscale_oauth_token.json.access_token }}"
