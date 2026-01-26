@@ -1,26 +1,43 @@
 ---
 # CrowdSec LAPI registration tasks (agent mode)
 
-- name: Check if already registered with LAPI
-  ansible.builtin.command: cscli lapi status
-  register: crowdsec_lapi_status
+- name: Get current LAPI URL from credentials
+  ansible.builtin.command: grep -E "^url:" /etc/crowdsec/local_api_credentials.yaml
+  register: crowdsec_current_lapi_url
   changed_when: false
   failed_when: false
 
+- name: Parse current LAPI URL
+  ansible.builtin.set_fact:
+    crowdsec_current_url: "{{ crowdsec_current_lapi_url.stdout | regex_replace('^url:\\s*', '') | trim }}"
+  when: crowdsec_current_lapi_url.rc == 0
+
 - name: Determine if registration needed
   ansible.builtin.set_fact:
-    crowdsec_needs_registration: "{{ crowdsec_lapi_status.rc != 0 or crowdsec_force_register }}"
+    crowdsec_needs_registration: >-
+      {{
+        crowdsec_force_register or
+        crowdsec_current_lapi_url.rc != 0 or
+        crowdsec_current_url | default('') == 'http://127.0.0.1:8080' or
+        crowdsec_current_url | default('') != crowdsec_lapi_url
+      }}
 
 - name: Display LAPI registration status
   ansible.builtin.debug:
     msg: |
-      LAPI Status: {{ 'Connected' if crowdsec_lapi_status.rc == 0 else 'Not registered' }}
+      Current LAPI URL: {{ crowdsec_current_url | default('not configured') }}
+      Desired LAPI URL: {{ crowdsec_lapi_url }}
       Needs Registration: {{ crowdsec_needs_registration }}
 
 - name: Register with central LAPI
   when: crowdsec_needs_registration
   block:
-    - name: Register machine with LAPI
+    - name: Stop CrowdSec before re-registration
+      ansible.builtin.systemd:
+        name: "{{ crowdsec_service_name }}"
+        state: stopped
+
+    - name: Register machine with remote LAPI
       ansible.builtin.command: >-
         cscli lapi register
         --url {{ crowdsec_lapi_url }}
@@ -56,10 +73,22 @@
           Press ENTER after approving, or Ctrl+C then 'A' to abort
       when: crowdsec_wait_for_approval | default(true)
 
-    - name: Restart CrowdSec to apply LAPI connection
+    - name: Disable local LAPI (agent mode uses remote LAPI only)
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/config.yaml
+        regexp: "^(\\s*)enable:\\s*true\\s*#.*local_api"
+        line: "\\1enable: false  # local_api disabled - using remote LAPI"
+        backrefs: true
+      failed_when: false
+
+    - name: Start CrowdSec with new LAPI configuration
       ansible.builtin.systemd:
         name: "{{ crowdsec_service_name }}"
-        state: restarted
+        state: started
+
+    - name: Wait for CrowdSec to connect
+      ansible.builtin.pause:
+        seconds: 5
 
     - name: Verify LAPI connection
       ansible.builtin.command: cscli lapi status
