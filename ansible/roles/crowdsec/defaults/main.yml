@@ -40,19 +40,17 @@ crowdsec_acquis: []
 crowdsec_bouncers: []
 # Example:
 #   - name: firewall
-#     type: firewalld      # firewalld, nftables, iptables
+#     type: nftables       # nftables (recommended for RHEL 8+/AlmaLinux), iptables
 #     enabled: true
 
 # Package names by OS family
 crowdsec_packages:
   RedHat:
     agent: crowdsec
-    bouncer_firewalld: crowdsec-firewall-bouncer-firewalld
     bouncer_nftables: crowdsec-firewall-bouncer-nftables
     bouncer_iptables: crowdsec-firewall-bouncer-iptables
   Debian:
     agent: crowdsec
-    bouncer_firewalld: crowdsec-firewall-bouncer-firewalld
     bouncer_nftables: crowdsec-firewall-bouncer-nftables
     bouncer_iptables: crowdsec-firewall-bouncer-iptables
 

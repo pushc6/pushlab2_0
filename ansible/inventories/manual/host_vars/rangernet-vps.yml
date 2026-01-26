@@ -37,7 +37,7 @@ crowdsec_acquis:
 
 crowdsec_bouncers:
   - name: firewall
-    type: firewalld
+    type: nftables
     enabled: true
 
 # =============================================================================

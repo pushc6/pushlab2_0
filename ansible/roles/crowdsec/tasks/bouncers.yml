@@ -6,4 +6,4 @@
   loop: "{{ crowdsec_bouncers | selectattr('enabled', 'equalto', true) | list }}"
   loop_control:
     loop_var: bouncer
-  when: bouncer.type in ['firewalld', 'nftables', 'iptables']
+  when: bouncer.type in ['nftables', 'iptables']

@@ -1,5 +1,5 @@
 ---
-# Firewall bouncer installation (firewalld, nftables, iptables)
+# Firewall bouncer installation (nftables or iptables)
 
 - name: "Install firewall bouncer package ({{ bouncer.type }})"
   ansible.builtin.package:
