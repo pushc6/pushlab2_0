@@ -31,6 +31,6 @@
     - name: Allow Tailscale interface in ufw
       community.general.ufw:
         rule: allow
-        interface_in: tailscale0
+        interface: tailscale0
         direction: in
       when: ufw_available.rc == 0
