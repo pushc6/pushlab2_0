@@ -68,9 +68,15 @@
         method: POST
         body_format: json
         body:
-          tags: "{{ tailscale_tags }}"
-          description: "Ansible provisioned {{ inventory_hostname }}"
+          capabilities:
+            devices:
+              create:
+                reusable: false
+                ephemeral: false
+                preauthorized: true
+                tags: "{{ tailscale_tags }}"
           expirySeconds: "{{ tailscale_authkey_expiry_seconds }}"
+          description: "Ansible provisioned {{ inventory_hostname }}"
         headers:
           Authorization: "Bearer {{ tailscale_oauth_token.json.access_token }}"
         status_code: [200, 400, 401, 403, 500]
