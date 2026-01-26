@@ -76,7 +76,7 @@
                 preauthorized: true
                 tags: "{{ tailscale_tags }}"
           expirySeconds: "{{ tailscale_authkey_expiry_seconds }}"
-          description: "Ansible provisioned {{ inventory_hostname }}"
+          description: "Ansible {{ inventory_hostname | regex_replace('[^a-zA-Z0-9-]', '-') }}"
         headers:
           Authorization: "Bearer {{ tailscale_oauth_token.json.access_token }}"
         status_code: [200, 400, 401, 403, 500]
