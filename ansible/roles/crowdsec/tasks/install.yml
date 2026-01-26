@@ -1,0 +1,48 @@
+---
+# CrowdSec installation tasks
+
+- name: Check if CrowdSec is already installed
+  ansible.builtin.command: which cscli
+  register: crowdsec_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install CrowdSec repository and package (RHEL/AlmaLinux)
+  when:
+    - crowdsec_installed.rc != 0
+    - ansible_os_family == "RedHat"
+  block:
+    - name: Add CrowdSec repository
+      ansible.builtin.shell: |
+        curl -s https://install.crowdsec.net | sh
+      args:
+        creates: /etc/yum.repos.d/crowdsec_crowdsec.repo
+
+    - name: Install CrowdSec package
+      ansible.builtin.dnf:
+        name: "{{ crowdsec_packages[ansible_os_family].agent }}"
+        state: present
+
+- name: Install CrowdSec repository and package (Debian/Ubuntu)
+  when:
+    - crowdsec_installed.rc != 0
+    - ansible_os_family == "Debian"
+  block:
+    - name: Add CrowdSec repository
+      ansible.builtin.shell: |
+        curl -s https://install.crowdsec.net | sh
+      args:
+        creates: /etc/apt/sources.list.d/crowdsec_crowdsec.list
+
+    - name: Install CrowdSec package
+      ansible.builtin.apt:
+        name: "{{ crowdsec_packages[ansible_os_family].agent }}"
+        state: present
+        update_cache: true
+
+- name: Enable and start CrowdSec service
+  ansible.builtin.systemd:
+    name: "{{ crowdsec_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true

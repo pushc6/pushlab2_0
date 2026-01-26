@@ -1,0 +1,61 @@
+---
+# Firewall bouncer installation (firewalld, nftables, iptables)
+
+- name: "Install firewall bouncer package ({{ bouncer.type }})"
+  ansible.builtin.package:
+    name: "{{ crowdsec_packages[ansible_os_family]['bouncer_' + bouncer.type] }}"
+    state: present
+
+- name: Check if bouncer is registered
+  ansible.builtin.command: cscli bouncers list -o raw
+  register: crowdsec_bouncers_list
+  changed_when: false
+  delegate_to: "{{ crowdsec_lapi_host | default(omit) }}"
+  become: true
+  when: crowdsec_mode == 'agent'
+
+- name: Determine bouncer name
+  ansible.builtin.set_fact:
+    bouncer_full_name: "{{ crowdsec_machine_name }}-{{ bouncer.name }}"
+
+- name: Register bouncer with LAPI
+  when:
+    - crowdsec_mode == 'agent'
+    - bouncer_full_name not in (crowdsec_bouncers_list.stdout | default(''))
+  block:
+    - name: Generate bouncer API key on LAPI server
+      ansible.builtin.command: >-
+        cscli bouncers add {{ bouncer_full_name }} -o raw
+      register: bouncer_api_key_result
+      delegate_to: "{{ crowdsec_lapi_host }}"
+      become: true
+      changed_when: true
+      no_log: true
+
+    - name: Store bouncer API key
+      ansible.builtin.set_fact:
+        bouncer_api_key: "{{ bouncer_api_key_result.stdout | trim }}"
+      no_log: true
+
+    - name: Configure bouncer with API key
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+        regexp: "^api_key:"
+        line: "api_key: {{ bouncer_api_key }}"
+        backup: true
+      no_log: true
+      notify: Restart crowdsec-firewall-bouncer
+
+    - name: Configure bouncer LAPI URL
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+        regexp: "^api_url:"
+        line: "api_url: {{ crowdsec_lapi_url }}"
+      notify: Restart crowdsec-firewall-bouncer
+
+- name: Enable and start firewall bouncer service
+  ansible.builtin.systemd:
+    name: "{{ crowdsec_bouncer_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true

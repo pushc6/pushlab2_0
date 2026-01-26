@@ -1,0 +1,44 @@
+---
+# CrowdSec role - main task orchestration
+
+- name: CrowdSec deployment
+  when: crowdsec_enabled | default(false)
+  tags:
+    - crowdsec
+  block:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - crowdsec_mode in ['agent', 'lapi', 'standalone']
+          - crowdsec_lapi_url | length > 0 or crowdsec_mode != 'agent'
+        fail_msg: |
+          Invalid CrowdSec configuration:
+          - crowdsec_mode must be 'agent', 'lapi', or 'standalone' (got: {{ crowdsec_mode }})
+          - crowdsec_lapi_url required for agent mode (got: {{ crowdsec_lapi_url | default('') }})
+
+    - name: Display CrowdSec configuration
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          CrowdSec Configuration
+          ========================================
+          Mode: {{ crowdsec_mode }}
+          Machine Name: {{ crowdsec_machine_name }}
+          LAPI URL: {{ crowdsec_lapi_url | default('local') }}
+          Collections: {{ crowdsec_collections | join(', ') }}
+          Bouncers: {{ crowdsec_bouncers | map(attribute='name') | join(', ') | default('none') }}
+          ========================================
+
+    - name: Include installation tasks
+      ansible.builtin.include_tasks: install.yml
+
+    - name: Include configuration tasks
+      ansible.builtin.include_tasks: configure.yml
+
+    - name: Include LAPI registration tasks
+      ansible.builtin.include_tasks: register.yml
+      when: crowdsec_mode == 'agent'
+
+    - name: Include bouncer tasks
+      ansible.builtin.include_tasks: bouncers.yml
+      when: crowdsec_bouncers | length > 0

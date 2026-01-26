@@ -1,0 +1,70 @@
+---
+# CrowdSec LAPI registration tasks (agent mode)
+
+- name: Check if already registered with LAPI
+  ansible.builtin.command: cscli lapi status
+  register: crowdsec_lapi_status
+  changed_when: false
+  failed_when: false
+
+- name: Determine if registration needed
+  ansible.builtin.set_fact:
+    crowdsec_needs_registration: "{{ crowdsec_lapi_status.rc != 0 or crowdsec_force_register }}"
+
+- name: Display LAPI registration status
+  ansible.builtin.debug:
+    msg: |
+      LAPI Status: {{ 'Connected' if crowdsec_lapi_status.rc == 0 else 'Not registered' }}
+      Needs Registration: {{ crowdsec_needs_registration }}
+
+- name: Register with central LAPI
+  when: crowdsec_needs_registration
+  block:
+    - name: Register machine with LAPI
+      ansible.builtin.command: >-
+        cscli lapi register
+        --url {{ crowdsec_lapi_url }}
+        --machine {{ crowdsec_machine_name }}
+      register: crowdsec_register_result
+      changed_when: true
+
+    - name: Display registration result
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          CrowdSec Machine Registered
+          ========================================
+          Machine: {{ crowdsec_machine_name }}
+          LAPI: {{ crowdsec_lapi_url }}
+
+          IMPORTANT: You must approve this machine on the LAPI server:
+            sudo cscli machines validate {{ crowdsec_machine_name }}
+
+          Or list pending machines:
+            sudo cscli machines list
+          ========================================
+
+    - name: Pause for manual approval
+      ansible.builtin.pause:
+        prompt: |
+
+          Machine '{{ crowdsec_machine_name }}' registered with LAPI.
+
+          Please approve on {{ crowdsec_lapi_url.split('//')[1].split(':')[0] }}:
+            sudo cscli machines validate {{ crowdsec_machine_name }}
+
+          Press ENTER after approving, or Ctrl+C then 'A' to abort
+      when: crowdsec_wait_for_approval | default(true)
+
+    - name: Restart CrowdSec to apply LAPI connection
+      ansible.builtin.systemd:
+        name: "{{ crowdsec_service_name }}"
+        state: restarted
+
+    - name: Verify LAPI connection
+      ansible.builtin.command: cscli lapi status
+      register: crowdsec_lapi_verify
+      retries: 3
+      delay: 5
+      until: crowdsec_lapi_verify.rc == 0
+      changed_when: false

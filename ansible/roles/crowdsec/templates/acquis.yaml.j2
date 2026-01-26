@@ -1,0 +1,25 @@
+# {{ ansible_managed }}
+# Acquisition configuration for {{ item.name }}
+
+{% if item.filenames is defined %}
+filenames:
+{% for file in item.filenames %}
+  - {{ file }}
+{% endfor %}
+{% endif %}
+
+{% if item.journalctl_filter is defined %}
+journalctl_filter:
+{% for filter in item.journalctl_filter %}
+  - {{ filter }}
+{% endfor %}
+{% endif %}
+
+{% if item.source is defined %}
+source: {{ item.source }}
+{% endif %}
+
+labels:
+{% for key, value in item.labels.items() %}
+  {{ key }}: {{ value }}
+{% endfor %}

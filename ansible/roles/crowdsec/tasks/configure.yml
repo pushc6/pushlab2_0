@@ -1,0 +1,43 @@
+---
+# CrowdSec configuration tasks
+
+# Install collections
+- name: Get installed collections
+  ansible.builtin.command: cscli collections list -o raw
+  register: crowdsec_installed_collections
+  changed_when: false
+
+- name: Install CrowdSec collections
+  ansible.builtin.command: "cscli collections install {{ item }}"
+  loop: "{{ crowdsec_collections }}"
+  when: item not in crowdsec_installed_collections.stdout
+  notify: Restart crowdsec
+
+# Configure acquisition sources
+- name: Create acquisition configuration files
+  ansible.builtin.template:
+    src: acquis.yaml.j2
+    dest: "/etc/crowdsec/acquis.d/{{ item.name }}.yaml"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ crowdsec_acquis }}"
+  when: crowdsec_acquis | length > 0
+  notify: Restart crowdsec
+
+# Remove acquisition files for sources not in config
+- name: Find existing acquisition files
+  ansible.builtin.find:
+    paths: /etc/crowdsec/acquis.d
+    patterns: "*.yaml"
+  register: existing_acquis_files
+
+- name: Remove unmanaged acquisition files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ existing_acquis_files.files }}"
+  when:
+    - crowdsec_acquis | length > 0
+    - (item.path | basename | splitext | first) not in (crowdsec_acquis | map(attribute='name') | list)
+  notify: Restart crowdsec

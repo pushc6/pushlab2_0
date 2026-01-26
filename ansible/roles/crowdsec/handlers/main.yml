@@ -1,0 +1,12 @@
+---
+# CrowdSec handlers
+
+- name: Restart crowdsec
+  ansible.builtin.systemd:
+    name: "{{ crowdsec_service_name }}"
+    state: restarted
+
+- name: Restart crowdsec-firewall-bouncer
+  ansible.builtin.systemd:
+    name: "{{ crowdsec_bouncer_service_name }}"
+    state: restarted

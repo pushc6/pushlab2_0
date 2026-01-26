@@ -1,0 +1,9 @@
+---
+# CrowdSec bouncer installation and configuration
+
+- name: Process each bouncer
+  ansible.builtin.include_tasks: bouncer_firewall.yml
+  loop: "{{ crowdsec_bouncers | selectattr('enabled', 'equalto', true) | list }}"
+  loop_control:
+    loop_var: bouncer
+  when: bouncer.type in ['firewalld', 'nftables', 'iptables']

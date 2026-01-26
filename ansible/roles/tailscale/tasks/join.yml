@@ -83,16 +83,13 @@
       register: tailscale_authkey_response
       delegate_to: localhost
       become: false
-      # no_log: true  # Temporarily disabled for debugging
+      no_log: true
 
     - name: Fail with helpful message if auth key generation failed
       ansible.builtin.fail:
         msg: |
           Failed to generate Tailscale auth key!
-
           Status: {{ tailscale_authkey_response.status }}
-          Response: {{ tailscale_authkey_response.json | default(tailscale_authkey_response.msg) }}
-
           Common causes:
           - OAuth client doesn't have the required tags ({{ tailscale_tags | join(', ') }})
           - Tags not owned by tag:ansible-managed in ACL

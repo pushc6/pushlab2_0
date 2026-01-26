@@ -26,6 +26,13 @@
     - tailscale
   tags: ['tailscale', 'networking']
 
+- name: Deploy CrowdSec
+  hosts: all:!opnsense
+  become: true
+  roles:
+    - crowdsec
+  tags: ['crowdsec', 'security']
+
 - name: Run System Updates
   import_playbook: update_all.yml
   tags: ['updates', 'security']

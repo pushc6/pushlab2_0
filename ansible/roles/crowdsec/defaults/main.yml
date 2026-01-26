@@ -1,0 +1,64 @@
+---
+# CrowdSec role defaults
+
+# Enable/disable CrowdSec on this host
+crowdsec_enabled: false
+
+# Mode: "agent" (connects to remote LAPI), "lapi" (is the LAPI server), "standalone" (local LAPI)
+crowdsec_mode: "agent"
+
+# Central LAPI configuration (for agent mode)
+crowdsec_lapi_url: "http://crowdsec.crane-beaver.ts.net:8080"
+crowdsec_lapi_host: "crowdsec.localdomain"  # Ansible inventory name for LAPI server (for bouncer registration)
+crowdsec_machine_name: "{{ inventory_hostname.split('.')[0] }}"
+
+# Wait for manual machine approval during registration
+crowdsec_wait_for_approval: true
+
+# Collections to install (parsers + scenarios)
+# See: https://hub.crowdsec.net/browse/
+crowdsec_collections:
+  - crowdsecurity/linux
+
+# Acquisition sources - what logs to monitor
+# Each entry creates a file in /etc/crowdsec/acquis.d/
+crowdsec_acquis: []
+# Example:
+#   - name: nginx
+#     filenames:
+#       - /var/log/nginx/access.log
+#       - /var/log/nginx/error.log
+#     labels:
+#       type: nginx
+#   - name: sshd
+#     journalctl_filter:
+#       - "_SYSTEMD_UNIT=sshd.service"
+#     labels:
+#       type: syslog
+
+# Bouncers to install and configure
+crowdsec_bouncers: []
+# Example:
+#   - name: firewall
+#     type: firewalld      # firewalld, nftables, iptables
+#     enabled: true
+
+# Package names by OS family
+crowdsec_packages:
+  RedHat:
+    agent: crowdsec
+    bouncer_firewalld: crowdsec-firewall-bouncer-firewalld
+    bouncer_nftables: crowdsec-firewall-bouncer-nftables
+    bouncer_iptables: crowdsec-firewall-bouncer-iptables
+  Debian:
+    agent: crowdsec
+    bouncer_firewalld: crowdsec-firewall-bouncer-firewalld
+    bouncer_nftables: crowdsec-firewall-bouncer-nftables
+    bouncer_iptables: crowdsec-firewall-bouncer-iptables
+
+# Service names
+crowdsec_service_name: crowdsec
+crowdsec_bouncer_service_name: crowdsec-firewall-bouncer
+
+# Force re-registration even if already registered
+crowdsec_force_register: false

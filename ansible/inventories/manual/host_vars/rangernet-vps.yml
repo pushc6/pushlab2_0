@@ -10,6 +10,37 @@ tailscale_tags:
   - "tag:crowdsec-agent"
 
 # =============================================================================
+# CrowdSec Configuration
+# =============================================================================
+crowdsec_enabled: true
+crowdsec_mode: agent
+crowdsec_lapi_url: "http://crowdsec.crane-beaver.ts.net:8080"
+crowdsec_lapi_host: "crowdsec.localdomain"  # For bouncer registration
+
+crowdsec_collections:
+  - crowdsecurity/linux
+  - crowdsecurity/nginx
+
+crowdsec_acquis:
+  - name: nginx
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/nginx/error.log
+    labels:
+      type: nginx
+  - name: syslog
+    filenames:
+      - /var/log/messages
+      - /var/log/secure
+    labels:
+      type: syslog
+
+crowdsec_bouncers:
+  - name: firewall
+    type: firewalld
+    enabled: true
+
+# =============================================================================
 # Firewall Configuration
 # =============================================================================
 
