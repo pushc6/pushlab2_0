@@ -39,6 +39,7 @@
     cmd: "curl -s -o /dev/null -w '%{http_code}' '{{ technitium_dns_server_url }}/api/zones/list?token={{ technitium_dns_api_token }}'"
   register: curl_test
   changed_when: false
+  check_mode: false
 
 - name: Show curl result
   ansible.builtin.debug:
