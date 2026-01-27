@@ -4,8 +4,7 @@
 # =============================================================================
 
 # Connection settings (override in group_vars or vault)
-technitium_dns_server_url: "{{ technitium_dns.server_url | default('http://docker-secure.localdomain:5380') }}"
-technitium_dns_zone: "{{ technitium_dns.zone | default('localdomain') }}"
+technitium_dns_server_url: "{{ technitium_dns.server_url | default('http://10.37.20.2:5380') }}"
 technitium_dns_default_ttl: "{{ technitium_dns.default_ttl | default(3600) }}"
 
 # API token - MUST be provided via vault or extra vars

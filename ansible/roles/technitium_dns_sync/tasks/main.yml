@@ -60,10 +60,9 @@
   effectivelywild.technitium_dns.technitium_dns_record:
     api_url: "{{ technitium_dns_server_url }}"
     api_token: "{{ technitium_dns_api_token }}"
-    zone: "{{ technitium_dns_zone }}"
-    domain: "{{ item.value.hostname }}"
+    name: "{{ item.value.hostname }}"
     type: "A"
-    ip_address: "{{ item.value.ip }}"
+    ipAddress: "{{ item.value.ip }}"
     ttl: "{{ technitium_dns_default_ttl }}"
     state: present
   loop: "{{ dns_a_records }}"
@@ -87,8 +86,7 @@
   effectivelywild.technitium_dns.technitium_dns_record:
     api_url: "{{ technitium_dns_server_url }}"
     api_token: "{{ technitium_dns_api_token }}"
-    zone: "{{ technitium_dns_zone }}"
-    domain: "{{ alias }}"
+    name: "{{ alias }}"
     type: "CNAME"
     cname: "{{ host.hostname }}"
     ttl: "{{ technitium_dns_default_ttl }}"
