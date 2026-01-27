@@ -34,7 +34,7 @@
 
 # Technitium DNS Server Configuration
 technitium_dns:
-  server_url: "http://10.37.20.2:5380"
+  server_url: "http://10.37.70.2:5380"
   zone: "localdomain"
   default_ttl: 3600
   # API token should be stored in vault or external secrets
