@@ -37,7 +37,7 @@
 technitium_dns:
   server_url: "http://10.37.70.2"
   zone: "localdomain"
-  default_ttl: 3600
+  default_ttl: 300  # Lowered for migration - raise back to 3600 after re-IP complete
   # API token should be stored in vault or external secrets
   # token: "{{ vault_technitium_api_token }}"
 
