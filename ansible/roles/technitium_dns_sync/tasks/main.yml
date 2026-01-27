@@ -58,8 +58,8 @@
 
 - name: Create/Update A records
   effectivelywild.technitium_dns.technitium_dns_record:
-    server: "{{ technitium_dns_server_url }}"
-    token: "{{ technitium_dns_api_token }}"
+    api_url: "{{ technitium_dns_server_url }}"
+    api_token: "{{ technitium_dns_api_token }}"
     zone: "{{ technitium_dns_zone }}"
     domain: "{{ item.value.hostname }}"
     type: "A"
@@ -85,8 +85,8 @@
 
 - name: Create/Update CNAME records for aliases
   effectivelywild.technitium_dns.technitium_dns_record:
-    server: "{{ technitium_dns_server_url }}"
-    token: "{{ technitium_dns_api_token }}"
+    api_url: "{{ technitium_dns_server_url }}"
+    api_token: "{{ technitium_dns_api_token }}"
     zone: "{{ technitium_dns_zone }}"
     domain: "{{ alias }}"
     type: "CNAME"
