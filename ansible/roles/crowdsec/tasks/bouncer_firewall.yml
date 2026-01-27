@@ -6,6 +6,14 @@
     name: "{{ crowdsec_packages[ansible_os_family]['bouncer_' + bouncer.type] }}"
     state: present
 
+- name: "Configure bouncer mode ({{ bouncer.type }})"
+  ansible.builtin.lineinfile:
+    path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    regexp: "^mode:"
+    line: "mode: {{ bouncer.type }}"
+  when: ansible_os_family == 'Debian'
+  notify: Restart crowdsec-firewall-bouncer
+
 - name: Check if bouncer is registered
   ansible.builtin.command: cscli bouncers list -o raw
   register: crowdsec_bouncers_list
