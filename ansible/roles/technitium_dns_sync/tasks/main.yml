@@ -13,13 +13,17 @@
 #   - hosts: Dictionary from hosts_registry.yml
 # =============================================================================
 
+- name: Get API token from environment if not set as variable
+  ansible.builtin.set_fact:
+    technitium_dns_api_token: "{{ technitium_dns_api_token | default(lookup('env', 'technitium_dns_api_token'), true) }}"
+
 - name: Check if API token is provided
   ansible.builtin.set_fact:
     _dns_sync_enabled: "{{ technitium_dns_api_token is defined and technitium_dns_api_token | length > 0 }}"
 
 - name: Skip DNS sync if token not provided
   ansible.builtin.debug:
-    msg: "Skipping DNS sync - technitium_dns_api_token not set. Set it in Semaphore Environment or pass via -e"
+    msg: "Skipping DNS sync - technitium_dns_api_token not set. Set it in Semaphore Extra Variables or Environment Variables, or pass via -e"
   when: not _dns_sync_enabled
 
 - name: End play if token not provided
