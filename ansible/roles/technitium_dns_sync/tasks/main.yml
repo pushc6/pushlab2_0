@@ -1,0 +1,111 @@
+---
+# =============================================================================
+# Technitium DNS Sync Role
+# =============================================================================
+# Syncs DNS records from the hosts_registry to Technitium DNS Server
+# Uses the effectivelywild.technitium_dns Ansible collection
+#
+# Prerequisites:
+#   ansible-galaxy collection install effectivelywild.technitium_dns
+#
+# Required variables:
+#   - technitium_dns_api_token: API token for authentication
+#   - hosts: Dictionary from hosts_registry.yml
+# =============================================================================
+
+- name: Check if API token is provided
+  ansible.builtin.set_fact:
+    _dns_sync_enabled: "{{ technitium_dns_api_token is defined and technitium_dns_api_token | length > 0 }}"
+
+- name: Skip DNS sync if token not provided
+  ansible.builtin.debug:
+    msg: "Skipping DNS sync - technitium_dns_api_token not set. Set it in Semaphore Environment or pass via -e"
+  when: not _dns_sync_enabled
+
+- name: End play if token not provided
+  ansible.builtin.meta: end_host
+  when: not _dns_sync_enabled
+
+- name: Build list of A records from hosts registry
+  ansible.builtin.set_fact:
+    dns_a_records: >-
+      {{
+        (hosts_vlan20 | default({}) | dict2items) +
+        (hosts_vlan70 | default({}) | dict2items) +
+        (hosts_vlan80 | default({}) | dict2items) +
+        (hosts_vlan50 | default({}) | dict2items) +
+        (hosts_vlan30 | default({}) | dict2items)
+        | selectattr('value.dns_record', 'defined')
+        | selectattr('value.dns_record', 'equalto', true)
+        | list
+      }}
+
+- name: Display records to sync (dry run)
+  ansible.builtin.debug:
+    msg: |
+      DNS Records to sync:
+      {% for record in dns_a_records %}
+      - {{ record.value.hostname }} -> {{ record.value.ip }}
+      {% if record.value.aliases is defined %}
+        Aliases (CNAME): {{ record.value.aliases | join(', ') }}
+      {% endif %}
+      {% endfor %}
+  when: technitium_dns_dry_run | bool
+
+- name: Create/Update A records
+  effectivelywild.technitium_dns.technitium_dns_record:
+    server: "{{ technitium_dns_server_url }}"
+    token: "{{ technitium_dns_api_token }}"
+    zone: "{{ technitium_dns_zone }}"
+    domain: "{{ item.value.hostname }}"
+    type: "A"
+    ip_address: "{{ item.value.ip }}"
+    ttl: "{{ technitium_dns_default_ttl }}"
+    state: present
+  loop: "{{ dns_a_records }}"
+  loop_control:
+    label: "{{ item.value.hostname }} -> {{ item.value.ip }}"
+  when: not (technitium_dns_dry_run | bool)
+  register: a_record_results
+
+- name: Build list of CNAME aliases
+  ansible.builtin.set_fact:
+    dns_cname_records: >-
+      {{
+        dns_a_records
+        | selectattr('value.aliases', 'defined')
+        | map(attribute='value')
+        | list
+      }}
+  when: technitium_dns_create_cname_aliases | bool
+
+- name: Create/Update CNAME records for aliases
+  effectivelywild.technitium_dns.technitium_dns_record:
+    server: "{{ technitium_dns_server_url }}"
+    token: "{{ technitium_dns_api_token }}"
+    zone: "{{ technitium_dns_zone }}"
+    domain: "{{ alias }}"
+    type: "CNAME"
+    cname: "{{ host.hostname }}"
+    ttl: "{{ technitium_dns_default_ttl }}"
+    state: present
+  loop: "{{ dns_cname_records | subelements('aliases') }}"
+  loop_control:
+    label: "{{ alias }} -> {{ host.hostname }}"
+  vars:
+    host: "{{ item.0 }}"
+    alias: "{{ item.1 }}"
+  when:
+    - technitium_dns_create_cname_aliases | bool
+    - not (technitium_dns_dry_run | bool)
+  register: cname_record_results
+
+- name: Summary of DNS sync
+  ansible.builtin.debug:
+    msg: |
+      DNS Sync Complete:
+      - A records processed: {{ dns_a_records | length }}
+      - CNAME aliases processed: {{ dns_cname_records | map(attribute='aliases') | flatten | length }}
+      {% if technitium_dns_dry_run %}
+      NOTE: Dry run mode - no changes were made
+      {% endif %}

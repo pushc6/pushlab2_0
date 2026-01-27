@@ -1,0 +1,546 @@
+---
+# =============================================================================
+# HOSTS & SERVICES REGISTRY - Single Source of Truth
+# =============================================================================
+# This file defines all managed hosts and services with their IPs.
+# Use these variables throughout Ansible configs to ensure consistency.
+#
+# TWO WAYS TO REFERENCE:
+#
+#   1. BY HOST (when you care about the physical/virtual host):
+#      - {{ hosts.docker_internal.ip }}/32
+#      - {{ hosts.docker_internal.hostname }}
+#
+#   2. BY SERVICE (when you care about the service, not where it runs):
+#      - {{ services.semaphore.ip }}/32
+#      - {{ services.semaphore.hostname }}
+#      - {{ services.semaphore.port }}
+#
+# WHEN TO USE WHICH:
+#   - Use 'hosts.X' for host-level things (SSH access, NFS mounts)
+#   - Use 'services.X' for application access (firewalls allowing app traffic)
+#
+# IF A SERVICE MOVES TO A DIFFERENT HOST:
+#   1. Add new host entry (or use existing)
+#   2. Update services.X.host to point to new host
+#   3. Run DNS sync and firewall playbooks
+#   - All configs using services.X.ip automatically get the new IP!
+#
+# IF A HOST IP CHANGES:
+#   1. Update hosts_vlanXX.hostname.ip
+#   2. Run DNS sync and firewall playbooks
+#   - All services on that host automatically get the new IP!
+# =============================================================================
+
+# Technitium DNS Server Configuration
+technitium_dns:
+  server_url: "http://10.37.20.2:5380"
+  zone: "localdomain"
+  default_ttl: 3600
+  # API token should be stored in vault or external secrets
+  # token: "{{ vault_technitium_api_token }}"
+
+# =============================================================================
+# VLAN 20 - Trusted/Management VLAN
+# =============================================================================
+hosts_vlan20:
+  synology:
+    hostname: push-nas.localdomain
+    ip: "10.37.20.4"
+    description: "Synology NAS"
+    dns_record: true
+    aliases:
+      - synology.localdomain
+    services:
+      - nfs
+
+# =============================================================================
+# VLAN 70 - DMZ VLAN
+# =============================================================================
+hosts_vlan70:
+  nginx_dmz:
+    hostname: nginx.localdomain
+    ip: "10.37.70.5"
+    description: "Public-facing reverse proxy"
+    dns_record: true
+    aliases:
+      - nginx-dmz.localdomain
+    services:
+      - nginx
+      - oauth2-proxy
+
+  docker_secure:
+    hostname: docker-secure.localdomain
+    ip: "10.37.70.2"
+    description: "Secure Docker host (DNS, security services)"
+    dns_record: true
+    services:
+      - technitium-dns
+      - adguard
+
+  docker:
+    hostname: docker.localdomain
+    ip: "10.37.70.7"
+    description: "Main Docker host (media, apps)"
+    dns_record: true
+    services:
+      - sonarr
+      - radarr
+      - lidarr
+      - code-server
+      - dozzle
+
+  veeam:
+    hostname: veeam.localdomain
+    ip: "10.37.70.21"
+    description: "Veeam Backup Server"
+    dns_record: true
+    aliases:
+      - veeammachine.localdomain
+
+  truenas:
+    hostname: truenas.localdomain
+    ip: "10.37.70.22"
+    description: "TrueNAS Storage Server"
+    dns_record: true
+    services:
+      - nfs
+      - smb
+
+  nginx_internal:
+    hostname: nginx-internal.localdomain
+    ip: "10.37.70.24"
+    description: "Internal reverse proxy"
+    dns_record: true
+    services:
+      - nginx
+
+  crowdsec:
+    hostname: crowdsec.localdomain
+    ip: "10.37.70.26"
+    description: "CrowdSec LAPI Controller"
+    dns_record: true
+    services:
+      - crowdsec-lapi
+
+  ansible_controller:
+    hostname: ansible.localdomain
+    ip: "10.37.70.27"
+    description: "Ansible control node"
+    dns_record: true
+
+  linuxgameserver:
+    hostname: linuxgameserver.localdomain
+    ip: "10.37.70.19"
+    description: "Linux Game Server"
+    dns_record: true
+
+  prusa3d:
+    hostname: prusa3dbawkz.localdomain
+    ip: "10.37.70.28"
+    description: "Prusa 3D Printer"
+    dns_record: true
+
+# =============================================================================
+# VLAN 80 - App/Servers VLAN
+# =============================================================================
+hosts_vlan80:
+  gitea:
+    hostname: gitea.localdomain
+    ip: "10.37.80.4"
+    description: "Gitea Git Server"
+    dns_record: true
+    services:
+      - gitea
+
+  packer_builder:
+    hostname: packer-builder.localdomain
+    ip: "10.37.80.5"
+    description: "Packer VM Builder"
+    dns_record: true
+
+  # =========================================================================
+  # docker-internal - MIGRATION PENDING
+  # Current IP: 10.37.70.25 (VLAN 70)
+  # Target IP: 10.37.80.6 (VLAN 80) - change when ready to migrate
+  # =========================================================================
+  docker_internal:
+    hostname: docker-internal.localdomain
+    ip: "10.37.70.25"
+    description: "Internal Docker host (monitoring, automation, auth)"
+    dns_record: true
+    aliases:
+      - semaphore.localdomain
+      - grafana.localdomain
+      - victoriametrics.localdomain
+      - victorialogs.localdomain
+      - alloy.localdomain
+      - influxdb.localdomain
+      - mqtt.localdomain
+      - oauth2-proxy-internal.localdomain
+      - immich.localdomain
+      - peanut.localdomain
+      - crowdsec-api-manager.localdomain
+    services:
+      - semaphore
+      - grafana
+      - victoriametrics
+      - victorialogs
+      - alloy
+      - influxdb
+      - mosquitto
+      - oauth2-proxy
+      - immich
+      - nut
+      - peanut
+      - crowdsec-api-manager
+
+# =============================================================================
+# VLAN 50 - IoT VLAN
+# =============================================================================
+hosts_vlan50:
+  raspberrypi_ha:
+    hostname: raspberrypi-ha.localdomain
+    ip: "10.37.50.12"
+    description: "Home Assistant on Raspberry Pi"
+    dns_record: true
+    services:
+      - home-assistant
+
+# =============================================================================
+# VLAN 30 - Servers VLAN (Legacy/Other)
+# =============================================================================
+hosts_vlan30:
+  cupsserver:
+    hostname: cupsserver.localdomain
+    ip: "10.37.30.10"
+    description: "CUPS Print Server"
+    dns_record: true
+    services:
+      - cups
+
+# =============================================================================
+# External / VPS Hosts
+# =============================================================================
+hosts_external:
+  rangernet_vps:
+    hostname: rangernet-vps.localdomain
+    ip: "192.210.235.136"
+    description: "RangerNet VPS (external)"
+    dns_record: true
+
+# =============================================================================
+# PUBLIC DOMAIN DNS RECORDS
+# =============================================================================
+# These are DNS records for public domains that point to internal reverse proxies.
+# They are NOT hosts - they're proxy entries. Managed separately from hosts.
+#
+# Format: domain -> list of A records -> target IP (usually nginx proxy)
+# =============================================================================
+
+public_dns_records:
+  # -------------------------------------------------------------------------
+  # push-lab.com - Internal services via nginx-internal (10.37.70.24)
+  # -------------------------------------------------------------------------
+  push-lab.com:
+    zone: push-lab.com
+    records:
+      # nginx-internal backends
+      - name: aap.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: code.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: dashboard.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: digx.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: dozzle.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: esxi.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: git.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: grafana.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: lidarr.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: radarr.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: readarr.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: sab.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: semaphore.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: sonarr.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: syno.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: truenas.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: vsphere.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: zigbee.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      - name: zwave.push-lab.com
+        ip: "{{ hosts.nginx_internal.ip }}"
+      # nginx-dmz backends
+      - name: auth.push-lab.com
+        ip: "{{ hosts.nginx_dmz.ip }}"
+      - name: invite.push-lab.com
+        ip: "{{ hosts.nginx_dmz.ip }}"
+      - name: n8n.push-lab.com
+        ip: "{{ hosts.nginx_dmz.ip }}"
+      - name: plex.push-lab.com
+        ip: "{{ hosts.nginx_dmz.ip }}"
+      # Other hosts
+      - name: ha.push-lab.com
+        ip: "10.37.70.20"
+      - name: satisfactory.push-lab.com
+        ip: "{{ hosts.linuxgameserver.ip }}"
+      - name: sso.push-lab.com
+        ip: "{{ hosts.docker.ip }}"
+
+  # -------------------------------------------------------------------------
+  # ryanpampush.com - Public services via nginx-dmz (10.37.70.5)
+  # -------------------------------------------------------------------------
+  ryanpampush.com:
+    zone: ryanpampush.com
+    records:
+      - name: cloud.ryanpampush.com
+        ip: "{{ hosts.nginx_dmz.ip }}"
+      - name: plex.ryanpampush.com
+        ip: "{{ hosts.nginx_dmz.ip }}"
+      - name: request.ryanpampush.com
+        ip: "{{ hosts.nginx_dmz.ip }}"
+      - name: teslamate.ryanpampush.com
+        ip: "{{ hosts.docker.ip }}"
+
+  # -------------------------------------------------------------------------
+  # patreons7.club
+  # -------------------------------------------------------------------------
+  patreons7.club:
+    zone: patreons7.club
+    records:
+      - name: nc.patreons7.club
+        ip: "{{ hosts.nginx_dmz.ip }}"
+
+  # -------------------------------------------------------------------------
+  # rangernet.dev - IoT/logging services
+  # -------------------------------------------------------------------------
+  rangernet.dev:
+    zone: rangernet.dev
+    records:
+      - name: logs.rangernet.dev
+        ip: "{{ hosts.docker_internal.ip }}"  # VictoriaLogs
+      - name: mqtt.rangernet.dev
+        ip: "{{ hosts.nginx_internal.ip }}"   # MQTT proxy
+
+# =============================================================================
+# Convenience Lookups - Flat dictionary for easy access
+# =============================================================================
+# Merge all VLAN hosts into a single 'hosts' dictionary
+# Usage: {{ hosts.docker_internal.ip }}
+hosts: >-
+  {{
+    (hosts_vlan20 | default({})) |
+    combine(hosts_vlan70 | default({})) |
+    combine(hosts_vlan80 | default({})) |
+    combine(hosts_vlan50 | default({})) |
+    combine(hosts_vlan30 | default({})) |
+    combine(hosts_external | default({}))
+  }}
+
+# =============================================================================
+# SERVICES REGISTRY - Service-to-Host Mapping
+# =============================================================================
+# Map service names to their hosting location. This allows referencing services
+# by name rather than host, so if a service moves to a different host, you
+# only update this mapping.
+#
+# Usage:
+#   - Firewall rules: "{{ services.semaphore.ip }}/32"
+#   - Nginx backends: "{{ services.semaphore.hostname }}"
+#   - Check host:     "{{ services.semaphore.host }}"
+#
+# If semaphore moves from docker-internal to its own host:
+#   1. Add new host entry in hosts_vlanXX
+#   2. Update services.semaphore.host below
+#   3. Run DNS sync and firewall playbooks
+# =============================================================================
+
+services:
+  # -------------------------------------------------------------------------
+  # Automation & CI/CD
+  # -------------------------------------------------------------------------
+  semaphore:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 3004
+    description: "Ansible Semaphore UI"
+
+  gitea:
+    host: gitea
+    ip: "{{ hosts.gitea.ip }}"
+    hostname: "{{ hosts.gitea.hostname }}"
+    port: 3000
+    description: "Gitea Git Server"
+
+  # -------------------------------------------------------------------------
+  # Monitoring & Observability
+  # -------------------------------------------------------------------------
+  grafana:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 3002
+    description: "Grafana Dashboards"
+
+  victoriametrics:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 8428
+    description: "VictoriaMetrics Time Series DB"
+
+  victorialogs:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 9428
+    description: "VictoriaLogs"
+
+  alloy:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 12345
+    description: "Grafana Alloy Telemetry Collector"
+
+  influxdb:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 8086
+    description: "InfluxDB"
+
+  # -------------------------------------------------------------------------
+  # Authentication & Security
+  # -------------------------------------------------------------------------
+  oauth2_proxy:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 4180
+    description: "OAuth2 Proxy (internal)"
+
+  crowdsec_lapi:
+    host: crowdsec
+    ip: "{{ hosts.crowdsec.ip }}"
+    hostname: "{{ hosts.crowdsec.hostname }}"
+    port: 8080
+    description: "CrowdSec LAPI Controller"
+
+  crowdsec_api_manager:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 5000
+    description: "CrowdSec API Manager"
+
+  # -------------------------------------------------------------------------
+  # Messaging
+  # -------------------------------------------------------------------------
+  mqtt:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 1883
+    description: "Mosquitto MQTT Broker"
+
+  # -------------------------------------------------------------------------
+  # Media & Applications
+  # -------------------------------------------------------------------------
+  immich:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 2283
+    description: "Immich Photo Management"
+
+  sonarr:
+    host: docker
+    ip: "{{ hosts.docker.ip }}"
+    hostname: "{{ hosts.docker.hostname }}"
+    port: 8989
+    description: "Sonarr TV Manager"
+
+  radarr:
+    host: docker
+    ip: "{{ hosts.docker.ip }}"
+    hostname: "{{ hosts.docker.hostname }}"
+    port: 7878
+    description: "Radarr Movie Manager"
+
+  lidarr:
+    host: docker
+    ip: "{{ hosts.docker.ip }}"
+    hostname: "{{ hosts.docker.hostname }}"
+    port: 8686
+    description: "Lidarr Music Manager"
+
+  # -------------------------------------------------------------------------
+  # Infrastructure
+  # -------------------------------------------------------------------------
+  home_assistant:
+    host: raspberrypi_ha
+    ip: "{{ hosts.raspberrypi_ha.ip }}"
+    hostname: "{{ hosts.raspberrypi_ha.hostname }}"
+    port: 8123
+    description: "Home Assistant"
+
+  peanut:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 8080
+    description: "PeaNUT UPS Monitor"
+
+  nut:
+    host: docker_internal
+    ip: "{{ hosts.docker_internal.ip }}"
+    hostname: "{{ hosts.docker_internal.hostname }}"
+    port: 3493
+    description: "NUT UPS Server"
+
+  technitium_dns:
+    host: docker_secure
+    ip: "{{ hosts.docker_secure.ip }}"
+    hostname: "{{ hosts.docker_secure.hostname }}"
+    port: 5380
+    description: "Technitium DNS Server"
+
+  truenas:
+    host: truenas
+    ip: "{{ hosts.truenas.ip }}"
+    hostname: "{{ hosts.truenas.hostname }}"
+    port: 443
+    description: "TrueNAS Web UI"
+
+# =============================================================================
+# Legacy Compatibility Variables
+# =============================================================================
+# These maintain backwards compatibility with existing configs
+# TODO: Migrate all usages to services.X.ip or hosts.X.ip format
+
+# Semaphore - now use services.semaphore.ip
+semaphore_ip: "{{ services.semaphore.ip }}"
+
+# Veeam - already defined in main.yml, keeping for reference
+# veeam_server_ip: "{{ hosts.veeam.ip }}"
+
+# Reverse proxy IPs - used in firewall configs
+reverse_proxy_ips:
+  - "{{ hosts.nginx_dmz.ip }}"
+  - "{{ hosts.nginx_internal.ip }}"

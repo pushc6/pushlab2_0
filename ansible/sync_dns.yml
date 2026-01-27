@@ -1,0 +1,33 @@
+---
+# =============================================================================
+# Technitium DNS Sync Playbook
+# =============================================================================
+# Syncs all DNS records from the hosts_registry to Technitium DNS Server.
+#
+# Usage:
+#   # Dry run (show what would change)
+#   ansible-playbook sync_dns.yml -e "technitium_dns_dry_run=true" \
+#     -e "technitium_dns_api_token=YOUR_TOKEN"
+#
+#   # Apply changes
+#   ansible-playbook sync_dns.yml -e "technitium_dns_api_token=YOUR_TOKEN"
+#
+#   # With vault
+#   ansible-playbook sync_dns.yml --ask-vault-pass
+#
+# Prerequisites:
+#   ansible-galaxy collection install effectivelywild.technitium_dns
+# =============================================================================
+
+- name: Sync DNS records to Technitium
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - group_vars/all/hosts_registry.yml
+
+  tasks:
+    - name: Include DNS sync role
+      ansible.builtin.include_role:
+        name: technitium_dns_sync

@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Sync DNS records to Technitium DNS Server from hosts registry
+  license: MIT
+  min_ansible_version: "2.14"
+
+dependencies: []
+
+collections:
+  - effectivelywild.technitium_dns

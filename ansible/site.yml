@@ -3,6 +3,14 @@
 # This playbook orchestrates the execution of all other playbooks based on host groups.
 # Semaphore should point to this playbook.
 
+- name: Sync DNS Records to Technitium
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - technitium_dns_sync
+  tags: ['dns', 'dns_sync']
+
 - name: Run Common Setup
   import_playbook: common_setup.yml
   tags: ['setup', 'users']

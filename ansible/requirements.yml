@@ -4,3 +4,4 @@ collections:
   - name: community.general
   - name: community.docker
   - name: ansibleguy.opnsense
+  - name: effectivelywild.technitium_dns  # DNS record management via API

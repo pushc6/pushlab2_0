@@ -1,0 +1,191 @@
+<mxfile host="app.diagrams.net" modified="2026-01-26T00:00:00.000Z" agent="Claude Code" version="21.0.0" type="device">
+  <diagram name="Network Topology" id="network-topology">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Network Topology - Push Lab Infrastructure&lt;/b&gt;&lt;br&gt;Generated: 2026-01-26" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="550" y="20" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Internet Cloud -->
+        <mxCell id="internet" value="&lt;b&gt;Internet&lt;/b&gt;" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="700" y="70" width="200" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- External VPS -->
+        <mxCell id="vps" value="&lt;b&gt;rangernet-vps&lt;/b&gt;&lt;br&gt;192.210.235.136&lt;br&gt;AlmaLinux 9.7&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Nginx, Uptime Kuma&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#0066cc&quot;&gt;Tailscale: 100.78.119.4&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="90" width="160" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- OPNsense Firewall -->
+        <mxCell id="opnsense" value="&lt;b&gt;OPNsense&lt;/b&gt;&lt;br&gt;10.37.70.1&lt;br&gt;Firewall/Router&lt;br&gt;CrowdSec Agent" style="shape=mxgraph.cisco.security.firewall;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="750" y="180" width="100" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- VLAN 70 - DMZ -->
+        <mxCell id="vlan70" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="1520" height="360" as="geometry"/>
+        </mxCell>
+        <mxCell id="vlan70-label" value="&lt;b&gt;VLAN 70 - DMZ (10.37.70.0/24)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="50" y="295" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- DMZ Hosts -->
+        <mxCell id="nginx-dmz" value="&lt;b&gt;nginx-dmz&lt;/b&gt;&lt;br&gt;10.37.70.5&lt;br&gt;RHEL 9.7&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;HTTP/HTTPS, MQTTS&lt;br&gt;CrowdSec Agent&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="330" width="140" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="docker" value="&lt;b&gt;docker&lt;/b&gt;&lt;br&gt;10.37.70.7&lt;br&gt;Ubuntu 24.04&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;40+ containers&lt;br&gt;Plex, Media Stack&lt;br&gt;Nvidia GPU&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="220" y="330" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="gameserver" value="&lt;b&gt;linuxgameserver&lt;/b&gt;&lt;br&gt;10.37.70.19&lt;br&gt;Ubuntu 24.04&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;AMP Game Server&lt;br&gt;Satisfactory&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="380" y="330" width="140" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="homeassistant" value="&lt;b&gt;HomeAssistant&lt;/b&gt;&lt;br&gt;10.37.70.20&lt;br&gt;HAOS&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Smart Home&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="330" width="120" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="veeam" value="&lt;b&gt;Veeam&lt;/b&gt;&lt;br&gt;10.37.70.21&lt;br&gt;Windows Server&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Backup Server&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="680" y="330" width="120" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="truenas" value="&lt;b&gt;TrueNAS&lt;/b&gt;&lt;br&gt;10.37.70.22&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;ZFS Storage&lt;br&gt;NFS: /tank/Docker&lt;br&gt;NFS: /tank/Media&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="820" y="320" width="120" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nginx-internal" value="&lt;b&gt;nginx-internal&lt;/b&gt;&lt;br&gt;10.37.70.24&lt;br&gt;RHEL 9.7&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Internal Proxy&lt;br&gt;CrowdSec Agent&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="960" y="330" width="140" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="docker-internal" value="&lt;b&gt;docker-internal&lt;/b&gt;&lt;br&gt;10.37.70.25&lt;br&gt;Ubuntu 24.04&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Semaphore, Grafana&lt;br&gt;VictoriaMetrics&lt;br&gt;Immich, MQTT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="330" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="crowdsec" value="&lt;b&gt;crowdsec&lt;/b&gt;&lt;br&gt;10.37.70.26&lt;br&gt;Ubuntu 24.04&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;CrowdSec LAPI&lt;br&gt;PostgreSQL&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#0066cc&quot;&gt;Tailscale: 100.91.248.91&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="330" width="150" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ansible" value="&lt;b&gt;ansible&lt;/b&gt;&lt;br&gt;10.37.70.27&lt;br&gt;RHEL 9.7&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;AWX/Envoy&lt;br&gt;PostgreSQL, Redis&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="450" width="140" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="prusa" value="&lt;b&gt;prusa3dbawkz&lt;/b&gt;&lt;br&gt;10.37.70.28&lt;br&gt;Ubuntu 24.04&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Nextcloud AIO&lt;br&gt;SFTPGo&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="220" y="450" width="140" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- VLAN 80 - Servers -->
+        <mxCell id="vlan80" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="500" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="vlan80-label" value="&lt;b&gt;VLAN 80 - Servers (10.37.80.0/24)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="50" y="685" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="gitea" value="&lt;b&gt;gitea&lt;/b&gt;&lt;br&gt;10.37.80.4&lt;br&gt;AlmaLinux 10&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Gitea, Runner&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="720" width="130" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="packer" value="&lt;b&gt;packer-builder&lt;/b&gt;&lt;br&gt;10.37.80.5&lt;br&gt;AlmaLinux 10&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Gitea Runner&lt;br&gt;Packer/Docker&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="210" y="720" width="140" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="dns02" value="&lt;b&gt;dns02&lt;/b&gt;&lt;br&gt;10.37.80.254&lt;br&gt;&lt;font color=&quot;#999999&quot;&gt;(Unreachable)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="720" width="120" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- VLAN 20 - Trusted -->
+        <mxCell id="vlan20" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="560" y="680" width="450" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="vlan20-label" value="&lt;b&gt;VLAN 20 - Trusted (10.37.20.0/24)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="570" y="685" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="docker-secure" value="&lt;b&gt;docker-secure&lt;/b&gt;&lt;br&gt;10.37.20.2 (primary)&lt;br&gt;Ubuntu 24.04&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Technitium DNS&lt;br&gt;Multi-VLAN: All VLANs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="580" y="715" width="160" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="synology" value="&lt;b&gt;Synology NAS&lt;/b&gt;&lt;br&gt;10.37.20.4&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;NFS: /volume1/digx&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="760" y="715" width="120" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="workstation" value="&lt;b&gt;Workstation&lt;/b&gt;&lt;br&gt;10.37.20.41&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Admin Access&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="900" y="720" width="100" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- VLAN 50 - IoT -->
+        <mxCell id="vlan50" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="680" width="240" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="vlan50-label" value="&lt;b&gt;VLAN 50 - IoT (10.37.50.0/24)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="685" width="220" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rpi" value="&lt;b&gt;ai (Raspberry Pi)&lt;/b&gt;&lt;br&gt;10.37.50.12&lt;br&gt;Debian 12&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;Zigbee2MQTT&lt;br&gt;Z-Wave JS&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="715" width="130" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Connection Lines -->
+        <mxCell id="conn1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="internet" target="opnsense">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="conn2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="opnsense" target="vlan70">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="conn3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;" edge="1" parent="1" source="vps" target="crowdsec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1350" y="180" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="1355" y="180"/>
+              <mxPoint x="1355" y="380"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn3-label" value="Tailscale" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="250" width="60" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="conn4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;" edge="1" parent="1" source="docker" target="truenas">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="conn4-label" value="NFS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="550" y="360" width="30" height="15" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="680" width="250" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="685" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend1" value="Reverse Proxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="710" width="90" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend2" value="Docker Host" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="740" width="90" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend3" value="Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="770" width="90" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend4" value="Storage" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="800" width="90" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend5" value="Automation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="710" width="90" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend6" value="Application" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="740" width="90" height="25" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
