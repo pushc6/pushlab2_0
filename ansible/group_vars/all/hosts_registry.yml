@@ -33,8 +33,9 @@
 # =============================================================================
 
 # Technitium DNS Server Configuration
+# NOTE: server_url should NOT include port - the module adds api_port automatically
 technitium_dns:
-  server_url: "http://10.37.70.2:5380"
+  server_url: "http://10.37.70.2"
   zone: "localdomain"
   default_ttl: 3600
   # API token should be stored in vault or external secrets
