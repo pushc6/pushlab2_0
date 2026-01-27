@@ -1,5 +1,48 @@
 ---
-# Firewall configuration for nginx-internal.localdomain (10.37.70.24) - Internal Nginx Reverse Proxy
+# Configuration for nginx-internal.localdomain (10.37.70.24) - Internal Nginx Reverse Proxy
+
+# =============================================================================
+# CrowdSec Configuration
+# =============================================================================
+crowdsec_enabled: true
+crowdsec_mode: agent
+crowdsec_lapi_url: "http://10.37.70.26:8080"
+crowdsec_lapi_host: "crowdsec.localdomain"
+crowdsec_wait_for_approval: false
+
+crowdsec_collections:
+  - crowdsecurity/linux
+  - crowdsecurity/sshd
+  - crowdsecurity/nginx
+
+crowdsec_acquis:
+  # All nginx logs including per-domain logs
+  - name: nginx
+    filenames:
+      - /var/log/nginx/*.log
+    labels:
+      type: nginx
+
+  - name: sshd
+    filenames:
+      - /var/log/secure
+    labels:
+      type: syslog
+
+  - name: linux
+    filenames:
+      - /var/log/messages
+    labels:
+      type: syslog
+
+crowdsec_bouncers:
+  - name: firewall
+    type: nftables
+    enabled: true
+
+# =============================================================================
+# Firewall Configuration
+# =============================================================================
 
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
