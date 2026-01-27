@@ -43,7 +43,7 @@ crowdsec_bouncers: []
 #     type: nftables       # nftables (recommended for RHEL 8+/AlmaLinux), iptables
 #     enabled: true
 
-# Package names by OS family
+# Package names by OS family (using CrowdSec repo packages)
 crowdsec_packages:
   RedHat:
     agent: crowdsec
@@ -51,9 +51,8 @@ crowdsec_packages:
     bouncer_iptables: crowdsec-firewall-bouncer-iptables
   Debian:
     agent: crowdsec
-    # Debian/Ubuntu uses single package with mode in config
-    bouncer_nftables: crowdsec-firewall-bouncer
-    bouncer_iptables: crowdsec-firewall-bouncer
+    bouncer_nftables: crowdsec-firewall-bouncer-nftables
+    bouncer_iptables: crowdsec-firewall-bouncer-iptables
 
 # Service names
 crowdsec_service_name: crowdsec
