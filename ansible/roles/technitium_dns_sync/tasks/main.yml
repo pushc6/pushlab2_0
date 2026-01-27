@@ -30,21 +30,6 @@
   ansible.builtin.meta: end_host
   when: not _dns_sync_enabled
 
-- name: Debug - Show API URL being used
-  ansible.builtin.debug:
-    msg: "API URL: {{ technitium_dns_server_url }}"
-
-- name: Test connectivity with curl
-  ansible.builtin.command:
-    cmd: "curl -s -o /dev/null -w '%{http_code}' '{{ technitium_dns_server_url }}/api/zones/list?token={{ technitium_dns_api_token }}'"
-  register: curl_test
-  changed_when: false
-  check_mode: false
-
-- name: Show curl result
-  ansible.builtin.debug:
-    msg: "Curl HTTP status: {{ curl_test.stdout }}"
-
 - name: Build list of A records from hosts registry
   ansible.builtin.set_fact:
     dns_a_records: >-
