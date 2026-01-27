@@ -5,12 +5,18 @@
 # Syncs DNS records from the hosts_registry to Technitium DNS Server
 # Uses the effectivelywild.technitium_dns Ansible collection
 #
+# Syncs:
+#   - Host A records (hosts_vlanXX entries with dns_record: true)
+#   - Alias A records (aliases defined on hosts)
+#   - Public domain A records (public_dns_records section)
+#
 # Prerequisites:
 #   ansible-galaxy collection install effectivelywild.technitium_dns
 #
 # Required variables:
 #   - technitium_dns_api_token: API token for authentication
-#   - hosts: Dictionary from hosts_registry.yml
+#   - hosts_vlanXX: Host dictionaries from hosts_registry.yml
+#   - public_dns_records: Public domain records from hosts_registry.yml
 # =============================================================================
 
 - name: Get API token from environment if not set as variable
@@ -51,7 +57,7 @@
       {% for record in dns_a_records %}
       - {{ record.value.hostname }} -> {{ record.value.ip }}
       {% if record.value.aliases is defined %}
-        Aliases (CNAME): {{ record.value.aliases | join(', ') }}
+        Aliases: {{ record.value.aliases | join(', ') }}
       {% endif %}
       {% endfor %}
   when: technitium_dns_dry_run | bool
@@ -71,43 +77,79 @@
   when: not (technitium_dns_dry_run | bool)
   register: a_record_results
 
-- name: Build list of CNAME aliases
+- name: Build list of alias A records
   ansible.builtin.set_fact:
-    dns_cname_records: >-
+    dns_alias_records: >-
       {{
         dns_a_records
         | selectattr('value.aliases', 'defined')
         | map(attribute='value')
         | list
       }}
-  when: technitium_dns_create_cname_aliases | bool
 
-- name: Create/Update CNAME records for aliases
+- name: Create/Update A records for aliases
   effectivelywild.technitium_dns.technitium_dns_record:
     api_url: "{{ technitium_dns_server_url }}"
     api_token: "{{ technitium_dns_api_token }}"
     name: "{{ alias }}"
-    type: "CNAME"
-    cname: "{{ host.hostname }}"
+    type: "A"
+    ipAddress: "{{ host.ip }}"
     ttl: "{{ technitium_dns_default_ttl }}"
     state: present
-  loop: "{{ dns_cname_records | subelements('aliases') }}"
+  loop: "{{ dns_alias_records | subelements('aliases') }}"
   loop_control:
-    label: "{{ alias }} -> {{ host.hostname }}"
+    label: "{{ alias }} -> {{ host.ip }}"
   vars:
     host: "{{ item.0 }}"
     alias: "{{ item.1 }}"
-  when:
-    - technitium_dns_create_cname_aliases | bool
-    - not (technitium_dns_dry_run | bool)
-  register: cname_record_results
+  when: not (technitium_dns_dry_run | bool)
+  register: alias_record_results
+
+# =============================================================================
+# Public Domain DNS Records (push-lab.com, ryanpampush.com, etc.)
+# =============================================================================
+
+- name: Build list of public domain A records
+  ansible.builtin.set_fact:
+    dns_public_records: >-
+      {{
+        public_dns_records | default({}) | dict2items
+        | map(attribute='value.records')
+        | flatten
+        | list
+      }}
+
+- name: Display public domain records to sync (dry run)
+  ansible.builtin.debug:
+    msg: |
+      Public Domain DNS Records to sync:
+      {% for record in dns_public_records %}
+      - {{ record.name }} -> {{ record.ip }}
+      {% endfor %}
+  when: technitium_dns_dry_run | bool
+
+- name: Create/Update public domain A records
+  effectivelywild.technitium_dns.technitium_dns_record:
+    api_url: "{{ technitium_dns_server_url }}"
+    api_token: "{{ technitium_dns_api_token }}"
+    name: "{{ item.name }}"
+    type: "A"
+    ipAddress: "{{ item.ip }}"
+    ttl: "{{ technitium_dns_default_ttl }}"
+    state: present
+  loop: "{{ dns_public_records }}"
+  loop_control:
+    label: "{{ item.name }} -> {{ item.ip }}"
+  when: not (technitium_dns_dry_run | bool)
+  register: public_record_results
 
 - name: Summary of DNS sync
   ansible.builtin.debug:
     msg: |
       DNS Sync Complete:
-      - A records processed: {{ dns_a_records | length }}
-      - CNAME aliases processed: {{ dns_cname_records | map(attribute='aliases') | flatten | length }}
+      - Host A records: {{ dns_a_records | length }}
+      - Alias A records: {{ dns_alias_records | default([]) | map(attribute='aliases', default=[]) | flatten | length }}
+      - Public domain A records: {{ dns_public_records | default([]) | length }}
       {% if technitium_dns_dry_run %}
       NOTE: Dry run mode - no changes were made
       {% endif %}
