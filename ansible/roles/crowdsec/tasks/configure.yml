@@ -1,6 +1,31 @@
 ---
 # CrowdSec configuration tasks
 
+# Handle legacy acquis.yaml - CrowdSec reads both acquis.yaml AND acquis.d/*.yaml
+# If we're managing acquisition via acquis.d/, we need to remove the old wizard-generated acquis.yaml
+- name: Check for legacy acquis.yaml
+  ansible.builtin.stat:
+    path: /etc/crowdsec/acquis.yaml
+  register: legacy_acquis_file
+
+- name: Backup and remove legacy acquis.yaml (managed via acquis.d/ now)
+  when:
+    - legacy_acquis_file.stat.exists
+    - crowdsec_acquis | length > 0
+  block:
+    - name: Backup legacy acquis.yaml
+      ansible.builtin.copy:
+        src: /etc/crowdsec/acquis.yaml
+        dest: /etc/crowdsec/acquis.yaml.wizard-backup
+        remote_src: true
+        force: false  # Don't overwrite existing backup
+
+    - name: Remove legacy acquis.yaml
+      ansible.builtin.file:
+        path: /etc/crowdsec/acquis.yaml
+        state: absent
+      notify: Restart crowdsec
+
 # Install collections
 - name: Get installed collections
   ansible.builtin.command: cscli collections list -o raw
