@@ -12,21 +12,26 @@
     crowdsec_current_url: "{{ crowdsec_current_lapi_url.stdout | regex_replace('^url:\\s*', '') | trim }}"
   when: crowdsec_current_lapi_url.rc == 0
 
+- name: Normalize URLs for comparison (strip trailing slashes)
+  ansible.builtin.set_fact:
+    crowdsec_current_url_normalized: "{{ crowdsec_current_url | default('') | regex_replace('/$', '') }}"
+    crowdsec_lapi_url_normalized: "{{ crowdsec_lapi_url | regex_replace('/$', '') }}"
+
 - name: Determine if registration needed
   ansible.builtin.set_fact:
     crowdsec_needs_registration: >-
       {{
         crowdsec_force_register or
         crowdsec_current_lapi_url.rc != 0 or
-        crowdsec_current_url | default('') == 'http://127.0.0.1:8080' or
-        crowdsec_current_url | default('') != crowdsec_lapi_url
+        crowdsec_current_url_normalized == 'http://127.0.0.1:8080' or
+        crowdsec_current_url_normalized != crowdsec_lapi_url_normalized
       }}
 
 - name: Display LAPI registration status
   ansible.builtin.debug:
     msg: |
-      Current LAPI URL: {{ crowdsec_current_url | default('not configured') }}
-      Desired LAPI URL: {{ crowdsec_lapi_url }}
+      Current LAPI URL: {{ crowdsec_current_url_normalized | default('not configured') }}
+      Desired LAPI URL: {{ crowdsec_lapi_url_normalized }}
       Needs Registration: {{ crowdsec_needs_registration }}
 
 - name: Register with central LAPI

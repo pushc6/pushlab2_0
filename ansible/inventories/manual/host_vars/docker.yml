@@ -1,6 +1,45 @@
 ---
-# Firewall configuration for docker (10.37.70.7) - Docker Host DMZ
+# Configuration for docker (10.37.70.7) - Docker Host DMZ
 # Updated with actual running containers and IPv6 support
+
+# =============================================================================
+# CrowdSec Configuration
+# =============================================================================
+crowdsec_enabled: true
+crowdsec_mode: agent
+crowdsec_lapi_url: "http://10.37.70.26:8080"
+crowdsec_lapi_host: "crowdsec.localdomain"
+crowdsec_wait_for_approval: false  # No interactive prompts (for Semaphore/CI)
+
+# Only collections for services actually running on this host
+crowdsec_collections:
+  - crowdsecurity/linux
+  - crowdsecurity/sshd
+
+crowdsec_acquis:
+  # SSH authentication (Ubuntu uses /var/log/auth.log)
+  - name: sshd
+    filenames:
+      - /var/log/auth.log
+    labels:
+      type: syslog
+
+  # System and kernel logs (Ubuntu uses traditional syslog files)
+  - name: linux
+    filenames:
+      - /var/log/syslog
+      - /var/log/kern.log
+    labels:
+      type: syslog
+
+crowdsec_bouncers:
+  - name: firewall
+    type: nftables  # Matches firewalld backend
+    enabled: true
+
+# =============================================================================
+# Firewall Configuration
+# =============================================================================
 
 # SSH access (host-specific override)
 firewall_ssh_allowed_subnets:
