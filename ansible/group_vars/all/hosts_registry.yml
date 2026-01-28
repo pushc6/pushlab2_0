@@ -124,12 +124,6 @@ hosts_vlan70:
     services:
       - crowdsec-lapi
 
-  ansible_controller:
-    hostname: ansible.localdomain
-    ip: "10.37.70.27"
-    description: "Ansible control node"
-    dns_record: true
-
   linuxgameserver:
     hostname: linuxgameserver.localdomain
     ip: "10.37.70.19"

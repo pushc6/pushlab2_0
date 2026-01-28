@@ -44,7 +44,6 @@ hosts.veeam              # 10.37.70.21
 hosts.truenas            # 10.37.70.22
 hosts.nginx_internal     # 10.37.70.24
 hosts.crowdsec           # 10.37.70.26
-hosts.ansible_controller # 10.37.70.27
 hosts.gitea              # 10.37.80.4
 hosts.packer_builder     # 10.37.80.5
 hosts.docker_internal    # 10.37.80.6 (MOVED from 10.37.70.25)
@@ -91,7 +90,6 @@ firewall_ssh_allowed_subnets:
 
 # Firewall SSH access (host-based - when service doesn't apply)
 firewall_ssh_allowed_subnets:
-  - "{{ hosts.ansible_controller.ip }}/32"  # Ansible control node
 
 # CrowdSec LAPI URL
 crowdsec_lapi_url: "http://{{ services.crowdsec_lapi.ip }}:{{ services.crowdsec_lapi.port }}"
@@ -116,7 +114,6 @@ These files have `firewall_ssh_allowed_subnets` with hardcoded `10.37.70.25/32` 
 
 | File | Line | Current Value | New Value |
 |------|------|---------------|-----------|
-| `ansible/inventories/manual/host_vars/ansible.localdomain.yml` | 10 | `"10.37.70.25/32"  # semaphore` | `"{{ services.semaphore.ip }}/32"  # semaphore` |
 | `ansible/inventories/manual/host_vars/docker.yml` | 50 | `"10.37.70.25/32"  # semaphore` | `"{{ services.semaphore.ip }}/32"  # semaphore` |
 | `ansible/inventories/manual/host_vars/nginx-internal.localdomain.yml` | 53 | `"10.37.70.25/32"  # semaphore` | `"{{ services.semaphore.ip }}/32"  # semaphore` |
 | `ansible/inventories/manual/host_vars/linuxgameserver.localdomain.yml` | 10 | `"10.37.70.25/32"  # semaphore` | `"{{ services.semaphore.ip }}/32"  # semaphore` |
@@ -136,7 +133,6 @@ Many of these files also have other hardcoded IPs that should be updated:
 
 ```yaml
 # Common pattern in firewall_ssh_allowed_subnets:
-- "10.37.70.27/32"  # ansible.localdomain  →  "{{ hosts.ansible_controller.ip }}/32"
 - "10.37.70.21/32"  # veeam/Ansible controller  →  "{{ hosts.veeam.ip }}/32"
 ```
 
@@ -373,7 +369,6 @@ ansible/
 │       └── mqtt.yml               ← UPDATE: mqtt_backend_host
 ├── inventories/
 │   ├── manual/host_vars/
-│   │   ├── ansible.localdomain.yml
 │   │   ├── crowdsec.localdomain.yml
 │   │   ├── cupsserver.localdomain.yml
 │   │   ├── docker-internal.localdomain.yml
@@ -406,7 +401,6 @@ find ansible/inventories -name "*.yml" -exec \
 
 # Replace ansible controller IP
 find ansible/inventories -name "*.yml" -exec \
-  sed -i '' 's/"10\.37\.70\.27\/32"  # ansible/"{{ hosts.ansible_controller.ip }}\/32"  # ansible/g' {} \;
 
 # Replace veeam IP
 find ansible/inventories -name "*.yml" -exec \

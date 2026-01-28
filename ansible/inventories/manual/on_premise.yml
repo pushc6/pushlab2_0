@@ -30,9 +30,6 @@ nginx_internal:
 crowdsec_controller:
   hosts:
     "crowdsec.localdomain":
-ansible:
-  hosts:
-    ansible.localdomain:
 prusa3dbawkz:
   hosts:
     prusa3dbawkz.localdomain:

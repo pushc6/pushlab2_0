@@ -49,13 +49,6 @@ opnsense_aliases:
       - "2049"
     description: "Veeam Backup & Replication ports"
 
-  # Ansible Controller
-  - name: "ansible_automation"
-    type: host
-    content:
-      - "10.37.70.27"
-    description: "Ansible controller server"
-
   # Semaphore - Ansible UI
   - name: "semaphore"
     type: host
@@ -107,7 +100,7 @@ terraform_host_firewall_rules:
   # Option 1: Target specific hosts explicitly
   - name: "SSH from Ansible to Gitea (cross-VLAN)"
     description: "Allow Ansible SSH to Gitea in App VLAN"
-    source: "ansible_automation"  # 10.37.70.x (DMZ)
+    source: "semaphore"  # 10.37.70.x (DMZ)
     destination: "gitea_server"  # 10.37.80.x (App VLAN)
     protocol: tcp
     port: 22
@@ -115,7 +108,7 @@ terraform_host_firewall_rules:
 
   - name: "SSH from Ansible to DNS02 (cross-site)"
     description: "Allow Ansible SSH to DNS02"
-    source: "ansible_automation"  # 10.37.70.x (DMZ)
+    source: "semaphore"  # 10.37.70.x (DMZ)
     destination: "dns02"  # 10.37.10.x (Different network)
     protocol: tcp
     port: 22
@@ -123,7 +116,7 @@ terraform_host_firewall_rules:
 
   - name: "SSH from Ansible to Packer Builder (cross-VLAN)"
     description: "Allow Ansible SSH to Packer Builder in App VLAN"
-    source: "ansible_automation"  # 10.37.70.x (DMZ)
+    source: "semaphore"  # 10.37.70.x (DMZ)
     destination: "packer_builder"  # 10.37.80.5 (App VLAN)
     protocol: tcp
     port: 22
@@ -131,7 +124,7 @@ terraform_host_firewall_rules:
 
   - name: "Gitea API from Ansible (cross-VLAN)"
     description: "Allow Ansible to reach Gitea Web/API for pre-flight checks"
-    source: "ansible_automation"  # 10.37.70.27 (DMZ)
+    source: "semaphore"  # 10.37.70.27 (DMZ)
     destination: "gitea_server"  # 10.37.80.4 (App VLAN)
     protocol: tcp
     port: 3000
