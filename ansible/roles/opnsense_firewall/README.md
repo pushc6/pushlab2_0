@@ -71,7 +71,7 @@ Rules are defined in `group_vars/opnsense/vars.yml`:
 terraform_host_firewall_rules:
   - name: "SSH from Ansible to Terraform hosts"
     description: "Allow Ansible controller to SSH to all Terraform hosts"
-    source: "ansible.localdomain"  # Can be IP, hostname, or OPNsense alias
+    source: "semaphore.localdomain"  # Can be IP, hostname, or OPNsense alias
     destination: "terraform_hosts"  # Auto-created alias of all Terraform hosts
     protocol: tcp
     port: 22
@@ -152,7 +152,7 @@ Skip rules when not needed using the `when` parameter:
 **Supported source/destination formats:**
 - IP address: `10.37.50.10`
 - CIDR subnet: `10.37.0.0/16`
-- Hostname: `ansible.localdomain`
+- Hostname: `semaphore.localdomain`
 - OPNsense alias: `terraform_hosts`, `gitea`, `dns02`
 
 ## Host-Specific Rules

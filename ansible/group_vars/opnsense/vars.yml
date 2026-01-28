@@ -124,7 +124,7 @@ terraform_host_firewall_rules:
 
   - name: "Gitea API from Ansible (cross-VLAN)"
     description: "Allow Ansible to reach Gitea Web/API for pre-flight checks"
-    source: "semaphore"  # 10.37.70.27 (DMZ)
+    source: "semaphore"  # 10.37.70.25 (DMZ)
     destination: "gitea_server"  # 10.37.80.4 (App VLAN)
     protocol: tcp
     port: 3000
@@ -184,7 +184,7 @@ terraform_host_firewall_rules:
   # Option 2: Use conditional based on subnet matching
   # - name: "SSH cross-VLAN only"
   #   description: "SSH from Ansible to Terraform hosts (excluding same subnet)"
-  #   source: "ansible.localdomain"
+  #   source: "semaphore.localdomain"
   #   destination: "{{ item }}"
   #   protocol: tcp
   #   port: 22
@@ -218,7 +218,7 @@ terraform_host_firewall_rules:
   # Example: Skip same-subnet rules
   # - name: "Ansible to DMZ hosts"
   #   description: "SSH from Ansible to DMZ terraform hosts"
-  #   source: "ansible.localdomain"  # 10.37.70.x
+  #   source: "semaphore.localdomain"  # 10.37.70.x
   #   destination: "terraform_hosts"
   #   protocol: tcp
   #   port: 22

@@ -519,7 +519,7 @@ phase1_critical:
 
 phase2_infrastructure:
   hosts:
-    ansible.localdomain:
+    semaphore.localdomain:
     crowdsec.localdomain:
     docker-internal.localdomain:
 

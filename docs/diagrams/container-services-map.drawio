@@ -307,7 +307,6 @@
         <mxCell id="packer-host" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="&lt;b&gt;packer-builder&lt;/b&gt;&lt;br&gt;(10.37.80.5)&lt;br&gt;AlmaLinux 10&lt;br&gt;Gitea Runner" vertex="1">
           <mxGeometry height="70" width="130" x="1150" y="470" as="geometry" />
         </mxCell>
-        <mxCell id="ansible-host" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="&lt;b&gt;ansible (10.37.70.27)&lt;/b&gt;&lt;br&gt;RHEL 9.7&lt;br&gt;AWX/Envoy :443, :8443-8446&lt;br&gt;PostgreSQL, Redis" vertex="1">
           <mxGeometry height="70" width="170" x="1290" y="470" as="geometry" />
         </mxCell>
         <mxCell id="crowdsec-host" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" value="&lt;b&gt;crowdsec (10.37.70.26)&lt;/b&gt;&lt;br&gt;Ubuntu 24.04&lt;br&gt;CrowdSec LAPI :8080&lt;br&gt;PostgreSQL, Tailscale" vertex="1">

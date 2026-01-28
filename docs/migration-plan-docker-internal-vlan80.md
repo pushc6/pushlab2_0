@@ -124,7 +124,6 @@ curl "http://docker-secure.localdomain:5380/api/zones/records/update?token=<toke
 
 | Host | Purpose of Reference |
 |------|---------------------|
-| ansible.localdomain | SSH from semaphore |
 | docker.yml | SSH from semaphore |
 | nginx-internal.localdomain | SSH from semaphore |
 | linuxgameserver.localdomain | SSH from semaphore |
@@ -323,7 +322,6 @@ Update all `firewall_ssh_allowed_subnets` entries from `10.37.70.25/32` to use D
 
 **Files to update (13 files):**
 ```
-ansible/inventories/manual/host_vars/ansible.localdomain.yml
 ansible/inventories/manual/host_vars/docker.yml
 ansible/inventories/manual/host_vars/nginx-internal.localdomain.yml
 ansible/inventories/manual/host_vars/linuxgameserver.localdomain.yml
@@ -597,7 +595,6 @@ curl -X POST http://docker-internal.localdomain:8428/api/v1/write
 
 | File | Line(s) | Change Type |
 |------|---------|-------------|
-| `ansible/inventories/manual/host_vars/ansible.localdomain.yml` | 10 | SSH allowed subnet |
 | `ansible/inventories/manual/host_vars/docker.yml` | 50 | SSH allowed subnet |
 | `ansible/inventories/manual/host_vars/nginx-internal.localdomain.yml` | 53 | SSH allowed subnet |
 | `ansible/inventories/manual/host_vars/linuxgameserver.localdomain.yml` | 10 | SSH allowed subnet |

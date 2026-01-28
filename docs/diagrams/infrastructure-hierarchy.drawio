@@ -95,7 +95,6 @@
         </mxCell>
 
         <!-- Automation Subtree -->
-        <mxCell id="ansible-h" value="&lt;b&gt;AWX/Ansible&lt;/b&gt;&lt;br&gt;10.37.70.27&lt;br&gt;Envoy Proxy&lt;br&gt;Config Mgmt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="820" y="280" width="110" height="70" as="geometry"/>
         </mxCell>
         <mxCell id="semaphore-h" value="&lt;b&gt;Semaphore&lt;/b&gt;&lt;br&gt;docker-internal&lt;br&gt;Ansible UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
@@ -147,7 +146,6 @@
         <mxCell id="ln6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1" source="storage" target="synology-h">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="ln7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1" source="automation" target="ansible-h">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
         <mxCell id="ln8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1" source="automation" target="semaphore-h">
