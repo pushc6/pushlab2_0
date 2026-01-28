@@ -295,3 +295,18 @@ firewall_services:
       - "10.37.70.24/32"  # nginx internal proxy (IPv4)
       - "fd00:1337:1337:70::5/128"   # nginx DMZ proxy (IPv6)
       - "fd00:1337:1337:70::24/128"  # nginx internal proxy (IPv6)
+
+  # ============================================================================
+  # Landing Pages (Caddy)
+  # ============================================================================
+
+  - port: 8180
+    protocol: tcp
+    name: "Caddy - Landing Pages"
+    container: caddy
+    access: custom
+    sources:
+      - "10.37.70.5/32"   # nginx-dmz (IPv4)
+      - "10.37.70.24/32"  # nginx-internal (IPv4)
+      - "fd00:1337:1337:70::5/128"   # nginx-dmz (IPv6)
+      - "fd00:1337:1337:70::24/128"  # nginx-internal (IPv6)
