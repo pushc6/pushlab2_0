@@ -427,6 +427,18 @@ firewall_services:
     access: trusted_vlan
 
   # ============================================================================
+  # Docker Daemon API (TLS)
+  # ============================================================================
+
+  - port: 2376
+    protocol: tcp
+    name: "Docker Daemon TLS API"
+    access: custom
+    sources:
+      - "10.37.70.25/32"  # docker-internal (IPv4)
+      - "fd00:1337:1337:70::25/128"  # docker-internal (IPv6)
+
+  # ============================================================================
   # Veeam Backup Agent - Allow Veeam server to perform Linux agent backups
   # ============================================================================
 
