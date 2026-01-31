@@ -1,0 +1,26 @@
+# {{ ansible_managed }}
+# CrowdSec profiles configuration
+
+name: default_ip_remediation
+filters:
+ - Alert.Remediation == true && Alert.GetScope() == "Ip"
+decisions:
+ - type: ban
+   duration: 12h
+{% if crowdsec_http_notification.enabled | default(false) %}
+notifications:
+  - http_default
+{% endif %}
+on_success: break
+---
+name: default_range_remediation
+filters:
+ - Alert.Remediation == true && Alert.GetScope() == "Range"
+decisions:
+ - type: ban
+   duration: 12h
+{% if crowdsec_http_notification.enabled | default(false) %}
+notifications:
+  - http_default
+{% endif %}
+on_success: break

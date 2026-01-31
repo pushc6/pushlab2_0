@@ -1,0 +1,28 @@
+# {{ ansible_managed }}
+# CrowdSec HTTP notification plugin
+
+type: http
+name: http_default
+log_level: info
+group_wait: {{ crowdsec_http_notification.group_wait | default('30s') }}
+group_threshold: {{ crowdsec_http_notification.group_threshold | default(5) }}
+max_retry: {{ crowdsec_http_notification.max_retry | default(3) }}
+timeout: {{ crowdsec_http_notification.timeout | default('10s') }}
+
+format: |
+{% raw %}  {{ range . -}}
+  {{ range .Decisions -}}
+  {"_msg":"CrowdSec {{ .Type }} on {{ .Value }}","source_ip":"{{ .Value }}","action":"{{ .Type }}","duration":"{{ .Duration }}","scenario":"{{ .Scenario }}","origin":"{{ .Origin }}","scope":"{{ .Scope }}","alert_id":"{{ $.ID }}","created_at":"{{ $.CreatedAt }}","source":"crowdsec"}
+  {{ end -}}
+  {{ end -}}{% endraw %}
+
+url: {{ crowdsec_http_notification.url }}
+
+method: {{ crowdsec_http_notification.method | default('POST') }}
+
+{% if crowdsec_http_notification.headers is defined %}
+headers:
+{% for key, value in crowdsec_http_notification.headers.items() %}
+  {{ key }}: "{{ value }}"
+{% endfor %}
+{% endif %}

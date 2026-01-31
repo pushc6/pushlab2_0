@@ -60,3 +60,26 @@ crowdsec_bouncer_service_name: crowdsec-firewall-bouncer
 
 # Force re-registration even if already registered
 crowdsec_force_register: false
+
+# =============================================================================
+# Observability - Prometheus metrics & HTTP notifications
+# =============================================================================
+
+# Bind Prometheus metrics to network (default: 127.0.0.1)
+# Set to "0.0.0.0" to expose for remote scraping
+crowdsec_prometheus_listen_addr: ""
+
+# HTTP notification plugin for sending alerts to external systems
+# (e.g. VictoriaLogs jsonline endpoint)
+crowdsec_http_notification:
+  enabled: false
+  # url: "http://10.37.70.25:9428/insert/jsonline?_stream_fields=source,action,scenario"
+  # method: POST
+  # group_wait: 30s
+  # group_threshold: 5
+  # max_retry: 3
+  # timeout: 10s
+  # headers:
+  #   Content-Type: "application/stream+json"
+  # format: |
+  #   {{ range . -}}...{{ end -}}

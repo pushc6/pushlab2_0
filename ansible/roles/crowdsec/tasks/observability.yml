@@ -1,0 +1,42 @@
+---
+# CrowdSec observability tasks - Prometheus metrics & HTTP notifications
+
+# Expose Prometheus metrics to the network
+- name: Deploy config.yaml.local for Prometheus listen address
+  ansible.builtin.template:
+    src: config.yaml.local.j2
+    dest: /etc/crowdsec/config.yaml.local
+    owner: root
+    group: root
+    mode: '0644'
+  when: crowdsec_prometheus_listen_addr | length > 0
+  notify: Restart crowdsec
+
+- name: Remove config.yaml.local when not needed
+  ansible.builtin.file:
+    path: /etc/crowdsec/config.yaml.local
+    state: absent
+  when: crowdsec_prometheus_listen_addr | length == 0
+  notify: Restart crowdsec
+
+# HTTP notification plugin for alert forwarding
+- name: Deploy HTTP notification config
+  ansible.builtin.template:
+    src: http.yaml.j2
+    dest: /etc/crowdsec/notifications/http.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  when: crowdsec_http_notification.enabled | default(false)
+  notify: Restart crowdsec
+
+# Managed profiles.yaml with optional notification references
+- name: Deploy profiles.yaml
+  ansible.builtin.template:
+    src: profiles.yaml.j2
+    dest: /etc/crowdsec/profiles.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  when: crowdsec_http_notification.enabled | default(false)
+  notify: Restart crowdsec

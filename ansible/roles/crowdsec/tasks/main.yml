@@ -39,6 +39,10 @@
       ansible.builtin.include_tasks: register.yml
       when: crowdsec_mode == 'agent'
 
+    - name: Include observability tasks
+      ansible.builtin.include_tasks: observability.yml
+      when: crowdsec_mode in ['lapi', 'standalone']
+
     - name: Include bouncer tasks
       ansible.builtin.include_tasks: bouncers.yml
       when: crowdsec_bouncers | length > 0

@@ -30,3 +30,37 @@ firewall_services:
     sources:
       - "10.37.0.0/16"    # Internal network
       - "100.64.0.0/10"   # Tailscale CGNAT range
+
+  # CrowdSec Prometheus metrics (scraped by VictoriaMetrics)
+  - port: 6060
+    protocol: tcp
+    name: "CrowdSec Prometheus Metrics"
+    access: custom
+    sources:
+      - "10.37.70.25/32"          # docker-internal (VictoriaMetrics)
+      - "fd00:1337:1337:70::25/128"
+
+# =============================================================================
+# CrowdSec Configuration
+# =============================================================================
+crowdsec_enabled: true
+crowdsec_mode: "lapi"
+
+# =============================================================================
+# CrowdSec Observability
+# =============================================================================
+
+# Expose Prometheus metrics for VictoriaMetrics scraping
+crowdsec_prometheus_listen_addr: "0.0.0.0"
+
+# Send alert notifications to VictoriaLogs via HTTP plugin
+crowdsec_http_notification:
+  enabled: true
+  url: "http://10.37.70.25:9428/insert/jsonline?_stream_fields=source,action,scenario"
+  method: POST
+  group_wait: 30s
+  group_threshold: 5
+  max_retry: 3
+  timeout: 10s
+  headers:
+    Content-Type: "application/stream+json"
