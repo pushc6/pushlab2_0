@@ -1,6 +1,18 @@
 # {{ ansible_managed }}
 # CrowdSec profiles configuration
 
+name: ssh_timing_remediation
+filters:
+ - Alert.Remediation == true && Alert.GetScope() == "Ip" && Alert.GetScenario() in ["crowdsecurity/ssh-time-based-bf", "crowdsecurity/ssh-time-based-bf_user_enum"]
+decisions:
+ - type: ban
+   duration: 4h
+{% if crowdsec_http_notification.enabled | default(false) %}
+notifications:
+  - http_default
+{% endif %}
+on_success: break
+---
 name: default_ip_remediation
 filters:
  - Alert.Remediation == true && Alert.GetScope() == "Ip"

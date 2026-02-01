@@ -38,6 +38,25 @@
   when: item not in crowdsec_installed_collections.stdout
   notify: Restart crowdsec
 
+# Enable remediation on timing-based SSH scenarios (lower-confidence, shorter ban)
+- name: Enable remediation on ssh-time-based-bf
+  ansible.builtin.copy:
+    content: "remediation: true\n"
+    dest: /etc/crowdsec/scenarios/ssh-time-based-bf.yaml.local
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart crowdsec
+
+- name: Enable remediation on ssh-time-based-bf_user_enum
+  ansible.builtin.copy:
+    content: "remediation: true\n"
+    dest: /etc/crowdsec/scenarios/ssh-time-based-bf_user_enum.yaml.local
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart crowdsec
+
 # Configure acquisition sources
 - name: Create acquisition configuration files
   ansible.builtin.template:

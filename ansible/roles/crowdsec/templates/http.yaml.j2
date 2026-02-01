@@ -11,8 +11,9 @@ timeout: {{ crowdsec_http_notification.timeout | default('10s') }}
 
 format: |
 {% raw %}  {{ range . -}}
+  {{ $alert := . -}}
   {{ range .Decisions -}}
-  {"_msg":"CrowdSec {{ .Type }} on {{ .Value }}","source_ip":"{{ .Value }}","action":"{{ .Type }}","duration":"{{ .Duration }}","scenario":"{{ .Scenario }}","origin":"{{ .Origin }}","scope":"{{ .Scope }}","alert_id":"{{ $.ID }}","created_at":"{{ $.CreatedAt }}","source":"crowdsec"}
+  {"_msg":"CrowdSec {{ .Type }} on {{ .Value }}","source_ip":"{{ .Value }}","action":"{{ .Type }}","duration":"{{ .Duration }}","scenario":"{{ .Scenario }}","origin":"{{ .Origin }}","scope":"{{ .Scope }}","alert_id":"{{ $alert.ID }}","created_at":"{{ $alert.CreatedAt }}","source":"crowdsec"}
   {{ end -}}
   {{ end -}}{% endraw %}
 
