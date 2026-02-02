@@ -31,6 +31,12 @@ firewall_services:
       - "10.37.0.0/16"    # Internal network
       - "100.64.0.0/10"   # Tailscale CGNAT range
 
+  # Tailscale direct connection (avoid DERP relay)
+  - port: 41641
+    protocol: udp
+    name: "Tailscale WireGuard"
+    access: public
+
   # CrowdSec Prometheus metrics (scraped by VictoriaMetrics)
   - port: 6060
     protocol: tcp

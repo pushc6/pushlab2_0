@@ -53,4 +53,9 @@ firewall_ssh_allowed_subnets:
   - "0.0.0.0/0"  # Public SSH access required for VPS
 
 # Using unified firewall_services structure with rich rules
-firewall_services: []
+firewall_services:
+  # Tailscale direct connection (avoid DERP relay)
+  - port: 41641
+    protocol: udp
+    name: "Tailscale WireGuard"
+    access: public
