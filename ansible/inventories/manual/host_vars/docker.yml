@@ -129,6 +129,7 @@ firewall_services:
     sources:
       - "10.37.70.24/32"  # nginx internal (IPv4)
       - "fd00:1337:1337:70::24/128"  # proxy_internal (IPv6)
+      - "10.37.70.25/32"  # semaphore (IPv4)
       - "10.37.20.0/24"  # trusted_vlan (IPv4)
       - "fd00:1337:1337:20::/64"  # trusted_vlan (IPv6)
 
