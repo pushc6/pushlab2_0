@@ -162,6 +162,18 @@ oauth2_services:
     health_check: "/api/ping"
     enable_caching: false
 
+  - name: "tracearr"
+    domain: "tracearr.push-lab.com"
+    backend_host: "10.37.70.25"
+    backend_port: "3005"
+    auth_type: "none"
+    proxy_mode: "traditional"
+    ssl_domain: "push-lab.com"
+    description: "Tracearr"
+    category: "media"
+    health_check: "/ping"
+    enable_caching: false
+
   - name: "lidarr"
     domain: "lidarr.push-lab.com"
     backend_host: "10.37.70.7"
