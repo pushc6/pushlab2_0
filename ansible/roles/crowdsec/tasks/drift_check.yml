@@ -1,0 +1,39 @@
+---
+# CrowdSec bouncer drift check deployment
+# Detects nftables set drift from LAPI decisions (cs-firewall-bouncer #243)
+
+- name: Ensure jq is installed (drift check dependency)
+  ansible.builtin.package:
+    name: jq
+    state: present
+
+- name: Deploy drift check script
+  ansible.builtin.template:
+    src: crowdsec-drift-check.sh.j2
+    dest: /usr/local/bin/crowdsec-drift-check.sh
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Deploy drift check systemd service
+  ansible.builtin.template:
+    src: crowdsec-drift-check.service.j2
+    dest: /etc/systemd/system/crowdsec-drift-check.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy drift check systemd timer
+  ansible.builtin.template:
+    src: crowdsec-drift-check.timer.j2
+    dest: /etc/systemd/system/crowdsec-drift-check.timer
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start drift check timer
+  ansible.builtin.systemd:
+    name: crowdsec-drift-check.timer
+    enabled: true
+    state: started
+    daemon_reload: true

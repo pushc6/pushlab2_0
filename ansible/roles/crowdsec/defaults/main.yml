@@ -62,6 +62,16 @@ crowdsec_bouncer_service_name: crowdsec-firewall-bouncer
 crowdsec_force_register: false
 
 # =============================================================================
+# Bouncer drift check (workaround for cs-firewall-bouncer #243)
+# Detects when nftables sets silently drop IPs due to duplicate-entry timer bug
+# =============================================================================
+crowdsec_bouncer_drift_check_enabled: false
+crowdsec_drift_check_interval: 10min
+crowdsec_drift_check_nft_family: ip
+crowdsec_drift_check_nft_table: crowdsec
+crowdsec_drift_check_nft_set: crowdsec-blacklists
+
+# =============================================================================
 # Observability - Prometheus metrics & HTTP notifications
 # =============================================================================
 

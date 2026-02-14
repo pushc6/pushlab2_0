@@ -46,3 +46,7 @@
     - name: Include bouncer tasks
       ansible.builtin.include_tasks: bouncers.yml
       when: crowdsec_bouncers | length > 0
+
+    - name: Include bouncer drift check tasks
+      ansible.builtin.include_tasks: drift_check.yml
+      when: crowdsec_bouncer_drift_check_enabled | default(false)

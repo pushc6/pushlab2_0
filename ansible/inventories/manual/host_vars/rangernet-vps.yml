@@ -40,6 +40,10 @@ crowdsec_bouncers:
     type: nftables
     enabled: true
 
+# Drift check: detect nftables set desync from LAPI (cs-firewall-bouncer #243)
+crowdsec_bouncer_drift_check_enabled: true
+crowdsec_drift_check_nft_set: crowdsec-blacklists-crowdsec
+
 # =============================================================================
 # Firewall Configuration
 # =============================================================================

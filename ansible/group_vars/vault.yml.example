@@ -9,3 +9,11 @@
 
 tailscale_oauth_client_id: "k..."
 tailscale_oauth_client_secret: "tskey-client-..."
+
+# Komodo secrets
+# Generate random strings for these: openssl rand -base64 32
+vault_komodo_db_password: "changeme"
+vault_komodo_passkey: "changeme"
+vault_komodo_webhook_secret: "changeme"
+vault_komodo_jwt_secret: "changeme"
+vault_komodo_admin_password: "changeme"

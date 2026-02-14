@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# CrowdSec bouncer drift detection (cs-firewall-bouncer #243)
+#
+# The nftables bouncer silently drops IPs from sets when duplicate entries
+# are added (timer doesn't refresh). This script detects when LAPI decisions
+# drift from what's actually enforced in nftables and restarts the bouncer.
+#
+# Only checks crowdsec-origin decisions (local detections) since these are
+# the ones affected by the timer bug. CAPI/list origins are bulk-loaded
+# and less prone to the issue.
+
+set -euo pipefail
+
+TAG="crowdsec-drift-check"
+BOUNCER_CONFIG="/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml"
+NFT_FAMILY="{{ crowdsec_drift_check_nft_family }}"
+NFT_TABLE="{{ crowdsec_drift_check_nft_table }}"
+NFT_SET="{{ crowdsec_drift_check_nft_set }}"
+
+log() { logger -t "$TAG" "$*"; }
+
+# --- Read bouncer config ---
+API_URL=$(awk '/^api_url:/{print $2}' "$BOUNCER_CONFIG")
+API_KEY=$(awk '/^api_key:/{print $2}' "$BOUNCER_CONFIG")
+
+if [[ -z "$API_URL" || -z "$API_KEY" ]]; then
+    log "ERROR: cannot read api_url/api_key from $BOUNCER_CONFIG"
+    exit 1
+fi
+
+# --- Query LAPI for crowdsec-origin decisions ---
+RESPONSE=$(curl -sf --connect-timeout 5 --max-time 10 \
+    -H "X-Api-Key: ${API_KEY}" \
+    "${API_URL}/v1/decisions?origins=crowdsec" 2>/dev/null) || {
+    log "ERROR: LAPI query failed (curl exit $?)"
+    exit 1
+}
+
+if [[ "$RESPONSE" == "null" || -z "$RESPONSE" ]]; then
+    log "OK: no crowdsec-origin decisions in LAPI, nothing to check"
+    exit 0
+fi
+
+LAPI_IPS=$(echo "$RESPONSE" | jq -r '.[].value // empty' 2>/dev/null | sed 's|/32$||' | sort -u)
+
+if [[ -z "$LAPI_IPS" ]]; then
+    log "OK: no crowdsec-origin IPs to verify"
+    exit 0
+fi
+
+LAPI_COUNT=$(echo "$LAPI_IPS" | wc -l | tr -d ' ')
+
+# --- Snapshot nftables set (single read) ---
+NFT_SNAPSHOT=$(nft list set "$NFT_FAMILY" "$NFT_TABLE" "$NFT_SET" 2>/dev/null) || {
+    log "WARN: nftables set ${NFT_FAMILY}/${NFT_TABLE}/${NFT_SET} not found"
+    exit 0
+}
+
+# --- Check each LAPI IP against the snapshot ---
+MISSING=()
+while IFS= read -r ip; do
+    if ! echo "$NFT_SNAPSHOT" | grep -qwF "$ip"; then
+        MISSING+=("$ip")
+    fi
+done <<< "$LAPI_IPS"
+
+if [[ ${#MISSING[@]} -eq 0 ]]; then
+    log "OK: all $LAPI_COUNT crowdsec-origin IPs present in nftables"
+    exit 0
+fi
+
+# --- Drift detected ---
+log "DRIFT: ${#MISSING[@]}/$LAPI_COUNT crowdsec-origin IPs missing from nftables"
+for ip in "${MISSING[@]}"; do
+    log "DRIFT: missing IP: $ip"
+done
+
+log "ACTION: restarting {{ crowdsec_bouncer_service_name }} to resync"
+systemctl restart {{ crowdsec_bouncer_service_name }}
+log "OK: bouncer restarted, drift should be resolved"

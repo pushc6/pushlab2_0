@@ -1,0 +1,48 @@
+---
+# Komodo configuration
+
+# Installation path
+komodo_install_path: /home/dockeruser/komodo
+
+# Image tag (pin to a version in production)
+komodo_image_tag: latest
+
+# Database credentials
+komodo_db_username: admin
+komodo_db_password: "{{ vault_komodo_db_password | default('changeme') }}"
+
+# Security keys (override in vault)
+komodo_passkey: "{{ vault_komodo_passkey | default('change_this_passkey') }}"
+komodo_webhook_secret: "{{ vault_komodo_webhook_secret | default('change_this_webhook_secret') }}"
+komodo_jwt_secret: "{{ vault_komodo_jwt_secret | default('change_this_jwt_secret') }}"
+
+# Core settings
+komodo_host: "https://komodo.{{ ansible_fqdn }}"
+komodo_title: Komodo
+komodo_monitoring_interval: "15-sec"
+komodo_resource_poll_interval: "1-hr"
+
+# Authentication
+komodo_local_auth: true
+komodo_init_admin_username: admin
+komodo_init_admin_password: "{{ vault_komodo_admin_password | default('changeme') }}"
+komodo_disable_user_registration: true
+komodo_enable_new_users: false
+
+# JWT settings
+komodo_jwt_ttl: "1-day"
+
+# OAuth (disabled by default)
+komodo_oidc_enabled: false
+komodo_github_oauth_enabled: false
+komodo_google_oauth_enabled: false
+
+# Periphery settings
+komodo_periphery_root: /etc/komodo
+komodo_backups_path: /etc/komodo/backups
+
+# Timezone
+komodo_timezone: "America/Chicago"
+
+# Port (internal, use reverse proxy for external access)
+komodo_port: 9120

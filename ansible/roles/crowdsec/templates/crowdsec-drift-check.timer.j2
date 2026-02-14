@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Run CrowdSec bouncer drift check every {{ crowdsec_drift_check_interval }}
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec={{ crowdsec_drift_check_interval }}
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

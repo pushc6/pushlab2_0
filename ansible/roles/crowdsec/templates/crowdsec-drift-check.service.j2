@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+[Unit]
+Description=CrowdSec bouncer drift check (cs-firewall-bouncer #243)
+After=network-online.target crowdsec-firewall-bouncer.service
+Wants=network-online.target
+Requires=crowdsec-firewall-bouncer.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/crowdsec-drift-check.sh

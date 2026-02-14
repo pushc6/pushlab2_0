@@ -134,6 +134,7 @@
         src: templates/enhanced_deployment_summary.j2
         dest: "/tmp/nginx_deployment_{{ ansible_date_time.epoch }}.txt"
       delegate_to: localhost
+      become: false
       run_once: true
       
     - name: Deployment summary

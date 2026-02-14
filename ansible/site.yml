@@ -59,3 +59,7 @@
   import_playbook: technitium.yml
   when: "'dns02' in groups"
   tags: ['technitium', 'apps']
+
+- name: Deploy Komodo
+  import_playbook: komodo.yml
+  tags: ['komodo', 'apps']
