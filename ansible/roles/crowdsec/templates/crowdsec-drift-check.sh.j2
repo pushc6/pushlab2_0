@@ -17,7 +17,9 @@ BOUNCER_CONFIG="/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml"
 NFT_FAMILY="{{ crowdsec_drift_check_nft_family }}"
 NFT_TABLE="{{ crowdsec_drift_check_nft_table }}"
 NFT_SET="{{ crowdsec_drift_check_nft_set }}"
+BOUNCER_SERVICE="{{ crowdsec_bouncer_service_name }}"
 
+{% raw %}
 log() { logger -t "$TAG" "$*"; }
 
 # --- Read bouncer config ---
@@ -76,6 +78,7 @@ for ip in "${MISSING[@]}"; do
     log "DRIFT: missing IP: $ip"
 done
 
-log "ACTION: restarting {{ crowdsec_bouncer_service_name }} to resync"
-systemctl restart {{ crowdsec_bouncer_service_name }}
+log "ACTION: restarting $BOUNCER_SERVICE to resync"
+systemctl restart "$BOUNCER_SERVICE"
 log "OK: bouncer restarted, drift should be resolved"
+{% endraw %}
