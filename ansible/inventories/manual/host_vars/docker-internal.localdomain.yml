@@ -325,9 +325,3 @@ firewall_services:
       - "10.37.20.0/24"   # trusted_vlan (IPv4)
       - "fd00:1337:1337:70::24/128"  # nginx-internal (IPv6)
       - "fd00:1337:1337:20::/64"     # trusted_vlan (IPv6)
-
-# =============================================================================
-# Komodo Configuration
-# =============================================================================
-komodo_host: "https://komodo.localdomain"
-komodo_timezone: "America/Chicago"

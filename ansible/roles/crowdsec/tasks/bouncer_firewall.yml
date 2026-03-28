@@ -46,12 +46,14 @@
       no_log: true
       notify: Restart crowdsec-firewall-bouncer
 
-    - name: Configure bouncer LAPI URL
-      ansible.builtin.lineinfile:
-        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-        regexp: "^api_url:"
-        line: "api_url: {{ crowdsec_lapi_url }}"
-      notify: Restart crowdsec-firewall-bouncer
+# Always enforce the correct LAPI URL — package reinstalls reset this to 127.0.0.1
+- name: Ensure bouncer LAPI URL is correct
+  ansible.builtin.lineinfile:
+    path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    regexp: "^api_url:"
+    line: "api_url: {{ crowdsec_lapi_url }}"
+  when: crowdsec_mode == 'agent'
+  notify: Restart crowdsec-firewall-bouncer
 
 - name: Enable and start firewall bouncer service
   ansible.builtin.systemd:
