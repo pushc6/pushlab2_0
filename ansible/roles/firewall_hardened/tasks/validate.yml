@@ -94,26 +94,34 @@
   when: normalized_services is defined and normalized_services | length > 0
 
 - name: Get listening TCP ports (IPv4)
-  ansible.builtin.shell: ss -tlnH -4 | awk '{print $4}' | sed 's/.*://' | sort -u
+  ansible.builtin.shell:
+    cmd: set -o pipefail && ss -tlnH -4 | awk '{print $4}' | sed 's/.*://' | sort -u
+    executable: /bin/bash
   register: listening_tcp_ports
   changed_when: false
   failed_when: false
 
 - name: Get listening UDP ports (IPv4)
-  ansible.builtin.shell: ss -ulnH -4 | awk '{print $4}' | sed 's/.*://' | sort -u
+  ansible.builtin.shell:
+    cmd: set -o pipefail && ss -ulnH -4 | awk '{print $4}' | sed 's/.*://' | sort -u
+    executable: /bin/bash
   register: listening_udp_ports
   changed_when: false
   failed_when: false
 
 - name: Get listening TCP ports (IPv6)
-  ansible.builtin.shell: ss -tlnH -6 | awk '{print $4}' | sed 's/.*://' | sort -u
+  ansible.builtin.shell:
+    cmd: set -o pipefail && ss -tlnH -6 | awk '{print $4}' | sed 's/.*://' | sort -u
+    executable: /bin/bash
   register: listening_tcp_ports_ipv6
   changed_when: false
   failed_when: false
   when: firewall_enable_ipv6 | default(true)
 
 - name: Get listening UDP ports (IPv6)
-  ansible.builtin.shell: ss -ulnH -6 | awk '{print $4}' | sed 's/.*://' | sort -u
+  ansible.builtin.shell:
+    cmd: set -o pipefail && ss -ulnH -6 | awk '{print $4}' | sed 's/.*://' | sort -u
+    executable: /bin/bash
   register: listening_udp_ports_ipv6
   changed_when: false
   failed_when: false
@@ -198,7 +206,7 @@
 
       ========================================
     dest: "/var/log/firewall_config_{{ ansible_facts['date_time']['epoch'] }}.txt"
-    mode: '0644'
+    mode: "0644"
 
 - name: Display validation summary
   ansible.builtin.debug:

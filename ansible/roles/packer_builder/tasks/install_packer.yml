@@ -23,7 +23,7 @@
   ansible.builtin.get_url:
     url: "{{ packer_download_url }}"
     dest: "/tmp/packer_{{ packer_version }}.zip"
-    mode: '0644'
+    mode: "0644"
   when: packer_install_required | bool
   register: packer_download
 
@@ -32,7 +32,7 @@
     src: "/tmp/packer_{{ packer_version }}.zip"
     dest: "/usr/local/bin"
     remote_src: true
-    mode: '0755'
+    mode: "0755"
   when: packer_install_required | bool
 
 - name: Clean up Packer zip

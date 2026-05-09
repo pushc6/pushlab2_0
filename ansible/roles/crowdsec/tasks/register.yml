@@ -68,7 +68,7 @@
 
     - name: Pause for manual approval
       ansible.builtin.pause:
-        prompt: |
+        prompt: |2
 
           Machine '{{ crowdsec_machine_name }}' registered with LAPI.
 

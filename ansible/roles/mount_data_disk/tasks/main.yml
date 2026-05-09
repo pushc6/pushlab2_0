@@ -1,6 +1,6 @@
 ---
 - name: Identify data disk by size
-  set_fact:
+  ansible.builtin.set_fact:
     target_disk: "{{ item.key }}"
   loop: "{{ ansible_facts['devices'] | dict2items }}"
   when:
@@ -12,26 +12,33 @@
   # This is a simple heuristic; for more complex setups, we might need WWID or LUN ID.
 
 - name: Fail if no disk found
-  fail:
+  ansible.builtin.fail:
     msg: "Could not find a disk with size {{ data_disk_size_gb }} GB"
   when: target_disk is not defined
 
 - name: Determine if disk is partitioned
-  set_fact:
-    target_partition: "{{ (ansible_facts['devices'][target_disk].partitions | length > 0) | ternary(ansible_facts['devices'][target_disk].partitions.keys() | sort | first, '') }}"
+  ansible.builtin.set_fact:
+    target_partition: >-
+      {{ (ansible_facts['devices'][target_disk].partitions | length > 0)
+         | ternary(
+             ansible_facts['devices'][target_disk].partitions.keys() | sort | first,
+             ''
+         )
+      }}
 
 - name: Set target device path
-  set_fact:
+  ansible.builtin.set_fact:
     target_device: "/dev/{{ (target_partition | length > 0) | ternary(target_partition, target_disk) }}"
 
 - name: Check if filesystem exists on target device
-  command: blkid {{ target_device }}
+  ansible.builtin.command: blkid {{ target_device }}
   register: disk_blkid
   failed_when: false
   changed_when: false
 
 - name: Create filesystem on data disk
-  command: mkfs.{{ data_fs_type | default('ext4') }} {{ target_device }}
+  ansible.builtin.command: mkfs.{{ data_fs_type | default('ext4') }} {{ target_device }}
+  changed_when: true # mkfs is always state-changing when reached.
   when: disk_blkid.rc != 0
 
 - name: Mount data disk
@@ -41,4 +48,3 @@
     fstype: "{{ data_fs_type | default('ext4') }}"
     opts: defaults
     state: mounted
-

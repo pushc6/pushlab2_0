@@ -3,8 +3,7 @@ argument_specs:
   main:
     short_description: Hardened firewalld configuration with rollback safety
     description:
-      - Manages firewalld zones, services, and per-host rules with optional
-        rollback timer, preflight connectivity check, and post-validation.
+      - Manages firewalld zones, services, and per-host rules with optional rollback timer, preflight connectivity check, and post-validation.
     options:
       firewall_rollback_timer:
         description: Seconds before unsaved firewall rules auto-revert.

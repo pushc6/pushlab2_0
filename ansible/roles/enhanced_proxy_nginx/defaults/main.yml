@@ -3,7 +3,7 @@
 # Default values for Enhanced Proxy Nginx role (OAuth2 + Traditional)
 
 # Default proxy mode
-default_proxy_mode: "oauth2"  # Options: "oauth2" or "traditional"
+default_proxy_mode: "oauth2" # Options: "oauth2" or "traditional"
 
 # OAuth2-Proxy settings
 oauth2_proxy_host: "localhost"
@@ -66,7 +66,6 @@ default_ssl_domain: "localhost"
 
 # Service filtering (empty means all services)
 oauth2_services_filter: []
-
 # Logout configuration defaults
 logout_config:
   enable_id_token_logout: true

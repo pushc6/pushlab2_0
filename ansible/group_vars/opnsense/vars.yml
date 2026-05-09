@@ -2,25 +2,25 @@
 # OPNsense API Configuration
 # API credentials are stored in Gitea secrets and passed via extra vars
 
-opnsense_firewall: "{{ ansible_host }}"  # Hostname or IP only (no protocol)
-opnsense_api_url: "https://{{ ansible_host }}"  # Full URL (for backward compatibility)
-opnsense_validate_certs: false  # Set to true if using valid SSL cert
+opnsense_firewall: "{{ ansible_host }}" # Hostname or IP only (no protocol)
+opnsense_api_url: "https://{{ ansible_host }}" # Full URL (for backward compatibility)
+opnsense_validate_certs: false # Set to true if using valid SSL cert
 
 # Interface mapping - friendly names to OPNsense interface IDs
 # Update these based on your OPNsense configuration (Interfaces -> Assignments)
 opnsense_interfaces:
   wan: wan
   wan_backup: opt4
-  wan_group: "WAN_Interfaces net"  # Failover WAN group - use for rules/NAT from internet
+  wan_group: "WAN_Interfaces net" # Failover WAN group - use for rules/NAT from internet
   lan: lan
-  management_vlan: opt1      # VLAN 10 - Management
-  trusted_vlan: opt2         # VLAN 20 - Trusted/Servers
-  storage_vlan: opt3         # Storage VLAN
-  iot_vlan: opt5             # IoT VLAN
-  guest_vlan: opt6           # Guest VLAN
-  dmz_vlan: opt7             # VLAN 70 - DMZ
-  app_vlan: opt9             # VLAN 80 - App
-  wireguard_vlan: opt8       # WireGuard VPN
+  management_vlan: opt1 # VLAN 10 - Management
+  trusted_vlan: opt2 # VLAN 20 - Trusted/Servers
+  storage_vlan: opt3 # Storage VLAN
+  iot_vlan: opt5 # IoT VLAN
+  guest_vlan: opt6 # Guest VLAN
+  dmz_vlan: opt7 # VLAN 70 - DMZ
+  app_vlan: opt9 # VLAN 80 - App
+  wireguard_vlan: opt8 # WireGuard VPN
 
 # Default firewall rule settings
 firewall_defaults:
@@ -76,21 +76,21 @@ opnsense_aliases:
     content:
       - "10.37.0.0/16"
     description: "Internal private networks"
-    
+
   # Port aliases
   - name: "web_https"
     type: port
     content:
       - "443"
     description: "Common web service ports"
-    
-  # URL table aliases (for dynamic IP lists)
-  # - name: "threat_intel_blocklist"
-  #   type: urltable
-  #   content:
-  #     - "https://example.com/blocklist.txt"
-  #   description: "External threat intelligence blocklist"
-  #   refresh_frequency: 1  # Days
+
+# URL table aliases (for dynamic IP lists)
+# - name: "threat_intel_blocklist"
+#   type: urltable
+#   content:
+#     - "https://example.com/blocklist.txt"
+#   description: "External threat intelligence blocklist"
+#   refresh_frequency: 1  # Days
 
 # Granular firewall rules for Terraform hosts
 # Define specific source -> destination -> port combinations
@@ -100,40 +100,40 @@ terraform_host_firewall_rules:
   # Option 1: Target specific hosts explicitly
   - name: "SSH from Ansible to Gitea (cross-VLAN)"
     description: "Allow Ansible SSH to Gitea in App VLAN"
-    source: "semaphore"  # 10.37.70.x (DMZ)
-    destination: "gitea_server"  # 10.37.80.x (App VLAN)
+    source: "semaphore" # 10.37.70.x (DMZ)
+    destination: "gitea_server" # 10.37.80.x (App VLAN)
     protocol: tcp
     port: 22
-    interface: dmz_vlan  # Use friendly name - will be mapped to opt7
+    interface: dmz_vlan # Use friendly name - will be mapped to opt7
 
   - name: "SSH from Ansible to DNS02 (cross-site)"
     description: "Allow Ansible SSH to DNS02"
-    source: "semaphore"  # 10.37.70.x (DMZ)
-    destination: "dns02"  # 10.37.10.x (Different network)
+    source: "semaphore" # 10.37.70.x (DMZ)
+    destination: "dns02" # 10.37.10.x (Different network)
     protocol: tcp
     port: 22
-    interface: dmz_vlan  # Use friendly name - will be mapped to opt1
+    interface: dmz_vlan # Use friendly name - will be mapped to opt1
 
   - name: "SSH from Ansible to Packer Builder (cross-VLAN)"
     description: "Allow Ansible SSH to Packer Builder in App VLAN"
-    source: "semaphore"  # 10.37.70.x (DMZ)
-    destination: "packer_builder"  # 10.37.80.5 (App VLAN)
+    source: "semaphore" # 10.37.70.x (DMZ)
+    destination: "packer_builder" # 10.37.80.5 (App VLAN)
     protocol: tcp
     port: 22
-    interface: dmz_vlan  # Use friendly name - will be mapped to opt7
+    interface: dmz_vlan # Use friendly name - will be mapped to opt7
 
   - name: "Gitea API from Ansible (cross-VLAN)"
     description: "Allow Ansible to reach Gitea Web/API for pre-flight checks"
-    source: "semaphore"  # 10.37.70.25 (DMZ)
-    destination: "gitea_server"  # 10.37.80.4 (App VLAN)
+    source: "semaphore" # 10.37.70.25 (DMZ)
+    destination: "gitea_server" # 10.37.80.4 (App VLAN)
     protocol: tcp
     port: 3000
     interface: dmz_vlan
 
   - name: "Packer to vCenter (cross-VLAN)"
     description: "Allow Packer Builder to reach vCenter API for VM builds"
-    source: "packer_builder"  # 10.37.80.5 (App VLAN)
-    destination: "10.37.10.35"  # vCenter
+    source: "packer_builder" # 10.37.80.5 (App VLAN)
+    destination: "10.37.10.35" # vCenter
     protocol: tcp
     port: 443
     interface: app_vlan
@@ -141,116 +141,116 @@ terraform_host_firewall_rules:
   # Semaphore cross-VLAN SSH access
   - name: "SSH from Semaphore to Gitea (cross-VLAN)"
     description: "Allow Semaphore SSH to Gitea in App VLAN"
-    source: "semaphore"  # 10.37.70.25 (DMZ)
-    destination: "10.37.80.4"  # gitea (App VLAN)
+    source: "semaphore" # 10.37.70.25 (DMZ)
+    destination: "10.37.80.4" # gitea (App VLAN)
     protocol: tcp
     port: 22
     interface: dmz_vlan
 
   - name: "SSH from Semaphore to Packer Builder (cross-VLAN)"
     description: "Allow Semaphore SSH to Packer Builder in App VLAN"
-    source: "semaphore"  # 10.37.70.25 (DMZ)
-    destination: "10.37.80.5"  # packer_builder (App VLAN)
+    source: "semaphore" # 10.37.70.25 (DMZ)
+    destination: "10.37.80.5" # packer_builder (App VLAN)
     protocol: tcp
     port: 22
     interface: dmz_vlan
 
   - name: "SSH from Semaphore to DNS02 (cross-VLAN)"
     description: "Allow Semaphore SSH to DNS02 in Trusted VLAN"
-    source: "semaphore"  # 10.37.70.25 (DMZ)
-    destination: "dns02"  # 10.37.20.2 (Trusted VLAN)
+    source: "semaphore" # 10.37.70.25 (DMZ)
+    destination: "dns02" # 10.37.20.2 (Trusted VLAN)
     protocol: tcp
     port: 22
     interface: dmz_vlan
 
   - name: "SSH from Semaphore to RaspberryPi-HA (cross-VLAN)"
     description: "Allow Semaphore SSH to RaspberryPi-HA in IoT VLAN"
-    source: "semaphore"  # 10.37.70.25 (DMZ)
-    destination: "10.37.50.12"  # raspberrypi-ha.localdomain (IoT VLAN)
+    source: "semaphore" # 10.37.70.25 (DMZ)
+    destination: "10.37.50.12" # raspberrypi-ha.localdomain (IoT VLAN)
     protocol: tcp
     port: 22
     interface: dmz_vlan
 
   - name: "SSH from Semaphore to Cupsserver (cross-VLAN)"
     description: "Allow Semaphore SSH to Cupsserver in IoT VLAN"
-    source: "semaphore"  # 10.37.70.25 (DMZ)
-    destination: "cupsserver"  # 10.37.50.9 (IoT VLAN)
+    source: "semaphore" # 10.37.70.25 (DMZ)
+    destination: "cupsserver" # 10.37.50.9 (IoT VLAN)
     protocol: tcp
     port: 22
     interface: dmz_vlan
 
-  # labtest is NOT listed = no firewall rule (same subnet, not needed)
-  
-  # Option 2: Use conditional based on subnet matching
-  # - name: "SSH cross-VLAN only"
-  #   description: "SSH from Ansible to Terraform hosts (excluding same subnet)"
-  #   source: "semaphore.localdomain"
-  #   destination: "{{ item }}"
-  #   protocol: tcp
-  #   port: 22
-  #   interface: "auto"  # Would need custom logic
-  #   when: "{{ hostvars[item].ansible_host | ipaddr('10.37.70.0/24') | length == 0 }}"
-  #   # ^ Only create if host is NOT in 10.37.70.0/24 (DMZ subnet)
-    
-  # Example: Same rule on multiple interfaces
-  # - name: "Management access multi-interface"
-  #   description: "Allow management from trusted network"
-  #   source: "10.37.50.0/24"
-  #   destination: "terraform_hosts"
-  #   protocol: tcp
-  #   port: 22
-  #   interface:  # Array of interfaces - rule will be created on each
-  #     - lan
-  #     - dmz
-  #     - vlan10
-  
-  # Example: Conditional rule (only create if condition is true)
-  # - name: "Cross-VLAN SSH"
-  #   description: "SSH from management to app hosts"
-  #   source: "10.37.50.0/24"  # Management VLAN
-  #   destination: "10.37.80.0/24"  # App VLAN
-  #   protocol: tcp
-  #   port: 22
-  #   interface: VLAN80App
-  #   when: "{{ groups['terraform_created'] | map('extract', hostvars, 'ansible_host') | select('match', '^10\\.37\\.80\\.') | list | length > 0 }}"
-  #   # ^ Only create if we have hosts in the App VLAN
-  
-  # Example: Skip same-subnet rules
-  # - name: "Ansible to DMZ hosts"
-  #   description: "SSH from Ansible to DMZ terraform hosts"
-  #   source: "semaphore.localdomain"  # 10.37.70.x
-  #   destination: "terraform_hosts"
-  #   protocol: tcp
-  #   port: 22
-  #   interface: VLAN70DMZ
-  #   when: false  # Skip - same subnet, no firewall rule needed
-    
-  # Example: WAN access rules
-  # - name: "HTTPS from Internet to Gitea"
-  #   description: "Allow public HTTPS to Gitea"
-  #   source: any
-  #   destination: "gitea"
-  #   protocol: tcp
-  #   port: 443
-  #   interface: wan  # WAN interface
-  
-  # Example: DMZ to LAN access
-  # - name: "Database access from DMZ app servers"
-  #   description: "Allow DMZ servers to access database"
-  #   source: "dmz_servers"  # Custom alias
-  #   destination: "10.37.80.10"  # Database server
-  #   protocol: tcp
-  #   port: 5432
-  #   interface: dmz  # DMZ interface
-  
-  # Example: Inter-VLAN routing
-  # - name: "App to Database cross-VLAN"
-  #   description: "Allow App VLAN to Database VLAN"
-  #   source: "app_vlan"
-  #   destination: "db_vlan"
-  #   protocol: tcp
-  #   port: 3306
-  #   interface: vlan10  # Specific VLAN interface
+# labtest is NOT listed = no firewall rule (same subnet, not needed)
+
+# Option 2: Use conditional based on subnet matching
+# - name: "SSH cross-VLAN only"
+#   description: "SSH from Ansible to Terraform hosts (excluding same subnet)"
+#   source: "semaphore.localdomain"
+#   destination: "{{ item }}"
+#   protocol: tcp
+#   port: 22
+#   interface: "auto"  # Would need custom logic
+#   when: "{{ hostvars[item].ansible_host | ipaddr('10.37.70.0/24') | length == 0 }}"
+#   # ^ Only create if host is NOT in 10.37.70.0/24 (DMZ subnet)
+
+# Example: Same rule on multiple interfaces
+# - name: "Management access multi-interface"
+#   description: "Allow management from trusted network"
+#   source: "10.37.50.0/24"
+#   destination: "terraform_hosts"
+#   protocol: tcp
+#   port: 22
+#   interface:  # Array of interfaces - rule will be created on each
+#     - lan
+#     - dmz
+#     - vlan10
+
+# Example: Conditional rule (only create if condition is true)
+# - name: "Cross-VLAN SSH"
+#   description: "SSH from management to app hosts"
+#   source: "10.37.50.0/24"  # Management VLAN
+#   destination: "10.37.80.0/24"  # App VLAN
+#   protocol: tcp
+#   port: 22
+#   interface: VLAN80App
+#   when: "{{ groups['terraform_created'] | map('extract', hostvars, 'ansible_host') | select('match', '^10\\.37\\.80\\.') | list | length > 0 }}"
+#   # ^ Only create if we have hosts in the App VLAN
+
+# Example: Skip same-subnet rules
+# - name: "Ansible to DMZ hosts"
+#   description: "SSH from Ansible to DMZ terraform hosts"
+#   source: "semaphore.localdomain"  # 10.37.70.x
+#   destination: "terraform_hosts"
+#   protocol: tcp
+#   port: 22
+#   interface: VLAN70DMZ
+#   when: false  # Skip - same subnet, no firewall rule needed
+
+# Example: WAN access rules
+# - name: "HTTPS from Internet to Gitea"
+#   description: "Allow public HTTPS to Gitea"
+#   source: any
+#   destination: "gitea"
+#   protocol: tcp
+#   port: 443
+#   interface: wan  # WAN interface
+
+# Example: DMZ to LAN access
+# - name: "Database access from DMZ app servers"
+#   description: "Allow DMZ servers to access database"
+#   source: "dmz_servers"  # Custom alias
+#   destination: "10.37.80.10"  # Database server
+#   protocol: tcp
+#   port: 5432
+#   interface: dmz  # DMZ interface
+
+# Example: Inter-VLAN routing
+# - name: "App to Database cross-VLAN"
+#   description: "Allow App VLAN to Database VLAN"
+#   source: "app_vlan"
+#   destination: "db_vlan"
+#   protocol: tcp
+#   port: 3306
+#   interface: vlan10  # Specific VLAN interface
 
 # Host-specific rules (optional)
 # Override per-host in host_vars/<hostname>/firewall.yml

@@ -56,7 +56,7 @@
   ansible.builtin.copy:
     content: "{{ current_firewall_state.stdout }}"
     dest: "/tmp/firewall_backup_{{ ansible_facts['date_time']['epoch'] }}.txt"
-    mode: '0644'
+    mode: "0644"
 
 - name: Display preflight results
   ansible.builtin.debug:

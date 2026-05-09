@@ -237,7 +237,7 @@ firewall_services:
 
 ```bash
 ansible-playbook -i inventories/manual/on_premise.yml \
-  playbooks/firewall_test.yml \
+  firewall_test.yml \
   --limit myhost \
   --check --diff  # Dry run first!
 ```
@@ -246,7 +246,7 @@ ansible-playbook -i inventories/manual/on_premise.yml \
 
 ```bash
 ansible-playbook -i inventories/manual/on_premise.yml \
-  playbooks/firewall_test.yml \
+  firewall_test.yml \
   --limit myhost
 ```
 
@@ -579,7 +579,7 @@ ls -la /tmp/firewall_backup_*.txt
 Always test with `--check --diff` first:
 
 ```bash
-ansible-playbook playbooks/firewall_test.yml \
+ansible-playbook firewall_test.yml \
   --limit myhost \
   --check --diff
 ```

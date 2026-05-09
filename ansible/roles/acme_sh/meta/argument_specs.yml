@@ -3,8 +3,7 @@ argument_specs:
   main:
     short_description: Install acme.sh and manage ACME (Let's Encrypt) certificates
     description:
-      - Clones acme.sh, configures the Cloudflare DNS provider, and issues /
-        deploys certificates to nginx.
+      - Clones acme.sh, configures the Cloudflare DNS provider, and issues / deploys certificates to nginx.
     options:
       acme_sh_install_dir:
         description: Directory where acme.sh is cloned.

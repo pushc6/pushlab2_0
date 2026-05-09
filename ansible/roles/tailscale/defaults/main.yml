@@ -12,7 +12,6 @@ tailscale_hostname: "{{ inventory_hostname.split('.')[0] }}"
 # Tags to apply (must exist in ACL tagOwners and OAuth client)
 # Example: ["tag:crowdsec-agent", "tag:server-client"]
 tailscale_tags: []
-
 # OAuth credentials (store in vault!)
 # Create at: https://login.tailscale.com/admin/settings/oauth
 # Required scope: auth_keys (with access to your tags)
@@ -24,17 +23,17 @@ tailscale_oauth_client_secret: ""
 tailscale_tailnet: "crane-beaver.ts.net"
 
 # Auth key settings (for generated keys)
-tailscale_authkey_expiry_seconds: 300  # Key expires in 5 minutes (security)
+tailscale_authkey_expiry_seconds: 300 # Key expires in 5 minutes (security)
 
 # Tailscale features
-tailscale_accept_routes: false          # Accept subnet routes from other nodes
-tailscale_advertise_routes: []          # Subnet routes to advertise (CIDR list)
-tailscale_ssh: false                    # Enable Tailscale SSH
-tailscale_accept_dns: true              # Use Tailscale MagicDNS
-tailscale_extra_args: ""                # Additional tailscale up arguments
+tailscale_accept_routes: false # Accept subnet routes from other nodes
+tailscale_advertise_routes: [] # Subnet routes to advertise (CIDR list)
+tailscale_ssh: false # Enable Tailscale SSH
+tailscale_accept_dns: true # Use Tailscale MagicDNS
+tailscale_extra_args: "" # Additional tailscale up arguments
 
 # Force rejoin even if already connected (useful for tag changes)
 tailscale_force_rejoin: false
 
 # Firewall integration
-tailscale_configure_firewall: true      # Add tailscale0 to trusted zone
+tailscale_configure_firewall: true # Add tailscale0 to trusted zone

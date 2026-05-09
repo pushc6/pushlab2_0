@@ -3,9 +3,8 @@ argument_specs:
   main:
     short_description: Enhanced nginx reverse proxy supporting OAuth2 + traditional modes
     description:
-      - Renders unified nginx site templates that switch between OAuth2 and
-        traditional modes per service, with optional caching, rate limiting,
-        and access logging.
+      - Renders unified nginx site templates that switch between OAuth2 and traditional modes per service, with optional caching, rate limiting, and access
+        logging.
     options:
       default_proxy_mode:
         description: Mode used when a service entry does not override.

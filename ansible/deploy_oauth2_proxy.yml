@@ -9,23 +9,23 @@
 
 - name: Deploy OAuth2-Proxy Configuration
   hosts: "{{ target_group | default('nginx_internal') }}"
-  become: yes
+  become: true
   remote_user: ansible
-  gather_facts: yes
+  gather_facts: true
 
   vars:
     # Survey variables (set via Semaphore Survey or extra-vars)
     target_group: "nginx_internal"
-    deploy_all_services: "true"  # String from survey
-    target_services_input: ""     # Comma-separated service names
+    deploy_all_services: "true" # String from survey
+    target_services_input: "" # Comma-separated service names
 
     # SELinux configuration (can be overridden via survey or extra-vars)
     selinux_config:
-      auto_configure: true          # Automatically configure SELinux
-      install_tools: true           # Install SELinux management tools
-      configure_booleans: true      # Enable httpd network booleans
-      configure_ports: true         # Add backend ports to http_port_t
-      verify_config: true           # Verify configuration after changes
+      auto_configure: true # Automatically configure SELinux
+      install_tools: true # Install SELinux management tools
+      configure_booleans: true # Enable httpd network booleans
+      configure_ports: true # Add backend ports to http_port_t
+      verify_config: true # Verify configuration after changes
 
     # Deployment configuration (can be overridden via survey or extra-vars)
     deployment_config:
@@ -33,7 +33,7 @@
       create_backup: true
       test_nginx_config: true
       enable_ssl_verification: true
-      restart_nginx: false  # Only reload by default
+      restart_nginx: false # Only reload by default
       create_summary_report: true
 
     # SSL configuration validation
@@ -45,14 +45,11 @@
   pre_tasks:
     # Include modular validation tasks
     - name: Include deployment validation tasks
-      include_tasks: tasks/oauth2_deployment_validation.yml
-
-    # Include service filtering logic
+      ansible.builtin.include_tasks: tasks/oauth2_deployment_validation.yml
     - name: Include service filtering tasks
-      include_tasks: tasks/oauth2_service_filtering.yml
-
+      ansible.builtin.include_tasks: tasks/oauth2_service_filtering.yml
     - name: Display deployment parameters
-      debug:
+      ansible.builtin.debug:
         msg:
           - "Target group: {{ target_group }}"
           - "Deploy all services: {{ deploy_all_services_bool }}"
@@ -73,10 +70,9 @@
   post_tasks:
     # Include modular post-deployment tasks
     - name: Include post-deployment verification
-      include_tasks: tasks/oauth2_post_deployment.yml
-
+      ansible.builtin.include_tasks: tasks/oauth2_post_deployment.yml
     - name: Deployment summary
-      debug:
+      ansible.builtin.debug:
         msg:
           - "OAuth2-Proxy deployment completed"
           - "Target hosts: {{ ansible_play_hosts }}"

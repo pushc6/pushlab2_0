@@ -23,7 +23,7 @@
   ansible.builtin.get_url:
     url: "{{ act_runner_download_url }}"
     dest: "{{ act_runner_install_path }}"
-    mode: '0755'
+    mode: "0755"
   when: act_runner_install_required | bool
   register: act_runner_download
 

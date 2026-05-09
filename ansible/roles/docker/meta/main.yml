@@ -13,6 +13,5 @@ galaxy_info:
     - containers
 
 dependencies: []
-
 collections:
   - ansible.builtin

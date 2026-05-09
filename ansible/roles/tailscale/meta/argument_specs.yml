@@ -3,9 +3,8 @@ argument_specs:
   main:
     short_description: Install and join a host to Tailscale
     description:
-      - Installs the tailscaled daemon, generates a short-lived auth key from
-        the configured OAuth client, and brings up the interface with the
-        requested options.
+      - Installs the tailscaled daemon, generates a short-lived auth key from the configured OAuth client, and brings up the interface with the requested
+        options.
     options:
       tailscale_enabled:
         description: Toggle the role per host.

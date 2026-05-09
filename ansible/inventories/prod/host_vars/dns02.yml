@@ -3,9 +3,9 @@
 
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
-  - "10.37.20.0/24"   # trusted_vlan
-  - "10.37.90.0/24"   # wireguard_vlan
-  - "10.37.70.25/32"  # semaphore
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.25/32" # semaphore
 
 # Using unified firewall_services structure with rich rules
 firewall_services:
@@ -28,4 +28,3 @@ firewall_services:
     protocol: tcp
     name: "Technitium Web Console"
     access: trusted_vlan
-

@@ -53,7 +53,7 @@ firewall_wireguard_vlan_subnet_ipv6: "fd00:1337:1337:90::/64"
 # Anti-lockout safeguard: trusted_vlan always has SSH access by default
 # Override in host_vars if different access is needed (e.g., VPS with public SSH)
 firewall_ssh_allowed_subnets:
-  - "{{ firewall_trusted_vlan_subnet }}"  # Anti-lockout safeguard
+  - "{{ firewall_trusted_vlan_subnet }}" # Anti-lockout safeguard
 
 # SSH Access - Allow SSH from these subnets (IPv6) - optional
 firewall_ssh_allowed_subnets_ipv6:
@@ -107,16 +107,13 @@ firewall_ssh_hardening_enabled: true
 #   - custom: Accessible from custom source list (requires 'sources' field)
 
 firewall_services: []
-
 # Global services applied to ALL hosts (from group_vars/all.yml)
 firewall_global_services: []
-
 # LEGACY VARIABLES (for backward compatibility, will be merged into firewall_services)
 firewall_public_services: []
 firewall_management_services: []
 firewall_proxy_services: []
 firewall_custom_rich_rules: []
-
 # ============================================================================
 # LOGGING
 # ============================================================================

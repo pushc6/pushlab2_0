@@ -18,13 +18,13 @@
 
   roles:
     - role: system_hostname
-      tags: ['hostname']
+      tags: ["hostname"]
     - role: docker
-      tags: ['docker']
+      tags: ["docker"]
     - role: firewall_hardened
-      tags: ['firewall']
+      tags: ["firewall"]
     - role: packer_builder
-      tags: ['packer', 'builder']
+      tags: ["packer", "builder"]
 
   post_tasks:
     - name: Display installation summary

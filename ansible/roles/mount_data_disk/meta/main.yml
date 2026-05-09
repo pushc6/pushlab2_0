@@ -15,7 +15,6 @@ galaxy_info:
     - filesystem
 
 dependencies: []
-
 collections:
   - ansible.builtin
   - ansible.posix

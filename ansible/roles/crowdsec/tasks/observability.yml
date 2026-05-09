@@ -8,7 +8,7 @@
     dest: /etc/crowdsec/config.yaml.local
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   when: crowdsec_prometheus_listen_addr | length > 0
   notify: Restart crowdsec
 
@@ -26,7 +26,7 @@
     dest: /etc/crowdsec/notifications/http.yaml
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   when: crowdsec_http_notification.enabled | default(false)
   notify: Restart crowdsec
 
@@ -37,6 +37,6 @@
     dest: /etc/crowdsec/profiles.yaml
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   when: crowdsec_http_notification.enabled | default(false)
   notify: Restart crowdsec

@@ -1,7 +1,9 @@
 ---
 # Common pre-update tasks
 - name: Check disk space before updates
-  ansible.builtin.shell: df -h / | awk 'NR==2 {print $5}' | sed 's/%//'
+  ansible.builtin.shell:
+    cmd: set -o pipefail && df -h / | awk 'NR==2 {print $5}' | sed 's/%//'
+    executable: /bin/bash
   register: disk_usage
   changed_when: false
   when: pre_update_tasks_enabled | bool
@@ -9,7 +11,7 @@
 - name: Fail if disk space is too low
   ansible.builtin.fail:
     msg: "Not enough disk space for updates ({{ disk_usage.stdout }}% used, maximum 85% allowed)."
-  when: 
+  when:
     - pre_update_tasks_enabled | bool
     - disk_usage.stdout|int > 85
 
@@ -18,5 +20,8 @@
   ansible.builtin.lineinfile:
     path: /var/log/ansible_updates.log
     line: "System updated on {{ ansible_date_time.iso8601 }}"
-    create: yes
+    create: true
+    mode: "0644"
+    owner: root
+    group: root
   when: post_update_tasks_enabled | bool

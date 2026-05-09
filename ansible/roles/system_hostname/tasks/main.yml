@@ -24,10 +24,10 @@
 - name: Ensure /etc/hosts has hostname mapping
   ansible.builtin.lineinfile:
     path: /etc/hosts
-    regexp: '^{{ primary_ip | regex_escape() }}\s+'
+    regexp: "^{{ primary_ip | regex_escape() }}\\s+"
     line: "{{ primary_ip }} {{ desired_hostname }} {{ desired_hostname.split('.')[0] }}"
     state: present
-    create: yes
+    create: true
     owner: root
     group: root
     mode: "0644"

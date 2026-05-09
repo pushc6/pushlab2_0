@@ -11,13 +11,13 @@ oauth2_debug_mode: false
 
 # SELinux Configuration
 selinux_config:
-  auto_configure: true          # Automatically configure SELinux during deployment
-  install_tools: true           # Install SELinux management tools if missing
-  configure_booleans: true      # Enable httpd_can_network_connect and httpd_can_network_relay
-  configure_ports: true         # Add backend ports to http_port_t context
-  verify_config: true           # Verify configuration after applying changes
-  force_reconfigure: false      # Force reconfiguration even if already configured
-  skip_on_disabled: true        # Skip SELinux config if SELinux is disabled
+  auto_configure: true # Automatically configure SELinux during deployment
+  install_tools: true # Install SELinux management tools if missing
+  configure_booleans: true # Enable httpd_can_network_connect and httpd_can_network_relay
+  configure_ports: true # Add backend ports to http_port_t context
+  verify_config: true # Verify configuration after applying changes
+  force_reconfigure: false # Force reconfiguration even if already configured
+  skip_on_disabled: true # Skip SELinux config if SELinux is disabled
 
 # Enhanced SSL Certificate definitions with security options
 ssl_certificates:
@@ -67,7 +67,7 @@ oauth2_services:
     description: "Sonarr TV Series Management"
     category: "media"
     health_check: "/ping"
-    
+
   - name: "radarr"
     domain: "radarr.push-lab.com"
     backend_host: "10.37.70.7"
@@ -77,7 +77,7 @@ oauth2_services:
     description: "Radarr Movie Management"
     category: "media"
     health_check: "/ping"
-  
+
   - name: "code"
     domain: "code.push-lab.com"
     backend_host: "10.37.70.7"
@@ -86,7 +86,7 @@ oauth2_services:
     ssl_domain: "push-lab.com"
     description: "VS Code"
     category: "code"
-    health_check: "/ping"    
+    health_check: "/ping"
 
   - name: "dashboard"
     domain: "dashboard.push-lab.com"
@@ -158,7 +158,6 @@ oauth2_services:
     category: "smarthome"
     health_check: "/ping"
 
-
   - name: "synology"
     domain: "synology.push-lab.com"
     backend_host: "10.37.20.4"
@@ -174,7 +173,7 @@ oauth2_services:
 #    backend_host: "10.37.70.10"
 #    backend_port: "3000"
 #    auth_type: "roles"
-#    required_roles: 
+#    required_roles:
 #      - "grafana:admin"
 #      - "monitoring:viewer"
 #    ssl_domain: "push-lab.com"

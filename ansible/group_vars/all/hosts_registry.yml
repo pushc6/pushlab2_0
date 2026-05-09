@@ -8,8 +8,8 @@
 # TWO WAYS TO REFERENCE:
 #
 #   1. BY HOST (when you care about the physical/virtual host):
-#      - {{ hosts.docker_internal.ip }}/32
-#      - {{ hosts.docker_internal.hostname }}
+#      - {{ host_registry.docker_internal.ip }}/32
+#      - {{ host_registry.docker_internal.hostname }}
 #
 #   2. BY SERVICE (when you care about the service, not where it runs):
 #      - {{ services.semaphore.ip }}/32
@@ -17,7 +17,7 @@
 #      - {{ services.semaphore.port }}
 #
 # WHEN TO USE WHICH:
-#   - Use 'hosts.X' for host-level things (SSH access, NFS mounts)
+#   - Use 'host_registry.X' for host-level things (SSH access, NFS mounts)
 #   - Use 'services.X' for application access (firewalls allowing app traffic)
 #
 # IF A SERVICE MOVES TO A DIFFERENT HOST:
@@ -37,7 +37,7 @@
 technitium_dns:
   server_url: "http://10.37.70.2"
   zone: "localdomain"
-  default_ttl: 300  # Lowered for migration - raise back to 3600 after re-IP complete
+  default_ttl: 300 # Lowered for migration - raise back to 3600 after re-IP complete
   # API token should be stored in vault or external secrets
   # token: "{{ vault_technitium_api_token }}"
 
@@ -214,7 +214,6 @@ hosts_vlan50:
 # VLAN 30 - Servers VLAN (Legacy/Other)
 # =============================================================================
 hosts_vlan30: {}
-
 # =============================================================================
 # External / VPS Hosts
 # =============================================================================
@@ -243,59 +242,59 @@ public_dns_records:
     records:
       # nginx-internal backends
       - name: aap.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: code.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: dashboard.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: digx.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: dozzle.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: esxi.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: git.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: grafana.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: lidarr.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: radarr.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: readarr.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: sab.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: semaphore.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: sonarr.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: syno.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: truenas.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: vsphere.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: zigbee.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: zwave.push-lab.com
-        ip: "{{ hosts.nginx_internal.ip }}"
+        ip: "{{ host_registry.nginx_internal.ip }}"
       # nginx-dmz backends
       - name: auth.push-lab.com
-        ip: "{{ hosts.nginx_dmz.ip }}"
+        ip: "{{ host_registry.nginx_dmz.ip }}"
       - name: invite.push-lab.com
-        ip: "{{ hosts.nginx_dmz.ip }}"
+        ip: "{{ host_registry.nginx_dmz.ip }}"
       - name: n8n.push-lab.com
-        ip: "{{ hosts.nginx_dmz.ip }}"
+        ip: "{{ host_registry.nginx_dmz.ip }}"
       - name: plex.push-lab.com
-        ip: "{{ hosts.nginx_dmz.ip }}"
+        ip: "{{ host_registry.nginx_dmz.ip }}"
       # Other hosts
       - name: ha.push-lab.com
         ip: "10.37.70.20"
       - name: satisfactory.push-lab.com
-        ip: "{{ hosts.linuxgameserver.ip }}"
+        ip: "{{ host_registry.linuxgameserver.ip }}"
       - name: sso.push-lab.com
-        ip: "{{ hosts.docker.ip }}"
+        ip: "{{ host_registry.docker.ip }}"
 
   # -------------------------------------------------------------------------
   # ryanpampush.com - Public services via nginx-dmz (10.37.70.5)
@@ -304,13 +303,13 @@ public_dns_records:
     zone: ryanpampush.com
     records:
       - name: cloud.ryanpampush.com
-        ip: "{{ hosts.nginx_dmz.ip }}"
+        ip: "{{ host_registry.nginx_dmz.ip }}"
       - name: plex.ryanpampush.com
-        ip: "{{ hosts.nginx_dmz.ip }}"
+        ip: "{{ host_registry.nginx_dmz.ip }}"
       - name: request.ryanpampush.com
-        ip: "{{ hosts.nginx_dmz.ip }}"
+        ip: "{{ host_registry.nginx_dmz.ip }}"
       - name: teslamate.ryanpampush.com
-        ip: "{{ hosts.docker.ip }}"
+        ip: "{{ host_registry.docker.ip }}"
 
   # -------------------------------------------------------------------------
   # patreons7.club
@@ -319,7 +318,7 @@ public_dns_records:
     zone: patreons7.club
     records:
       - name: nc.patreons7.club
-        ip: "{{ hosts.nginx_dmz.ip }}"
+        ip: "{{ host_registry.nginx_dmz.ip }}"
 
   # -------------------------------------------------------------------------
   # rangernet.dev - IoT/logging services
@@ -328,16 +327,18 @@ public_dns_records:
     zone: rangernet.dev
     records:
       - name: logs.rangernet.dev
-        ip: "{{ hosts.docker_internal.ip }}"  # VictoriaLogs
+        ip: "{{ host_registry.docker_internal.ip }}" # VictoriaLogs
       - name: mqtt.rangernet.dev
-        ip: "{{ hosts.nginx_internal.ip }}"   # MQTT proxy
+        ip: "{{ host_registry.nginx_internal.ip }}" # MQTT proxy
 
 # =============================================================================
 # Convenience Lookups - Flat dictionary for easy access
 # =============================================================================
-# Merge all VLAN hosts into a single 'hosts' dictionary
-# Usage: {{ hosts.docker_internal.ip }}
-hosts: >-
+# Merge all VLAN hosts into a single 'host_registry' dictionary.
+# Renamed from `hosts` (Ansible reserved name) — references must use
+# `host_registry.X` everywhere.
+# Usage: {{ host_registry.docker_internal.ip }}
+host_registry: >-
   {{
     (hosts_vlan20 | default({})) |
     combine(hosts_vlan70 | default({})) |
@@ -371,15 +372,15 @@ services:
   # -------------------------------------------------------------------------
   semaphore:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 3004
     description: "Ansible Semaphore UI"
 
   gitea:
     host: gitea
-    ip: "{{ hosts.gitea.ip }}"
-    hostname: "{{ hosts.gitea.hostname }}"
+    ip: "{{ host_registry.gitea.ip }}"
+    hostname: "{{ host_registry.gitea.hostname }}"
     port: 3000
     description: "Gitea Git Server"
 
@@ -388,36 +389,36 @@ services:
   # -------------------------------------------------------------------------
   grafana:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 3002
     description: "Grafana Dashboards"
 
   victoriametrics:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 8428
     description: "VictoriaMetrics Time Series DB"
 
   victorialogs:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 9428
     description: "VictoriaLogs"
 
   alloy:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 12345
     description: "Grafana Alloy Telemetry Collector"
 
   influxdb:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 8086
     description: "InfluxDB"
 
@@ -426,22 +427,22 @@ services:
   # -------------------------------------------------------------------------
   oauth2_proxy:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 4180
     description: "OAuth2 Proxy (internal)"
 
   crowdsec_lapi:
     host: crowdsec
-    ip: "{{ hosts.crowdsec.ip }}"
-    hostname: "{{ hosts.crowdsec.hostname }}"
+    ip: "{{ host_registry.crowdsec.ip }}"
+    hostname: "{{ host_registry.crowdsec.hostname }}"
     port: 8080
     description: "CrowdSec LAPI Controller"
 
   crowdsec_api_manager:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 5000
     description: "CrowdSec API Manager"
 
@@ -450,8 +451,8 @@ services:
   # -------------------------------------------------------------------------
   mqtt:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 1883
     description: "Mosquitto MQTT Broker"
 
@@ -460,29 +461,29 @@ services:
   # -------------------------------------------------------------------------
   immich:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 2283
     description: "Immich Photo Management"
 
   sonarr:
     host: docker
-    ip: "{{ hosts.docker.ip }}"
-    hostname: "{{ hosts.docker.hostname }}"
+    ip: "{{ host_registry.docker.ip }}"
+    hostname: "{{ host_registry.docker.hostname }}"
     port: 8989
     description: "Sonarr TV Manager"
 
   radarr:
     host: docker
-    ip: "{{ hosts.docker.ip }}"
-    hostname: "{{ hosts.docker.hostname }}"
+    ip: "{{ host_registry.docker.ip }}"
+    hostname: "{{ host_registry.docker.hostname }}"
     port: 7878
     description: "Radarr Movie Manager"
 
   lidarr:
     host: docker
-    ip: "{{ hosts.docker.ip }}"
-    hostname: "{{ hosts.docker.hostname }}"
+    ip: "{{ host_registry.docker.ip }}"
+    hostname: "{{ host_registry.docker.hostname }}"
     port: 8686
     description: "Lidarr Music Manager"
 
@@ -491,36 +492,36 @@ services:
   # -------------------------------------------------------------------------
   home_assistant:
     host: raspberrypi_ha
-    ip: "{{ hosts.raspberrypi_ha.ip }}"
-    hostname: "{{ hosts.raspberrypi_ha.hostname }}"
+    ip: "{{ host_registry.raspberrypi_ha.ip }}"
+    hostname: "{{ host_registry.raspberrypi_ha.hostname }}"
     port: 8123
     description: "Home Assistant"
 
   peanut:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 8080
     description: "PeaNUT UPS Monitor"
 
   nut:
     host: docker_internal
-    ip: "{{ hosts.docker_internal.ip }}"
-    hostname: "{{ hosts.docker_internal.hostname }}"
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
     port: 3493
     description: "NUT UPS Server"
 
   technitium_dns:
     host: docker_secure
-    ip: "{{ hosts.docker_secure.ip }}"
-    hostname: "{{ hosts.docker_secure.hostname }}"
+    ip: "{{ host_registry.docker_secure.ip }}"
+    hostname: "{{ host_registry.docker_secure.hostname }}"
     port: 5380
     description: "Technitium DNS Server"
 
   truenas:
     host: truenas
-    ip: "{{ hosts.truenas.ip }}"
-    hostname: "{{ hosts.truenas.hostname }}"
+    ip: "{{ host_registry.truenas.ip }}"
+    hostname: "{{ host_registry.truenas.hostname }}"
     port: 443
     description: "TrueNAS Web UI"
 
@@ -528,15 +529,15 @@ services:
 # Legacy Compatibility Variables
 # =============================================================================
 # These maintain backwards compatibility with existing configs
-# TODO: Migrate all usages to services.X.ip or hosts.X.ip format
+# TODO: Migrate all usages to services.X.ip or host_registry.X.ip format
 
 # Semaphore - now use services.semaphore.ip
 semaphore_ip: "{{ services.semaphore.ip }}"
 
 # Veeam - already defined in main.yml, keeping for reference
-# veeam_server_ip: "{{ hosts.veeam.ip }}"
+# veeam_server_ip: "{{ host_registry.veeam.ip }}"
 
 # Reverse proxy IPs - used in firewall configs
 reverse_proxy_ips:
-  - "{{ hosts.nginx_dmz.ip }}"
-  - "{{ hosts.nginx_internal.ip }}"
+  - "{{ host_registry.nginx_dmz.ip }}"
+  - "{{ host_registry.nginx_internal.ip }}"

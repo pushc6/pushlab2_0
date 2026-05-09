@@ -277,17 +277,16 @@
         state: reloaded
       register: rollback_reload
 
-    - name: Wait for firewall to stabilize after rollback
+    - name: Wait for firewall to stabilize after rollback  # noqa: no-handler
       ansible.builtin.pause:
         seconds: 5
       when: rollback_reload is changed
 
-    - name: Verify firewalld is running after rollback
+    - name: Verify firewalld is running after rollback  # noqa: no-handler
       ansible.builtin.systemd:
         name: firewalld
       register: rollback_firewalld_status
       failed_when: rollback_firewalld_status.status.ActiveState != 'active'
-      ignore_errors: true
       when: rollback_reload is changed
 
     - name: Verify SSH service restored in firewall
@@ -323,7 +322,13 @@
     - name: Log SSH hardening attempt
       ansible.builtin.lineinfile:
         path: /var/log/firewall_hardening.log
-        line: "{{ ansible_facts['date_time']['iso8601'] }} - {{ inventory_hostname }} - SSH hardening {{ 'SUCCESS' if final_ssh_test is defined and final_ssh_test is not failed else 'FAILED' }}"
+        line: >-
+          {{ ansible_facts['date_time']['iso8601'] }} - {{ inventory_hostname }}
+          - SSH hardening {{ 'SUCCESS'
+            if final_ssh_test is defined and final_ssh_test is not failed
+            else 'FAILED' }}
         create: true
-        mode: '0644'
-      ignore_errors: true
+        mode: "0640"
+        owner: root
+        group: root
+      failed_when: false # Logging is best-effort — never abort hardening on it.

@@ -3,13 +3,13 @@
 # Handlers for OAuth2-Proxy Nginx role
 
 - name: reload nginx
-  systemd:
+  ansible.builtin.systemd:
     name: nginx
     state: reloaded
   listen: reload nginx
 
 - name: restart nginx
-  systemd:
+  ansible.builtin.systemd:
     name: nginx
     state: restarted
   listen: restart nginx

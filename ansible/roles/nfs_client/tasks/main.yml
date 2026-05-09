@@ -13,10 +13,10 @@
     state: directory
     owner: root
     group: root
-    mode: '0755'
+    mode: "0755"
 
 - name: Mount NFS export and persist in fstab
-  ansible.builtin.mount:
+  ansible.posix.mount:
     src: "{{ nfs_server }}:{{ nfs_export_path }}"
     path: "{{ nfs_mount_point }}"
     fstype: nfs4

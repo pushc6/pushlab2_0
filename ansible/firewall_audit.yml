@@ -40,13 +40,17 @@
     # ========================================================================
 
     - name: Get listening TCP ports
-      ansible.builtin.shell: ss -tlnp | tail -n +2 | awk '{print $4, $6}' | sed 's/users:(("/[/g' | sed 's/".*//g'
+      ansible.builtin.shell:
+        cmd: set -o pipefail && ss -tlnp | tail -n +2 | awk '{print $4, $6}' | sed 's/users:(("/[/g' | sed 's/".*//g'
+        executable: /bin/bash
       register: listening_tcp
       changed_when: false
       failed_when: false
 
     - name: Get listening UDP ports
-      ansible.builtin.shell: ss -ulnp | tail -n +2 | awk '{print $4, $5}' | sed 's/users:(("/[/g' | sed 's/".*//g'
+      ansible.builtin.shell:
+        cmd: set -o pipefail && ss -ulnp | tail -n +2 | awk '{print $4, $5}' | sed 's/users:(("/[/g' | sed 's/".*//g'
+        executable: /bin/bash
       register: listening_udp
       changed_when: false
       failed_when: false

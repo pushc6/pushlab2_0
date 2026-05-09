@@ -40,16 +40,34 @@ crowdsec_bouncers:
     type: nftables
     enabled: true
 
+# Parser-stage whitelists - drop noisy legitimate traffic before it reaches scenarios
+crowdsec_parser_whitelists:
+  - name: nextcloud-whitelist
+    full_name: homelab/nextcloud-whitelist
+    description: "Whitelist legitimate Nextcloud WebDAV sync traffic"
+    filter: "evt.Meta.log_type in ['http_access-log', 'http_error-log']"
+    reason: "Legitimate Nextcloud/WebDAV file sync traffic"
+    expressions:
+      # Any client using WebDAV verbs against Nextcloud DAV endpoints
+      # (covers WinSCP/neon, Cyberduck, davfs2, GoodSync, future clients)
+      - "evt.Parsed.request startsWith '/remote.php/dav/' && evt.Parsed.verb in ['PROPFIND','PROPPATCH','MKCOL','MOVE','COPY','LOCK','UNLOCK','REPORT']"
+      # rclone syncing via Nextcloud WebDAV
+      - "evt.Parsed.http_user_agent contains 'rclone' && evt.Parsed.request startsWith '/remote.php/dav/'"
+      # Official Nextcloud desktop/mobile sync client
+      - "evt.Parsed.http_user_agent contains 'Nextcloud' && evt.Parsed.request startsWith '/remote.php/dav/'"
+      # Any WebDAV client identifying itself as DAV (Cyberduck, etc.)
+      - "evt.Parsed.http_user_agent contains 'DAV' && evt.Parsed.request startsWith '/remote.php/dav/'"
+
 # =============================================================================
 # Firewall Configuration
 # =============================================================================
 
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
-  - "10.37.20.0/24"   # trusted_vlan
-  - "10.37.90.0/24"   # wireguard_vlan
-  - "10.37.70.21/32"  # Ansible controller
-  - "10.37.70.25/32"  # semaphore
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller
+  - "10.37.70.25/32" # semaphore
 
 # Using unified firewall_services structure with rich rules
 firewall_services:
@@ -72,7 +90,7 @@ firewall_services:
   - port: 8883
     protocol: tcp
     name: "MQTTS - MQTT over TLS"
-    access: trusted_vlan  # Internal MQTT access
+    access: trusted_vlan # Internal MQTT access
 
 # Destination-based rules for OAuth2-proxy forwarding
 # These allow nginx to forward auth requests to backend OAuth2-proxy instances

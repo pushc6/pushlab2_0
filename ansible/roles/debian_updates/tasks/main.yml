@@ -34,6 +34,7 @@
 - name: Schedule deferred reboot
   ansible.builtin.command:
     cmd: shutdown -r +{{ reboot_delay_minutes }} "Scheduled reboot after package updates"
+  changed_when: true # shutdown is always state-changing when reached.
   when:
     - enable_reboot | bool
     - schedule_reboot | bool

@@ -3,32 +3,31 @@
 # Modular service filtering logic for OAuth2 deployment
 
 - name: Initialize oauth2_services_filter
-  set_fact:
+  ansible.builtin.set_fact:
     oauth2_services_filter: []
 
 - name: Parse target services from survey input
-  set_fact:
+  ansible.builtin.set_fact:
     oauth2_services_filter: "{{ target_services_input.split(',') | map('trim') | reject('equalto', '') | list }}"
-  when: 
+  when:
     - target_services_input is defined
     - target_services_input != ""
-    - deploy_all_services_bool == false
+    - not deploy_all_services_bool
 
 - name: Validate requested services exist in configuration
+  when: oauth2_services_filter | length > 0
   block:
     - name: Check if requested services are configured
-      set_fact:
+      ansible.builtin.set_fact:
         invalid_services: "{{ oauth2_services_filter | difference(oauth2_services | map(attribute='name') | list) }}"
-        
+
     - name: Fail if invalid services requested
-      fail:
+      ansible.builtin.fail:
         msg: "Invalid services requested: {{ invalid_services }}. Available services: {{ oauth2_services | map(attribute='name') | list }}"
       when: invalid_services | length > 0
-      
-  when: oauth2_services_filter | length > 0
 
 - name: Set filtered services list
-  set_fact:
+  ansible.builtin.set_fact:
     filtered_oauth2_services: >-
       {{
         oauth2_services | selectattr('name', 'in', oauth2_services_filter) | list
@@ -37,7 +36,7 @@
       }}
 
 - name: Debug parsed variables
-  debug:
+  ansible.builtin.debug:
     msg:
       - "Raw deploy_all_services: {{ deploy_all_services }}"
       - "Boolean deploy_all_services_bool: {{ deploy_all_services_bool }}"
@@ -48,7 +47,7 @@
   when: oauth2_debug_mode | default(false)
 
 - name: Display service deployment plan
-  debug:
+  ansible.builtin.debug:
     msg:
       - "Services to be deployed:"
       - "{{ filtered_oauth2_services | map(attribute='name') | list | join(', ') }}"

@@ -3,67 +3,72 @@
 # Automatic SELinux configuration for OAuth2 backend ports (Fixed)
 
 - name: Check if SELinux is enabled
-  command: getenforce
+  ansible.builtin.command: getenforce
   register: selinux_status
   changed_when: false
   failed_when: false
 
 - name: Configure SELinux for OAuth2 backend ports
+  when:
+    - selinux_status.rc == 0
+    - selinux_status.stdout != "Disabled"
+    - ansible_os_family == "RedHat"
+
   block:
     - name: Install SELinux management tools
-      package:
+      ansible.builtin.package:
         name:
           - policycoreutils-python-utils
         state: present
       when: ansible_distribution_major_version|int >= 8
 
     - name: Install SELinux management tools (RHEL 7)
-      package:
+      ansible.builtin.package:
         name:
           - policycoreutils-python
         state: present
       when: ansible_distribution_major_version|int == 7
 
     - name: Enable httpd network connections
-      seboolean:
+      ansible.posix.seboolean:
         name: httpd_can_network_connect
-        state: yes
-        persistent: yes
-      
+        state: true
+        persistent: true
+
     - name: Enable httpd network relay (additional permission)
-      seboolean:
+      ansible.posix.seboolean:
         name: httpd_can_network_relay
-        state: yes
-        persistent: yes
-      ignore_errors: yes  # This boolean may not exist on all systems
-    
+        state: true
+        persistent: true
+      failed_when: false # This boolean may not exist on all systems
+
     - name: Extract unique backend ports from OAuth2 services
-      set_fact:
+      ansible.builtin.set_fact:
         oauth2_backend_ports: "{{ filtered_services | map(attribute='backend_port') | list | unique | map('int') | list }}"
-    
+
     - name: Display backend ports being configured
-      debug:
-        msg: 
+      ansible.builtin.debug:
+        msg:
           - "Configuring SELinux for backend ports: {{ oauth2_backend_ports }}"
           - "Services: {{ filtered_services | map(attribute='name') | list }}"
-    
+
     - name: Add backend ports to SELinux http_port_t context
-      command: semanage port -a -t http_port_t -p tcp {{ item }}
+      ansible.builtin.command: semanage port -a -t http_port_t -p tcp {{ item }}
       register: selinux_port_result
-      failed_when: 
+      failed_when:
         - selinux_port_result.rc != 0
         - "'already defined' not in selinux_port_result.stderr"
       changed_when: selinux_port_result.rc == 0
       loop: "{{ oauth2_backend_ports }}"
-    
+
     - name: Display SELinux port configuration results
-      debug:
+      ansible.builtin.debug:
         msg:
           - "Port {{ item.item }}: {{ 'ADDED ✅' if item.rc == 0 else 'ALREADY CONFIGURED ✅' if 'already defined' in item.stderr else 'FAILED ❌' }}"
       loop: "{{ selinux_port_result.results }}"
 
     - name: Display SELinux configuration summary
-      debug:
+      ansible.builtin.debug:
         msg:
           - "🔒 SELinux Configuration Complete"
           - "────────────────────────────────"
@@ -72,14 +77,9 @@
           - "Backend ports configured: {{ oauth2_backend_ports | join(', ') }}"
           - "Services ready: {{ filtered_services | map(attribute='name') | list | join(', ') }}"
 
-  when: 
-    - selinux_status.rc == 0
-    - selinux_status.stdout != "Disabled"
-    - ansible_os_family == "RedHat"
-
 - name: SELinux disabled notification
-  debug:
+  ansible.builtin.debug:
     msg: "SELinux is disabled - skipping SELinux configuration"
-  when: 
+  when:
     - selinux_status.rc == 0
     - selinux_status.stdout == "Disabled"

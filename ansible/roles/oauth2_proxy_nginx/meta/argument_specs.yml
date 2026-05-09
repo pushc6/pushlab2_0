@@ -3,8 +3,7 @@ argument_specs:
   main:
     short_description: nginx reverse proxy fronted by OAuth2-Proxy
     description:
-      - Renders nginx site/auth/locations templates that delegate authentication
-        to a single OAuth2-Proxy instance serving multiple domains.
+      - Renders nginx site/auth/locations templates that delegate authentication to a single OAuth2-Proxy instance serving multiple domains.
     options:
       oauth2_proxy_host:
         description: Hostname/IP of the OAuth2-Proxy backend.

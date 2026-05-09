@@ -5,65 +5,105 @@
   gather_facts: false
   tasks:
     - name: Show python version
-      command: python3 --version
+      ansible.builtin.command: python3 --version
       register: py_ver
-    - debug: var=py_ver.stdout
+      changed_when: false
+
+    - name: Display python version
+      ansible.builtin.debug:
+        var: py_ver.stdout
 
     - name: Show installed collections
-      command: ansible-galaxy collection list
+      ansible.builtin.command: ansible-galaxy collection list
       register: coll_list
-      ignore_errors: true
-    - debug: var=coll_list.stdout_lines
+      changed_when: false
+      failed_when: false
+
+    - name: Display installed collections
+      ansible.builtin.debug:
+        var: coll_list.stdout_lines
 
     - name: Check if docker-ce-cli is installed (verifies new image)
-      command: rpm -q docker-ce-cli
-      register: docker_check
-      ignore_errors: true
-    - debug: 
-        msg: "Docker CLI installed: {{ docker_check.rc == 0 }} (If false, using OLD image)"
+      ansible.builtin.package_facts:
+        manager: rpm
+
+    - name: Display docker-ce-cli status
+      ansible.builtin.debug:
+        msg: "Docker CLI installed: {{ 'docker-ce-cli' in ansible_facts.packages }} (If false, using OLD image)"
 
     - name: List collection directory (check permissions/existence)
-      command: ls -laR /usr/share/ansible/collections/ansible_collections/puzzle
+      ansible.builtin.command: ls -laR /usr/share/ansible/collections/ansible_collections/puzzle
       register: dir_list
-      ignore_errors: true
-    - debug: var=dir_list.stdout_lines
+      changed_when: false
+      failed_when: false
+
+    - name: Display collection directory listing
+      ansible.builtin.debug:
+        var: dir_list.stdout_lines
 
     - name: Check module doc (can Ansible see it?)
-      command: ansible-doc -t module puzzle.opnsense.alias
+      ansible.builtin.command: ansible-doc -t module puzzle.opnsense.alias
       register: doc_check
-      ignore_errors: true
-    - debug: var=doc_check.stdout_lines
-    - debug: var=doc_check.stderr_lines
+      changed_when: false
+      failed_when: false
+
+    - name: Display module doc stdout
+      ansible.builtin.debug:
+        var: doc_check.stdout_lines
+
+    - name: Display module doc stderr
+      ansible.builtin.debug:
+        var: doc_check.stderr_lines
 
     - name: Show ansible config dump
-      command: ansible-config dump --only-changed
+      ansible.builtin.command: ansible-config dump --only-changed
       register: config_dump
-      ignore_errors: true
-    - debug: var=config_dump.stdout_lines
+      changed_when: false
+      failed_when: false
+
+    - name: Display ansible config dump
+      ansible.builtin.debug:
+        var: config_dump.stdout_lines
 
     - name: Show environment variables
-      command: env
+      ansible.builtin.command: env
       register: env_vars
-    - debug: var=env_vars.stdout_lines
+      changed_when: false
+
+    - name: Display environment variables
+      ansible.builtin.debug:
+        var: env_vars.stdout_lines
 
     - name: List all puzzle.opnsense modules
-      command: ansible-doc -l puzzle.opnsense
+      ansible.builtin.command: ansible-doc -l puzzle.opnsense
       register: module_list
-      ignore_errors: true
-    - debug: var=module_list.stdout_lines
+      changed_when: false
+      failed_when: false
+
+    - name: Display puzzle.opnsense module list
+      ansible.builtin.debug:
+        var: module_list.stdout_lines
 
     - name: Get detailed docs for firewall_alias
-      command: ansible-doc puzzle.opnsense.firewall_alias
+      ansible.builtin.command: ansible-doc puzzle.opnsense.firewall_alias
       register: alias_docs
-      ignore_errors: true
-    - debug: var=alias_docs.stdout_lines
+      changed_when: false
+      failed_when: false
+
+    - name: Display firewall_alias docs
+      ansible.builtin.debug:
+        var: alias_docs.stdout_lines
 
     - name: Check plugins directory
-      command: ls -la /usr/share/ansible/collections/ansible_collections/puzzle/opnsense/plugins/modules/
+      ansible.builtin.command: ls -la /usr/share/ansible/collections/ansible_collections/puzzle/opnsense/plugins/modules/
       register: modules_dir
-      ignore_errors: true
-    - debug: var=modules_dir.stdout_lines
+      changed_when: false
+      failed_when: false
+
+    - name: Display plugins directory listing
+      ansible.builtin.debug:
+        var: modules_dir.stdout_lines
 
     - name: Try to load puzzle.opnsense
-      debug:
+      ansible.builtin.debug:
         msg: "Attempting to load puzzle.opnsense"

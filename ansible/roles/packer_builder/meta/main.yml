@@ -20,7 +20,6 @@ galaxy_info:
 
 # NO dependencies - use explicit playbook role ordering
 dependencies: []
-
 collections:
   - community.general
   - ansible.posix

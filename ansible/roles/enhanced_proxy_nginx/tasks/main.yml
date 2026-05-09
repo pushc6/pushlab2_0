@@ -3,14 +3,14 @@
 # Main tasks for Enhanced Proxy Nginx configuration (OAuth2 + Traditional)
 
 - name: Verify required variables are defined
-  assert:
+  ansible.builtin.assert:
     that:
       - oauth2_services is defined or traditional_proxy_services is defined
       - proxy_role_config.mode is defined
     fail_msg: "Required proxy variables are not properly defined"
 
 - name: Set proxy mode for all services if not using overrides
-  set_fact:
+  ansible.builtin.set_fact:
     all_services: >-
       {{
         oauth2_services | map('combine', {'proxy_mode': proxy_role_config.mode}) | list
@@ -20,7 +20,7 @@
   when: oauth2_services is defined
 
 - name: Filter services if specified
-  set_fact:
+  ansible.builtin.set_fact:
     filtered_services: >-
       {{
         all_services | selectattr('name', 'in', oauth2_services_filter) | list
@@ -30,13 +30,13 @@
   when: all_services is defined
 
 - name: Separate services by proxy mode
-  set_fact:
+  ansible.builtin.set_fact:
     oauth2_mode_services: "{{ filtered_services | selectattr('proxy_mode', 'eq', 'oauth2') | list | default([]) }}"
     traditional_mode_services: "{{ filtered_services | selectattr('proxy_mode', 'eq', 'traditional') | list | default([]) }}"
   when: filtered_services is defined
 
 - name: Display deployment information
-  debug:
+  ansible.builtin.debug:
     msg:
       - "Default Proxy Mode: {{ proxy_role_config.mode }}"
       - "OAuth2-Proxy Host: {{ oauth2_proxy_host | default('Not configured') }}:{{ oauth2_proxy_port | default('4180') }}"
@@ -46,23 +46,23 @@
 
 # SELinux configuration (needed for both modes)
 - name: Perform SELinux pre-deployment checks
-  include_tasks: selinux_pre_checks.yml
+  ansible.builtin.include_tasks: selinux_pre_checks.yml
   when: ansible_os_family == "RedHat"
-  tags: ['selinux', 'proxy_selinux', 'pre_check']
+  tags: ["selinux", "proxy_selinux", "pre_check"]
 
 - name: Configure SELinux for proxy backend ports
-  include_tasks: selinux_config.yml
+  ansible.builtin.include_tasks: selinux_config.yml
   when: ansible_os_family == "RedHat"
-  tags: ['selinux', 'proxy_selinux']
+  tags: ["selinux", "proxy_selinux"]
 
 # Common nginx setup
 - name: Create nginx configuration directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     owner: root
     group: root
-    mode: '0755'
+    mode: "0755"
   loop:
     - "{{ nginx_sites_available | default('/etc/nginx/sites-available') }}"
     - "{{ nginx_sites_enabled | default('/etc/nginx/sites-enabled') }}"
@@ -74,23 +74,23 @@
   when: oauth2_mode_services | length > 0
   block:
     - name: Generate OAuth2-Proxy location blocks
-      template:
+      ansible.builtin.template:
         src: oauth2-locations.conf.j2
         dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/oauth2-locations.conf"
         owner: root
         group: root
-        mode: '0644'
-        backup: yes
+        mode: "0644"
+        backup: true
       notify: reload nginx
 
     - name: Generate OAuth2 authentication includes
-      template:
+      ansible.builtin.template:
         src: oauth2-auth.conf.j2
         dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/oauth2-auth-{{ item }}.conf"
         owner: root
         group: root
-        mode: '0644'
-        backup: yes
+        mode: "0644"
+        backup: true
       loop:
         - "none"
         - "simple"
@@ -99,13 +99,13 @@
       notify: reload nginx
 
     - name: Generate shared OAuth2 logout configuration
-      template:
+      ansible.builtin.template:
         src: oauth2-logout-shared.conf.j2
         dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/oauth2-logout.conf"
         owner: root
         group: root
-        mode: '0644'
-        backup: yes
+        mode: "0644"
+        backup: true
       when: logout_config.enable_id_token_logout | default(true)
       notify: reload nginx
 
@@ -114,40 +114,40 @@
   when: traditional_mode_services | length > 0
   block:
     - name: Generate traditional proxy common configuration
-      template:
+      ansible.builtin.template:
         src: traditional-proxy-common.conf.j2
         dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/traditional-proxy-common.conf"
         owner: root
         group: root
-        mode: '0644'
-        backup: yes
+        mode: "0644"
+        backup: true
       notify: reload nginx
-      
+
     - name: Generate cache configuration if enabled
-      template:
+      ansible.builtin.template:
         src: proxy-cache.conf.j2
         dest: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/proxy-cache.conf"
         owner: root
         group: root
-        mode: '0644'
-        backup: yes
+        mode: "0644"
+        backup: true
       when: traditional_proxy_config.enable_caching | default(false)
       notify: reload nginx
 
 # Generate site configurations for all services
 - name: Generate nginx site configurations (unified)
-  template:
+  ansible.builtin.template:
     src: nginx-site-unified.conf.j2
     dest: "{{ nginx_sites_available | default('/etc/nginx/sites-available') }}/{{ item.domain }}.conf"
     owner: root
     group: root
-    mode: '0644'
-    backup: yes
+    mode: "0644"
+    backup: true
   loop: "{{ filtered_services }}"
   notify: reload nginx
 
 - name: Enable nginx sites
-  file:
+  ansible.builtin.file:
     src: "{{ nginx_sites_available | default('/etc/nginx/sites-available') }}/{{ item.domain }}.conf"
     dest: "{{ nginx_sites_enabled | default('/etc/nginx/sites-enabled') }}/{{ item.domain }}.conf"
     state: link
@@ -155,7 +155,7 @@
   notify: reload nginx
 
 - name: Remove default nginx configurations
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop:
@@ -165,7 +165,7 @@
 
 # Cleanup old configurations
 - name: Clean up old OAuth2-specific configs if not needed
-  file:
+  ansible.builtin.file:
     path: "{{ nginx_conf_d | default('/etc/nginx/conf.d') }}/{{ item }}"
     state: absent
   loop:
@@ -175,25 +175,25 @@
   notify: reload nginx
 
 - name: Test nginx configuration
-  command: nginx -t
+  ansible.builtin.command: nginx -t
   register: nginx_test
   changed_when: false
 
 - name: Display nginx test results
-  debug:
+  ansible.builtin.debug:
     msg: "Nginx configuration test: {{ 'PASSED' if nginx_test.rc == 0 else 'FAILED' }}"
 
 - name: Ensure nginx is running and enabled
-  systemd:
+  ansible.builtin.systemd:
     name: nginx
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Display deployment summary
-  debug:
+  ansible.builtin.debug:
     msg:
       - "✅ Proxy deployment completed successfully"
-      - "Deployment mode: Mixed (OAuth2 + Traditional)" 
+      - "Deployment mode: Mixed (OAuth2 + Traditional)"
       - "OAuth2-protected services: {{ oauth2_mode_services | map(attribute='name') | list }}"
       - "Traditional proxy services: {{ traditional_mode_services | map(attribute='name') | list }}"
       - "Service domains configured: {{ filtered_services | map(attribute='domain') | list }}"

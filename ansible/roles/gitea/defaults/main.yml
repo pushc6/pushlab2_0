@@ -50,7 +50,6 @@ gitea_runner_labels:
 # Additional labels to attach to the runner on registration (optional)
 # Example: ["alma"] to target AlmaLinux jobs with runs-on: [self-hosted, linux, x64, alma]
 gitea_runner_labels_extra: []
-
 # Prefer running the Actions runner via Docker (recommended)
 gitea_runner_use_docker: true
 gitea_runner_image: "gitea/act_runner:latest"

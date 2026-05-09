@@ -25,14 +25,14 @@
   become: true
 
   vars:
-    backup_file: ""  # Set via --extra-vars or will auto-detect latest
+    backup_file: "" # Set via --extra-vars or will auto-detect latest
 
   tasks:
     - name: Find available firewall backups
       ansible.builtin.find:
         paths: /tmp
-        patterns: 'firewall_backup_*.txt'
-        age: -7d  # Last 7 days
+        patterns: "firewall_backup_*.txt"
+        age: -7d # Last 7 days
       register: backup_files
 
     - name: Display available backups
@@ -83,7 +83,7 @@
 
     - name: Confirm rollback
       ansible.builtin.pause:
-        prompt: |
+        prompt: |2
 
           ⚠️  WARNING: FIREWALL ROLLBACK
 
@@ -161,7 +161,7 @@
 
     - name: Offer emergency reset option
       ansible.builtin.pause:
-        prompt: |
+        prompt: |2
 
           Do you want to perform an EMERGENCY FIREWALL RESET?
 

@@ -14,7 +14,7 @@
 - name: Configure OPNsense Firewall
   hosts: opnsense
   gather_facts: false
-  connection: local  # ansibleguy.opnsense modules use API, not SSH
+  connection: local # ansibleguy.opnsense modules use API, not SSH
 
   roles:
     - opnsense_firewall

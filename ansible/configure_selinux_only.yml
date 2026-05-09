@@ -5,25 +5,25 @@
 
 - name: Configure SELinux for OAuth2-Proxy Backend Services
   hosts: nginx_internal
-  become: yes
+  become: true
   remote_user: ansible
-  gather_facts: yes
+  gather_facts: true
 
   vars:
     # SELinux configuration options
-    selinux_verify_only: false        # Set to true to only check, not configure
+    selinux_verify_only: false # Set to true to only check, not configure
     selinux_force_install_tools: false # Force reinstall of SELinux tools
 
   pre_tasks:
     - name: Verify OAuth2 services are defined
-      assert:
+      ansible.builtin.assert:
         that:
           - oauth2_services is defined
           - oauth2_services | length > 0
         fail_msg: "OAuth2 services not defined. Check group_vars/nginx_internal/oauth2_vars.yml"
 
     - name: Display SELinux configuration scope
-      debug:
+      ansible.builtin.debug:
         msg:
           - "🔒 SELinux Configuration for OAuth2-Proxy"
           - "════════════════════════════════════════"
@@ -35,79 +35,75 @@
 
   tasks:
     - name: Check SELinux status
-      command: getenforce
+      ansible.builtin.command: getenforce
       register: selinux_status
       changed_when: false
       failed_when: false
 
     - name: Handle SELinux disabled systems
+      when:
+        - selinux_status.rc == 0
+        - selinux_status.stdout == "Disabled"
+
       block:
         - name: Display SELinux disabled message
-          debug:
+          ansible.builtin.debug:
             msg:
               - "ℹ️  SELinux is disabled on {{ inventory_hostname }}"
               - "No SELinux configuration needed for OAuth2-proxy."
               - "OAuth2-proxy should work without additional configuration."
-        
-        - name: End play for disabled SELinux
-          meta: end_play
-          
-      when: 
-        - selinux_status.rc == 0
-        - selinux_status.stdout == "Disabled"
 
+        - name: End play for disabled SELinux
+          ansible.builtin.meta: end_play
     - name: SELinux verification mode
+      when: selinux_verify_only | bool
+
       block:
         - name: Include SELinux pre-checks only
-          include_tasks: roles/oauth2_proxy_nginx/tasks/selinux_pre_checks.yml
-          
+          ansible.builtin.include_tasks: roles/oauth2_proxy_nginx/tasks/selinux_pre_checks.yml
         - name: Display verification results
-          debug:
+          ansible.builtin.debug:
             msg:
               - "✅ SELinux verification completed"
               - "Run with selinux_verify_only=false to apply configuration"
-              
-      when: selinux_verify_only | bool
 
-    - name: SELinux configuration mode  
+    - name: SELinux configuration mode
+      when: not (selinux_verify_only | bool)
+
       block:
         - name: Create filtered services list (all services for SELinux-only run)
-          set_fact:
+          ansible.builtin.set_fact:
             filtered_oauth2_services: "{{ oauth2_services }}"
 
         - name: Include SELinux pre-checks
-          include_tasks: roles/oauth2_proxy_nginx/tasks/selinux_pre_checks.yml
-          
+          ansible.builtin.include_tasks: roles/oauth2_proxy_nginx/tasks/selinux_pre_checks.yml
         - name: Include SELinux configuration
-          include_tasks: roles/oauth2_proxy_nginx/tasks/selinux_config.yml
-          
+          ansible.builtin.include_tasks: roles/oauth2_proxy_nginx/tasks/selinux_config.yml
         - name: Verify nginx configuration if nginx is installed
+          when: "'nginx' in ansible_facts.packages"
+
           block:
             - name: Test nginx configuration syntax
-              command: nginx -t
+              ansible.builtin.command: nginx -t
               register: nginx_syntax_test
               changed_when: false
               failed_when: false
-              
+
             - name: Display nginx syntax results
-              debug:
+              ansible.builtin.debug:
                 msg: "Nginx configuration: {{ 'Valid ✅' if nginx_syntax_test.rc == 0 else 'Invalid ❌' }}"
-                
+
             - name: Reload nginx if running and config is valid
-              systemd:
+              ansible.builtin.systemd:
                 name: nginx
                 state: reloaded
-              when: 
+              when:
                 - nginx_syntax_test.rc == 0
                 - ansible_facts.services['nginx.service']['state'] == 'running'
-                
-          when: "'nginx' in ansible_facts.packages"
-          
-      when: not (selinux_verify_only | bool)
 
   post_tasks:
     - name: Display final SELinux status
-      debug:
+      ansible.builtin.debug:
         msg:
           - "🔒 SELinux OAuth2-Proxy Configuration Summary"
           - "═══════════════════════════════════════════"
@@ -118,6 +114,6 @@
           - "Configuration: {{ 'Verified only' if selinux_verify_only else 'Applied' }}"
           - "═══════════════════════════════════════════"
           - "{{ '✅ OAuth2-proxy SELinux configuration completed!' if not selinux_verify_only else '✅ OAuth2-proxy SELinux verification completed!' }}"
-      when: 
+      when:
         - selinux_status.rc == 0
         - selinux_status.stdout != "Disabled"

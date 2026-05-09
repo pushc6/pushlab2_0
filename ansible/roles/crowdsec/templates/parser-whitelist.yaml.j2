@@ -1,0 +1,11 @@
+name: {{ item.full_name | default('homelab/' ~ item.name) }}
+description: {{ item.description | to_json }}
+{% if item.filter is defined %}
+filter: {{ item.filter | to_json }}
+{% endif %}
+whitelist:
+  reason: {{ item.reason | to_json }}
+  expression:
+{% for expr in item.expressions %}
+    - {{ expr | to_json }}
+{% endfor %}

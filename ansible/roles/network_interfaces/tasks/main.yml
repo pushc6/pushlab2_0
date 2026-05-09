@@ -3,6 +3,7 @@
 # This role configures NetworkManager connections for additional interfaces
 
 - name: Configure additional network interfaces
+  when: network_interfaces is defined
   block:
     - name: Configure static IP on additional interfaces
       community.general.nmcli:
@@ -21,4 +22,3 @@
       when: network_interfaces is defined and network_interfaces | length > 0
       changed_when: false
       failed_when: false
-  when: network_interfaces is defined

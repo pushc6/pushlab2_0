@@ -7,9 +7,9 @@ galaxy_info:
   min_ansible_version: "2.15"
   platforms:
     - name: Debian
-      versions: ["12"]
+      versions: ["all"]
     - name: Ubuntu
-      versions: ["22.04", "24.04"]
+      versions: ["all"]
   galaxy_tags:
     - updates
     - debian
@@ -17,6 +17,5 @@ galaxy_info:
     - apt
 
 dependencies: []
-
 collections:
   - ansible.builtin

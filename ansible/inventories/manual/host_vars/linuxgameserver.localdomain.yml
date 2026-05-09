@@ -3,10 +3,10 @@
 
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
-  - "10.37.20.0/24"   # trusted_vlan
-  - "10.37.90.0/24"   # wireguard_vlan
-  - "10.37.70.21/32"  # Ansible controller
-  - "10.37.70.25/32"  # semaphore
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller
+  - "10.37.70.25/32" # semaphore
 
 # Using unified firewall_services structure with rich rules
 firewall_services:
@@ -42,5 +42,5 @@ firewall_services:
     name: "AMP Web UI"
     access: custom
     sources:
-      - "10.37.20.0/24"    # trusted_vlan - direct access
-      - "10.37.70.5/32"    # nginx-internal reverse proxy
+      - "10.37.20.0/24" # trusted_vlan - direct access
+      - "10.37.70.5/32" # nginx-internal reverse proxy

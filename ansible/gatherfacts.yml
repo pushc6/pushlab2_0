@@ -4,5 +4,5 @@
   gather_facts: true
   tasks:
     - name: Ensure facts are gathered
-      debug:
+      ansible.builtin.debug:
         msg: "Facts gathered successfully"

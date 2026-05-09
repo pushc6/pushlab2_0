@@ -39,33 +39,67 @@ crowdsec_bouncers:
     type: nftables
     enabled: true
 
+# Parser-stage whitelists - drop noisy legitimate traffic before it reaches scenarios
+crowdsec_parser_whitelists:
+  - name: nextcloud-whitelist
+    full_name: homelab/nextcloud-whitelist
+    description: "Whitelist legitimate Nextcloud WebDAV sync traffic"
+    filter: "evt.Meta.log_type in ['http_access-log', 'http_error-log']"
+    reason: "Legitimate Nextcloud/WebDAV file sync traffic"
+    expressions:
+      # Any client using WebDAV verbs against Nextcloud DAV endpoints
+      # (covers WinSCP/neon, Cyberduck, davfs2, GoodSync, future clients)
+      - "evt.Parsed.request startsWith '/remote.php/dav/' && evt.Parsed.verb in ['PROPFIND','PROPPATCH','MKCOL','MOVE','COPY','LOCK','UNLOCK','REPORT']"
+      # rclone syncing via Nextcloud WebDAV
+      - "evt.Parsed.http_user_agent contains 'rclone' && evt.Parsed.request startsWith '/remote.php/dav/'"
+      # Official Nextcloud desktop/mobile sync client
+      - "evt.Parsed.http_user_agent contains 'Nextcloud' && evt.Parsed.request startsWith '/remote.php/dav/'"
+      # Any WebDAV client identifying itself as DAV (Cyberduck, etc.)
+      - "evt.Parsed.http_user_agent contains 'DAV' && evt.Parsed.request startsWith '/remote.php/dav/'"
+
+  - name: plex-whitelist
+    full_name: homelab/plex-whitelist
+    description: "Whitelist legitimate Plex media server requests"
+    filter: "evt.Meta.log_type in ['http_access-log', 'http_error-log']"
+    reason: "Legitimate Plex media server traffic"
+    expressions:
+      - "evt.Parsed.http_x_plex_token != ''"
+      - "evt.Parsed.http_x_plex_client_identifier != ''"
+      - "evt.Parsed.http_user_agent contains 'Plex'"
+      - "evt.Parsed.http_user_agent contains 'PlexMediaPlayer'"
+      - "evt.Parsed.request startsWith '/library/'"
+      - "evt.Parsed.request matches '.*/library/metadata/.*/thumb/.*'"
+      - "evt.Parsed.request startsWith '/search'"
+      - "evt.Parsed.request startsWith '/hubs/search'"
+      - "evt.Parsed.request startsWith '/video/:/transcode'"
+
 # =============================================================================
 # Firewall Configuration
 # =============================================================================
 
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
-  - "10.37.20.0/24"   # trusted_vlan
-  - "10.37.90.0/24"   # wireguard_vlan
-  - "10.37.70.21/32"  # Ansible controller
-  - "10.37.70.25/32"  # semaphore
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller
+  - "10.37.70.25/32" # semaphore
 
 # Using unified firewall_services structure with access levels
 firewall_services:
   - port: 80
     protocol: tcp
     name: "HTTP"
-    access: public  # Publicly accessible web server
+    access: public # Publicly accessible web server
 
   - port: 443
     protocol: tcp
     name: "HTTPS"
-    access: public  # Publicly accessible web server
+    access: public # Publicly accessible web server
 
   - port: 8883
     protocol: tcp
     name: "MQTTS - MQTT over TLS"
-    access: public  # Publicly accessible MQTT broker
+    access: public # Publicly accessible MQTT broker
     # To restrict to specific IPs, change access to 'custom' and uncomment sources:
     # access: custom
     # sources:

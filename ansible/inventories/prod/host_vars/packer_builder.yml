@@ -3,9 +3,9 @@
 
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
-  - "10.37.20.0/24"   # trusted_vlan
-  - "10.37.90.0/24"   # wireguard_vlan
-  - "10.37.70.25/32"  # semaphore
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.25/32" # semaphore
 
 # Firewall configuration (firewall_hardened role)
 firewall_services:
@@ -14,7 +14,7 @@ firewall_services:
     name: "Packer HTTP Server"
     access: custom
     sources:
-      - "10.37.80.0/24"  # App VLAN - VMs being built
+      - "10.37.80.0/24" # App VLAN - VMs being built
 
 # Gitea runner configuration
 gitea_instance_url: "http://10.37.80.4:3000"

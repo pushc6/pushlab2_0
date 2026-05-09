@@ -1,3 +1,4 @@
+---
 # RHEL-specific variables
 rhel_packages_to_install:
   - dnf-plugins-core

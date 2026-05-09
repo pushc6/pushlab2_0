@@ -14,7 +14,6 @@ galaxy_info:
     - networkmanager
 
 dependencies: []
-
 collections:
   - ansible.builtin
   - community.general

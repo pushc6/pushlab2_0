@@ -3,8 +3,7 @@ argument_specs:
   main:
     short_description: Install Gitea server and optional Docker-based Actions runner
     description:
-      - Downloads the Gitea binary, renders a systemd unit and app.ini,
-        backs up before upgrades, and optionally registers an Actions runner.
+      - Downloads the Gitea binary, renders a systemd unit and app.ini, backs up before upgrades, and optionally registers an Actions runner.
     options:
       gitea_version:
         description: Gitea version to install. Use 'latest' to auto-resolve from the API.

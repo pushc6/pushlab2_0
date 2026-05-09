@@ -15,7 +15,10 @@
 - name: Check if admin user exists
   ansible.builtin.shell: >-
     set -euo pipefail &&
-    sudo -u git /usr/local/bin/gitea --work-path /var/lib/gitea -c /etc/gitea/app.ini admin user list | awk '{print $2}' | grep -x {{ gitea_admin_username | quote }}
+    sudo -u git /usr/local/bin/gitea --work-path /var/lib/gitea
+    -c /etc/gitea/app.ini admin user list
+    | awk '{print $2}'
+    | grep -x {{ gitea_admin_username | quote }}
   register: gitea_admin_exists
   changed_when: false
   failed_when: false

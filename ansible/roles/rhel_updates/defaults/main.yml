@@ -1,3 +1,4 @@
+---
 # Safe defaults so the role doesn't require group_vars
 rhel_packages_to_install: []
 dnf_update_cache_only: false

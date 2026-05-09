@@ -31,9 +31,12 @@
     - tailscale_installed.rc != 0
     - ansible_os_family == "Debian"
   block:
-    - name: Install Tailscale via official script
-      ansible.builtin.shell: |
-        curl -fsSL https://tailscale.com/install.sh | sh
+    - name: Install Tailscale via official script # noqa: command-instead-of-module
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          curl -fsSL https://tailscale.com/install.sh | sh
+        executable: /bin/bash
       args:
         creates: /usr/bin/tailscale
 

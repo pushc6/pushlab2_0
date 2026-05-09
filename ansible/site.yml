@@ -5,50 +5,49 @@
 
 - name: Run Common Setup
   import_playbook: common_setup.yml
-  tags: ['setup', 'users']
+  tags: ["setup", "users"]
 
 - name: Install Docker
   import_playbook: docker.yml
   when: "'docker_hosts' in groups"
-  tags: ['docker', 'apps']
+  tags: ["docker", "apps"]
 
 - name: Deploy Firewall Hardening
   hosts: all:!opnsense
   become: true
   roles:
     - firewall_hardened
-  tags: ['firewall', 'security']
+  tags: ["firewall", "security"]
 
 - name: Deploy Tailscale
   hosts: all:!opnsense
   become: true
   roles:
     - tailscale
-  tags: ['tailscale', 'networking']
+  tags: ["tailscale", "networking"]
 
 - name: Deploy CrowdSec
   hosts: all:!opnsense
   become: true
   roles:
     - crowdsec
-  tags: ['crowdsec', 'security']
+  tags: ["crowdsec", "security"]
 
 - name: Run System Updates
   import_playbook: update_all.yml
-  tags: ['updates', 'security']
+  tags: ["updates", "security"]
 
 - name: Run Gitea Configuration
   import_playbook: gitea.yml
   when: "'gitea' in groups"
-  tags: ['gitea', 'apps']
+  tags: ["gitea", "apps"]
 
 - name: Run Manual Host Onboarding
   import_playbook: onboard_manual.yml
   when: "'manual' in groups"
-  tags: ['onboard', 'manual']
+  tags: ["onboard", "manual"]
 
 - name: Deploy Technitium
   import_playbook: technitium.yml
   when: "'dns02' in groups"
-  tags: ['technitium', 'apps']
-
+  tags: ["technitium", "apps"]

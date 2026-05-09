@@ -3,9 +3,9 @@
 
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
-  - "10.37.20.0/24"   # trusted_vlan
-  - "10.37.90.0/24"   # wireguard_vlan
-  - "10.37.70.25/32"  # semaphore
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.25/32" # semaphore
 
 # Using unified firewall_services structure with rich rules
 firewall_services:
@@ -15,15 +15,15 @@ firewall_services:
     name: "Gitea SSH"
     access: custom
     sources:
-      - "10.37.70.24/32"    # proxy_internal
-      - "10.37.20.0/24"  # trusted_vlan
-      - "10.37.80.5/32"     # packer_builder (for git checkout)
+      - "10.37.70.24/32" # proxy_internal
+      - "10.37.20.0/24" # trusted_vlan
+      - "10.37.80.5/32" # packer_builder (for git checkout)
 
   - port: 3000
     protocol: tcp
     name: "Gitea Web UI"
     access: custom
     sources:
-      - "10.37.70.24/32"    # proxy_internal
-      - "10.37.20.0/24"  # trusted_vlan
-      - "10.37.80.5/32"     # packer_builder (runner API + checkout)
+      - "10.37.70.24/32" # proxy_internal
+      - "10.37.20.0/24" # trusted_vlan
+      - "10.37.80.5/32" # packer_builder (runner API + checkout)

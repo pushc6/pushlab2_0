@@ -59,7 +59,7 @@
   when: groups['terraform_created'] is defined and groups['terraform_created'] | length > 0
 
 - name: Build firewall rules list
-  set_fact:
+  ansible.builtin.set_fact:
     firewall_rules_list: |
       {% set result = [] %}
       {% for rule in (terraform_host_firewall_rules + host_specific_rules) %}
@@ -92,7 +92,7 @@
     log: "{{ item.0.log | default(firewall_defaults.log) }}"
     quick: "{{ firewall_defaults.quick }}"
     state: present
-    match_fields: ['description']
+    match_fields: ["description"]
   loop: "{{ firewall_rules_list | from_json }}"
   loop_control:
     label: "{{ item.0.name }} on {{ item.1 }}"
@@ -105,7 +105,7 @@
     api_key: "{{ opnsense_api_key }}"
     api_secret: "{{ opnsense_api_secret }}"
     ssl_verify: "{{ opnsense_validate_certs }}"
-    target: 'rule'
+    target: "rule"
   when: >
     (custom_aliases is defined and custom_aliases.changed | default(false)) or
     (terraform_alias is defined and terraform_alias.changed | default(false)) or

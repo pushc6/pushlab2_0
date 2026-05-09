@@ -156,7 +156,7 @@
   when: (gitea_runner_use_docker) and (gitea_runner_force_reregister | default(false))
 
 - name: Pre-pull Actions runner image (to avoid long first-run)
-  ansible.builtin.shell: >-
+  ansible.builtin.command: >-
     /usr/bin/docker pull {{ gitea_runner_image }}
   register: runner_image_pull
   changed_when: "'Downloaded newer image' in runner_image_pull.stdout or 'Downloaded newer image' in runner_image_pull.stderr"
@@ -164,7 +164,7 @@
   when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
 
 - name: Pre-pull additional workflow container images (optional)
-  ansible.builtin.shell: >-
+  ansible.builtin.command: >-
     /usr/bin/docker pull {{ item }}
   loop: "{{ gitea_runner_pull_images | default([]) }}"
   register: extra_image_pull

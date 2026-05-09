@@ -1,12 +1,12 @@
 ---
 - name: Ensure Technitium config directory exists
-  file:
+  ansible.builtin.file:
     path: /opt/technitium/config
     state: directory
-    mode: '0755'
+    mode: "0755"
 
 - name: Install Python Docker SDK
-  dnf:
+  ansible.builtin.dnf:
     name: python3-docker
     state: present
 

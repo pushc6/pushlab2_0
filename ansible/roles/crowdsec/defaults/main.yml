@@ -9,7 +9,7 @@ crowdsec_mode: "agent"
 
 # Central LAPI configuration (for agent mode)
 crowdsec_lapi_url: "http://crowdsec.crane-beaver.ts.net:8080"
-crowdsec_lapi_host: "crowdsec.localdomain"  # Ansible inventory name for LAPI server (for bouncer registration)
+crowdsec_lapi_host: "crowdsec.localdomain" # Ansible inventory name for LAPI server (for bouncer registration)
 crowdsec_machine_name: "{{ inventory_hostname.split('.')[0] }}"
 
 # Wait for manual machine approval during registration
@@ -35,6 +35,20 @@ crowdsec_acquis: []
 #       - "_SYSTEMD_UNIT=sshd.service"
 #     labels:
 #       type: syslog
+
+# Parser-stage whitelists (s02-enrich) - drop events before they reach scenarios.
+# Each entry creates a file in /etc/crowdsec/parsers/s02-enrich/{name}.yaml.
+# Use for app-specific noise (Nextcloud WebDAV, Plex, etc.) that would otherwise
+# trip generic scenarios like crowdsecurity/http-probing.
+crowdsec_parser_whitelists: []
+# Example:
+#   - name: nextcloud-whitelist
+#     full_name: homelab/nextcloud-whitelist
+#     description: "Whitelist legitimate Nextcloud WebDAV sync traffic"
+#     filter: "evt.Meta.log_type in ['http_access-log', 'http_error-log']"
+#     reason: "Legitimate Nextcloud/WebDAV file sync traffic"
+#     expressions:
+#       - "evt.Parsed.request startsWith '/remote.php/dav/' && evt.Parsed.verb in ['PROPFIND','PROPPATCH','MKCOL','MOVE','COPY','LOCK','UNLOCK','REPORT']"
 
 # Bouncers to install and configure
 crowdsec_bouncers: []

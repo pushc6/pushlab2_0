@@ -3,26 +3,31 @@
 # Pre-deployment SELinux validation and preparation
 
 - name: Check SELinux status
-  command: getenforce
+  ansible.builtin.command: getenforce
   register: selinux_status
   changed_when: false
   failed_when: false
   when: ansible_os_family == "RedHat"
 
 - name: SELinux pre-deployment checks
+  when:
+    - selinux_status.rc == 0
+    - selinux_status.stdout != "Disabled"
+    - ansible_os_family == "RedHat"
+
   block:
     - name: Display SELinux status
-      debug:
+      ansible.builtin.debug:
         msg: "SELinux is {{ selinux_status.stdout }} on {{ inventory_hostname }}"
 
     - name: Check current httpd_can_network_connect status
-      command: getsebool httpd_can_network_connect
+      ansible.builtin.command: getsebool httpd_can_network_connect
       register: httpd_network_connect_status
       changed_when: false
       failed_when: false
 
     - name: Parse httpd_can_network_connect status
-      set_fact:
+      ansible.builtin.set_fact:
         httpd_network_status: >-
           {{
             httpd_network_connect_status.stdout | regex_search('on|off') | default('unknown')
@@ -30,67 +35,63 @@
           }}
 
     - name: Check if SELinux management tools are available
-      package_facts:
+      ansible.builtin.package_facts:
         manager: auto
 
     - name: Prepare SELinux management tools list
-      set_fact:
+      ansible.builtin.set_fact:
         selinux_tools_needed: >-
-          {% if ansible_distribution_major_version|int >= 8 -%}
-          ['policycoreutils-python-utils']
-          {%- else -%}
-          ['policycoreutils-python']
-          {%- endif %}
+          {% if ansible_distribution_major_version | int >= 8 -%} ['policycoreutils-python-utils']{%- else -%} ['policycoreutils-python']{%- endif %}
 
     - name: Check if SELinux tools are installed
-      set_fact:
+      ansible.builtin.set_fact:
         selinux_tools_missing: >-
           {{
-            selinux_tools_needed | 
-            reject('in', ansible_facts.packages.keys()) | 
+            selinux_tools_needed |
+            reject('in', ansible_facts.packages.keys()) |
             list
           }}
 
     - name: Extract backend ports for pre-check
-      set_fact:
+      ansible.builtin.set_fact:
         oauth2_backend_ports_check: "{{ oauth2_services | map(attribute='backend_port') | list | unique | map('int') | list }}"
 
     - name: Check current SELinux port configurations
-      command: semanage port -l | grep "http_port_t.*tcp"
+      ansible.builtin.command: semanage port -l | grep "http_port_t.*tcp"
       register: current_selinux_ports
       changed_when: false
       failed_when: false
       when: selinux_tools_missing | length == 0
 
     - name: Analyze SELinux port requirements
-      set_fact:
+      ansible.builtin.set_fact:
         existing_http_ports: >-
           {{
-            current_selinux_ports.stdout_lines | 
-            map('regex_replace', '^.*tcp\s+(.+)$', '\1') | 
-            join(',') | 
-            split(',') | 
-            map('trim') | 
-            map('int') | 
+            current_selinux_ports.stdout_lines |
+            map('regex_replace', '^.*tcp\s+(.+)$', '\1') |
+            join(',') |
+            split(',') |
+            map('trim') |
+            map('int') |
             list if current_selinux_ports.rc == 0 else []
           }}
         ports_to_configure: >-
           {{
-            oauth2_backend_ports_check | 
+            oauth2_backend_ports_check |
             difference(
-              current_selinux_ports.stdout_lines | 
-              map('regex_replace', '^.*tcp\s+(.+)$', '\1') | 
-              join(',') | 
-              split(',') | 
-              map('trim') | 
-              map('int') | 
+              current_selinux_ports.stdout_lines |
+              map('regex_replace', '^.*tcp\s+(.+)$', '\1') |
+              join(',') |
+              split(',') |
+              map('trim') |
+              map('int') |
               list if current_selinux_ports.rc == 0 else []
             )
           }}
       when: current_selinux_ports.rc is defined
 
     - name: Display SELinux pre-deployment analysis
-      debug:
+      ansible.builtin.debug:
         msg:
           - "🔍 SELinux Pre-Deployment Analysis"
           - "─────────────────────────────────"
@@ -103,7 +104,7 @@
           - "─────────────────────────────────"
 
     - name: Warning about SELinux configuration changes
-      debug:
+      ansible.builtin.debug:
         msg:
           - "⚠️  SELinux Configuration Changes Required:"
           - "  - Will install: {{ selinux_tools_missing | default([]) | join(', ') }}"
@@ -111,12 +112,11 @@
           - "  - Will configure ports: {{ ports_to_configure | default([]) | join(', ') }}"
           - "  These changes will be applied automatically during deployment."
       when:
-        - (selinux_tools_missing | default([]) | length > 0) or
-          (httpd_network_status is defined and httpd_network_status == 'off') or
-          (ports_to_configure | default([]) | length > 0)
+        - (selinux_tools_missing | default([]) | length > 0) or (httpd_network_status is defined and httpd_network_status == 'off') or (ports_to_configure |
+          default([]) | length > 0)
 
     - name: Confirm SELinux is ready
-      debug:
+      ansible.builtin.debug:
         msg:
           - "✅ SELinux is properly configured for OAuth2-proxy"
           - "No additional SELinux changes needed."
@@ -125,16 +125,11 @@
         - httpd_network_status is defined and httpd_network_status == 'on'
         - ports_to_configure | default([]) | length == 0
 
-  when: 
-    - selinux_status.rc == 0
-    - selinux_status.stdout != "Disabled"
-    - ansible_os_family == "RedHat"
-
 - name: SELinux disabled notification
-  debug:
+  ansible.builtin.debug:
     msg:
       - "ℹ️  SELinux is disabled on {{ inventory_hostname }}"
       - "OAuth2-proxy will work without SELinux configuration."
-  when: 
+  when:
     - selinux_status.rc == 0
     - selinux_status.stdout == "Disabled"

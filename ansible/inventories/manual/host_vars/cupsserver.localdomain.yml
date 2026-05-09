@@ -3,14 +3,14 @@
 
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
-  - "10.37.20.0/24"   # trusted_vlan
-  - "10.37.90.0/24"   # wireguard_vlan
-  - "10.37.70.21/32"  # Ansible controller
-  - "10.37.70.25/32"  # semaphore
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller
+  - "10.37.70.25/32" # semaphore
 
 # Public services (no source restrictions)
 firewall_public_services:
-  - mdns  # mDNS/Avahi multicast service discovery (required for printer auto-discovery)
+  - mdns # mDNS/Avahi multicast service discovery (required for printer auto-discovery)
 
 # Using unified firewall_services structure with rich rules
 firewall_services:
@@ -20,15 +20,15 @@ firewall_services:
     name: "CUPS Printing"
     access: custom
     sources:
-      - "10.37.20.0/24"  # trusted_vlan
-      - "10.37.60.0/24"  # guest_vlan
-      - "10.37.90.0/24"  # wireguard_vlan
+      - "10.37.20.0/24" # trusted_vlan
+      - "10.37.60.0/24" # guest_vlan
+      - "10.37.90.0/24" # wireguard_vlan
 
   - port: 54529
     protocol: tcp
     name: "CUPS Printing - avahi"
     access: custom
     sources:
-      - "10.37.20.0/24"  # trusted_vlan
-      - "10.37.60.0/24"  # guest_vlan
-      - "10.37.90.0/24"  # wireguard_vlan
+      - "10.37.20.0/24" # trusted_vlan
+      - "10.37.60.0/24" # guest_vlan
+      - "10.37.90.0/24" # wireguard_vlan

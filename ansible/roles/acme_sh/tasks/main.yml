@@ -69,6 +69,7 @@
         - name: Generate dhparams (this may take a while)
           ansible.builtin.command:
             cmd: openssl dhparam -out {{ acme_cert_deploy_dir }}/{{ item.item.domain }}/dhparams.pem {{ acme_dhparams_bits }}
+            creates: "{{ acme_cert_deploy_dir }}/{{ item.item.domain }}/dhparams.pem"
           loop: "{{ dhparams_stat.results }}"
           when: not item.stat.exists
           loop_control:

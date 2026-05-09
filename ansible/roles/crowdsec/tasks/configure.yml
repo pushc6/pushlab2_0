@@ -18,7 +18,10 @@
         src: /etc/crowdsec/acquis.yaml
         dest: /etc/crowdsec/acquis.yaml.wizard-backup
         remote_src: true
-        force: false  # Don't overwrite existing backup
+        force: false # Don't overwrite existing backup
+        mode: "0640"
+        owner: root
+        group: root
 
     - name: Remove legacy acquis.yaml
       ansible.builtin.file:
@@ -36,6 +39,7 @@
   ansible.builtin.command: "cscli collections install {{ item }}"
   loop: "{{ crowdsec_collections }}"
   when: item not in crowdsec_installed_collections.stdout
+  changed_when: true # cscli install is always state-changing when reached.
   notify: Restart crowdsec
 
 # Enable remediation on timing-based SSH scenarios (lower-confidence, shorter ban)
@@ -45,7 +49,7 @@
     dest: /etc/crowdsec/scenarios/ssh-time-based-bf.yaml.local
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   notify: Restart crowdsec
 
 - name: Enable remediation on ssh-time-based-bf_user_enum
@@ -54,7 +58,7 @@
     dest: /etc/crowdsec/scenarios/ssh-time-based-bf_user_enum.yaml.local
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   notify: Restart crowdsec
 
 # Configure acquisition sources
@@ -64,7 +68,7 @@
     dest: "/etc/crowdsec/acquis.d/{{ item.name }}.yaml"
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   loop: "{{ crowdsec_acquis }}"
   when: crowdsec_acquis | length > 0
   notify: Restart crowdsec
@@ -84,4 +88,16 @@
   when:
     - crowdsec_acquis | length > 0
     - (item.path | basename | splitext | first) not in (crowdsec_acquis | map(attribute='name') | list)
+  notify: Restart crowdsec
+
+# Configure parser-stage whitelists (s02-enrich)
+- name: Deploy parser whitelists
+  ansible.builtin.template:
+    src: parser-whitelist.yaml.j2
+    dest: "/etc/crowdsec/parsers/s02-enrich/{{ item.name }}.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ crowdsec_parser_whitelists }}"
+  when: crowdsec_parser_whitelists | length > 0
   notify: Restart crowdsec

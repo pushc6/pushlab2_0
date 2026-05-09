@@ -21,7 +21,7 @@
 
   roles:
     - role: firewall_hardened
-      tags: ['firewall', 'security']
+      tags: ["firewall", "security"]
 
   post_tasks:
     - name: Display completion message

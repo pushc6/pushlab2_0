@@ -75,16 +75,16 @@
 
 - name: Set effective Gitea version (from API when requested)
   ansible.builtin.set_fact:
-    gitea_effective_version: "{{
-      (
-        ((gitea_release_api.content | from_json).tag_name | regex_replace('^v',''))
-      )
-      if (
-        ((gitea_auto_update | bool) or (gitea_version | lower == 'latest')) and
-        (gitea_release_api is defined) and (gitea_release_api.status | default(0)) == 200 and
-        (gitea_release_api.content | default('')) | length > 0
-      ) else gitea_version
-    }}"
+    gitea_effective_version: >-
+      {{ ((gitea_release_api.content | from_json).tag_name | regex_replace('^v', ''))
+         if (
+              ((gitea_auto_update | bool) or (gitea_version | lower == 'latest'))
+              and (gitea_release_api is defined)
+              and (gitea_release_api.status | default(0)) == 200
+              and (gitea_release_api.content | default('')) | length > 0
+         )
+         else gitea_version
+      }}
 
 - name: Build effective download URL
   ansible.builtin.set_fact:

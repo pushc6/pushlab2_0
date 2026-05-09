@@ -2,8 +2,8 @@
 # OPNsense Firewall Role Defaults
 # Override in group_vars or playbook as needed
 
-opnsense_api_key: ""  # Set via extra vars from Gitea secrets
-opnsense_api_secret: ""  # Set via extra vars from Gitea secrets
+opnsense_api_key: "" # Set via extra vars from Gitea secrets
+opnsense_api_secret: "" # Set via extra vars from Gitea secrets
 
 firewall_defaults:
   enabled: true
@@ -12,7 +12,6 @@ firewall_defaults:
 
 # Custom aliases (define in group_vars/opnsense/vars.yml)
 opnsense_aliases: []
-
 # Firewall rules (define in group_vars/opnsense/vars.yml)
 terraform_host_firewall_rules: []
 host_specific_rules: []

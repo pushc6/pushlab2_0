@@ -16,6 +16,5 @@ galaxy_info:
     - runner
 
 dependencies: []
-
 collections:
   - ansible.builtin

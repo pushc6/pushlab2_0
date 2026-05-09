@@ -27,7 +27,7 @@
         - ssh
 
     - name: Flush handlers after SSH hardening to stabilize state
-      meta: flush_handlers
+      ansible.builtin.meta: flush_handlers
       when: firewall_ssh_hardening_enabled | default(true)
       tags:
         - firewall
@@ -50,7 +50,12 @@
 
     - name: Configure Docker interface in trusted zone
       ansible.builtin.include_tasks: docker_rules.yml
-      when: "'docker' in group_names or 'docker_hosts' in group_names or 'dockerhost' in group_names or 'docker_internal' in group_names or 'docker_secure' in group_names"
+      when: >-
+        'docker' in group_names
+        or 'docker_hosts' in group_names
+        or 'dockerhost' in group_names
+        or 'docker_internal' in group_names
+        or 'docker_secure' in group_names
       tags:
         - firewall
         - docker
@@ -89,12 +94,7 @@
     # ========================================================================
 
     - name: Flush handlers to apply all firewall changes
-      meta: flush_handlers
-
-    # ========================================================================
-    # VALIDATION
-    # ========================================================================
-
+      ansible.builtin.meta: flush_handlers
     - name: Include validation
       ansible.builtin.include_tasks: validate.yml
       when: firewall_enable_validation | default(true)
@@ -130,16 +130,16 @@
         permanent: true
         immediate: false
         state: enabled
-      ignore_errors: true
+      failed_when: false # Best-effort lockout recovery — never abort here.
 
     - name: Reload firewall after emergency SSH restoration
       ansible.builtin.service:
         name: firewalld
         state: reloaded
-      ignore_errors: true
+      failed_when: false # Best-effort lockout recovery.
       register: emergency_reload
 
-    - name: Wait for firewall stabilization after emergency restore
+    - name: Wait for firewall stabilization after emergency restore  # noqa: no-handler
       ansible.builtin.pause:
         seconds: 5
       when: emergency_reload is changed
@@ -153,7 +153,7 @@
       become: false
       vars:
         ansible_connection: local
-      ignore_errors: true
+      failed_when: false # Diagnostic only — recovery already attempted above.
 
     - name: Display rollback information
       ansible.builtin.debug:

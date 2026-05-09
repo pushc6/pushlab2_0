@@ -1,13 +1,14 @@
+---
 # proxy_vars.yml
 # Example variables file for configuring multiple proxy sites
 
 proxy_sites:
   - domain: api.example.com
     backend: http://api-server:8080
-  
+
   - domain: www.example.com
     backend: http://web-server:3000
-  
+
   - domain: docs.example.com
     backend: http://documentation:4000
 

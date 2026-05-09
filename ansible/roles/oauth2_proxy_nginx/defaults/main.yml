@@ -21,7 +21,6 @@ default_ssl_domain: "localhost"
 
 # Service filtering (empty means all services)
 oauth2_services_filter: []
-
 # SSL settings
 ssl_protocols: "TLSv1.2 TLSv1.3"
 ssl_ciphers: "HIGH:!aNULL:!MD5"

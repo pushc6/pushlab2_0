@@ -12,9 +12,12 @@
     - crowdsec_installed.rc != 0
     - ansible_os_family == "RedHat"
   block:
-    - name: Add CrowdSec repository
-      ansible.builtin.shell: |
-        curl -s https://install.crowdsec.net | sh
+    - name: Add CrowdSec repository # noqa: command-instead-of-module
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          curl -s https://install.crowdsec.net | sh
+        executable: /bin/bash
       args:
         creates: /etc/yum.repos.d/crowdsec_crowdsec.repo
 
@@ -28,9 +31,12 @@
     - crowdsec_installed.rc != 0
     - ansible_os_family == "Debian"
   block:
-    - name: Add CrowdSec repository
-      ansible.builtin.shell: |
-        curl -s https://install.crowdsec.net | sh
+    - name: Add CrowdSec repository # noqa: command-instead-of-module
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          curl -s https://install.crowdsec.net | sh
+        executable: /bin/bash
       args:
         creates: /etc/apt/sources.list.d/crowdsec_crowdsec.list
 
