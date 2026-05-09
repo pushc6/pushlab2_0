@@ -5,4 +5,4 @@
 #   - ifname: kernel interface name (e.g. "eth1")
 #   - ipv4_address: static IPv4 address
 #   - ipv4_netmask: prefix length (e.g. 24)
-network_interfaces: []
+network_interfaces_list: []

@@ -119,10 +119,10 @@
   ansible.builtin.shell: |
     set -o pipefail
     docker info >/dev/null 2>&1
-  register: docker_info
+  register: gitea_docker_info
   retries: 10
   delay: 3
-  until: docker_info.rc == 0
+  until: gitea_docker_info.rc == 0
   changed_when: false
   when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
 
@@ -132,7 +132,7 @@
     groups: docker
     append: true
   when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
-  register: git_docker_group
+  register: gitea_git_docker_group
 
 - name: Ensure runner data directory exists (docker)
   ansible.builtin.file:
@@ -158,8 +158,8 @@
 - name: Pre-pull Actions runner image (to avoid long first-run)
   ansible.builtin.command: >-
     /usr/bin/docker pull {{ gitea_runner_image }}
-  register: runner_image_pull
-  changed_when: "'Downloaded newer image' in runner_image_pull.stdout or 'Downloaded newer image' in runner_image_pull.stderr"
+  register: gitea_runner_image_pull
+  changed_when: "'Downloaded newer image' in gitea_runner_image_pull.stdout or 'Downloaded newer image' in gitea_runner_image_pull.stderr"
   failed_when: false
   when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
 
@@ -167,8 +167,8 @@
   ansible.builtin.command: >-
     /usr/bin/docker pull {{ item }}
   loop: "{{ gitea_runner_pull_images | default([]) }}"
-  register: extra_image_pull
-  changed_when: "'Downloaded newer image' in extra_image_pull.stdout or 'Downloaded newer image' in extra_image_pull.stderr"
+  register: gitea_extra_image_pull
+  changed_when: "'Downloaded newer image' in gitea_extra_image_pull.stdout or 'Downloaded newer image' in gitea_extra_image_pull.stderr"
   failed_when: false
   when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0) and ((gitea_runner_pull_images | default([])) | length > 0)
 

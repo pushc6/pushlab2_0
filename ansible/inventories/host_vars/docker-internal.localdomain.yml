@@ -1,1 +1,326 @@
-../manual/host_vars/docker-internal.localdomain.yml
+---
+# Firewall configuration for docker-internal.localdomain (10.37.70.25)
+# Monitoring, Authentication, and Infrastructure Services
+
+# SSH access (host-specific)
+firewall_hardened_ssh_allowed_subnets:
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller (veeam)
+  - "10.37.70.7/32" # docker host
+
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
+  # ============================================================================
+  # Automation & CI/CD
+  # ============================================================================
+
+  - port: 3000
+    protocol: tcp
+    name: "Semaphore - Ansible Automation UI"
+    container: semaphore
+    access: custom
+    sources:
+      - "10.37.70.5/32" # nginx-dmz (IPv4)
+      - "10.37.70.24/32" # nginx-internal (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::5/128" # nginx-dmz (IPv6)
+      - "fd00:1337:1337:70::24/128" # nginx-internal (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Authentication Services
+  # ============================================================================
+
+  - port: 4180
+    protocol: tcp
+    name: "OAuth2-Proxy - SSO Authentication"
+    container: oauth2-proxy
+    access: custom
+    sources:
+      - "10.37.70.5/32" # nginx-internal (IPv4)
+      - "10.37.70.24/32" # nginx-external (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::5/128" # nginx-internal (IPv6)
+      - "fd00:1337:1337:70::24/128" # nginx-external (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Monitoring Stack
+  # ============================================================================
+
+  - port: 3002
+    protocol: tcp
+    name: "Grafana - Monitoring Dashboards"
+    container: grafana
+    access: custom
+    sources:
+      - "10.37.70.24/32" # nginx-external (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::24/128" # nginx-external (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  - port: 8086
+    protocol: tcp
+    name: "InfluxDB - Time Series Database"
+    container: influxdb-influxdb2-1
+    access: custom
+    sources:
+      - "10.37.70.0/24" # DMZ hosts sending metrics (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Telemetry Collection (Alloy/Grafana Agent)
+  # ============================================================================
+
+  - port: 1514
+    protocol: tcp
+    name: "Alloy - Syslog TCP"
+    container: alloy
+    access: custom
+    sources:
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.50.0/24" # IoT (IPv4)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  - port: 1514
+    protocol: udp
+    name: "Alloy - Syslog UDP"
+    container: alloy
+    access: custom
+    sources:
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.50.0/24" # IoT (IPv4)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  - port: 12345
+    protocol: tcp
+    name: "Alloy - OTLP/Metrics"
+    container: alloy
+    access: custom
+    sources:
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # UPS Monitoring
+  # ============================================================================
+
+  - port: 3493
+    protocol: tcp
+    name: "NUT - UPS Monitoring Server"
+    container: nut
+    access: custom
+    sources:
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  - port: 8080
+    protocol: tcp
+    name: "PeaNUT - UPS Web UI"
+    container: PeaNUT
+    access: custom
+    sources:
+      - "10.37.70.24/32" # nginx-external (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::24/128" # nginx-external (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Photo Management
+  # ============================================================================
+
+  - port: 2283
+    protocol: tcp
+    name: "Immich - Photo Management"
+    container: immich_server
+    access: custom
+    sources:
+      - "10.37.70.24/32" # nginx-external (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::24/128" # nginx-external (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Metrics & Time Series
+  # ============================================================================
+
+  - port: 8428
+    protocol: tcp
+    name: "VictoriaMetrics - HTTP API"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.80.0/24" # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64" # servers_vlan (IPv6)
+
+  - port: 8089
+    protocol: tcp
+    name: "VictoriaMetrics - InfluxDB Line Protocol"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.80.0/24" # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64" # servers_vlan (IPv6)
+
+  - port: 8089
+    protocol: udp
+    name: "VictoriaMetrics - InfluxDB Line Protocol (UDP)"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.80.0/24" # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64" # servers_vlan (IPv6)
+
+  - port: 4242
+    protocol: tcp
+    name: "VictoriaMetrics - OpenTSDB Protocol"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.80.0/24" # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64" # servers_vlan (IPv6)
+
+  - port: 2003
+    protocol: tcp
+    name: "VictoriaMetrics - Graphite Protocol"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.80.0/24" # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64" # servers_vlan (IPv6)
+
+  - port: 2003
+    protocol: udp
+    name: "VictoriaMetrics - Graphite Protocol (UDP)"
+    container: victoriametrics
+    access: custom
+    sources:
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.80.0/24" # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64" # servers_vlan (IPv6)
+
+  # ============================================================================
+  # Logging
+  # ============================================================================
+
+  - port: 9428
+    protocol: tcp
+    name: "VictoriaLogs - HTTP API"
+    container: victorialogs
+    access: custom
+    sources:
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "10.37.70.0/24" # DMZ (IPv4)
+      - "10.37.80.0/24" # servers_vlan (IPv4)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:80::/64" # servers_vlan (IPv6)
+
+  # ============================================================================
+  # Automation
+  # ============================================================================
+
+  - port: 3004
+    protocol: tcp
+    name: "Semaphore - Ansible Automation UI"
+    container: semaphore
+    access: custom
+    sources:
+      - "10.37.70.24/32" # nginx-external (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::24/128" # nginx-external (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # Security
+  # ============================================================================
+
+  - port: 5000
+    protocol: tcp
+    name: "CrowdSec API Manager"
+    container: crowdsec-api-manager
+    access: custom
+    sources:
+      - "10.37.70.0/24" # DMZ hosts (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::/64" # DMZ (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
+
+  # ============================================================================
+  # MQTT Broker (Mosquitto)
+  # ============================================================================
+
+  - port: 1883
+    protocol: tcp
+    name: "Mosquitto MQTT Broker"
+    container: mosquitto
+    access: custom
+    sources:
+      - "10.37.70.5/32" # nginx DMZ proxy (IPv4)
+      - "10.37.70.24/32" # nginx internal proxy (IPv4)
+      - "fd00:1337:1337:70::5/128" # nginx DMZ proxy (IPv6)
+      - "fd00:1337:1337:70::24/128" # nginx internal proxy (IPv6)
+
+  # ============================================================================
+  # Landing Pages (Caddy)
+  # ============================================================================
+
+  - port: 8180
+    protocol: tcp
+    name: "Caddy - Landing Pages"
+    container: caddy
+    access: custom
+    sources:
+      - "10.37.70.5/32" # nginx-dmz (IPv4)
+      - "10.37.70.24/32" # nginx-internal (IPv4)
+      - "fd00:1337:1337:70::5/128" # nginx-dmz (IPv6)
+      - "fd00:1337:1337:70::24/128" # nginx-internal (IPv6)
+
+  # ============================================================================
+  # Infrastructure Management (Komodo)
+  # ============================================================================
+
+  - port: 9120
+    protocol: tcp
+    name: "Komodo - Container Management UI"
+    container: komodo-core
+    access: custom
+    sources:
+      - "10.37.70.24/32" # nginx-internal (IPv4)
+      - "10.37.20.0/24" # trusted_vlan (IPv4)
+      - "fd00:1337:1337:70::24/128" # nginx-internal (IPv6)
+      - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)

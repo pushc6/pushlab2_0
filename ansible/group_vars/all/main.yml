@@ -23,21 +23,21 @@ ansible_user: ansible
 firewall_management_subnet: "10.37.20.0/24"
 
 # Reverse proxy IPs
-firewall_reverse_proxy_ips:
+firewall_hardened_reverse_proxy_ips:
   - "10.37.70.5"
   - "10.37.70.24"
 
 # Safety settings
-firewall_rollback_timer: 300
-firewall_enable_preflight: true
-firewall_enable_validation: true
-firewall_purge_stale_rules: true
+firewall_hardened_rollback_timer: 300
+firewall_hardened_enable_preflight: true
+firewall_hardened_enable_validation: true
+firewall_hardened_purge_stale_rules: true
 
 # Veeam Backup Server (alias: veeammachine)
 veeam_server_ip: "10.37.70.21"
 
 # Global firewall services applied to ALL hosts (merged with host-specific rules)
-firewall_global_services:
+firewall_hardened_global_services:
   # Veeam Backup & Replication ports (from veeammachine)
   - port: 6162
     protocol: tcp

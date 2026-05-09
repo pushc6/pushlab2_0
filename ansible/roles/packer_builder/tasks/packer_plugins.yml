@@ -3,33 +3,33 @@
 
 - name: Create Packer config directory
   ansible.builtin.file:
-    path: "{{ packer_plugin_dir }}"
+    path: "{{ packer_builder_packer_plugin_dir }}"
     state: directory
     mode: "0755"
     recurse: true
 
 - name: Install vSphere Packer plugin
   ansible.builtin.command:
-    cmd: "{{ packer_install_path }} plugins install {{ packer_vsphere_plugin_source }}"
+    cmd: "{{ packer_builder_packer_install_path }} plugins install {{ packer_builder_packer_vsphere_plugin_source }}"
   environment:
-    PACKER_CONFIG_DIR: "{{ packer_config_dir }}"
-  register: vsphere_plugin_install
-  changed_when: "'Installed plugin' in vsphere_plugin_install.stdout"
+    PACKER_CONFIG_DIR: "{{ packer_builder_packer_config_dir }}"
+  register: packer_builder_vsphere_plugin_install
+  changed_when: "'Installed plugin' in packer_builder_vsphere_plugin_install.stdout"
   failed_when:
-    - vsphere_plugin_install.rc != 0
-    - "'already installed' not in vsphere_plugin_install.stderr | lower"
+    - packer_builder_vsphere_plugin_install.rc != 0
+    - "'already installed' not in packer_builder_vsphere_plugin_install.stderr | lower"
 
 - name: Verify vSphere plugin installation
   ansible.builtin.shell: |
     set -euo pipefail
-    {{ packer_install_path }} plugins installed | grep -i vsphere
+    {{ packer_builder_packer_install_path }} plugins installed | grep -i vsphere
   args:
     executable: /bin/bash
   environment:
-    PACKER_CONFIG_DIR: "{{ packer_config_dir }}"
+    PACKER_CONFIG_DIR: "{{ packer_builder_packer_config_dir }}"
   changed_when: false
-  register: vsphere_verify
+  register: packer_builder_vsphere_verify
 
 - name: Display installed plugins
   ansible.builtin.debug:
-    msg: "vSphere plugin installed: {{ vsphere_verify.stdout }}"
+    msg: "vSphere plugin installed: {{ packer_builder_vsphere_verify.stdout }}"

@@ -2,40 +2,40 @@
 # RHEL-specific update tasks (AlmaLinux/RHEL 8/9/10 compatible)
 - name: Install required RHEL packages
   ansible.builtin.dnf:
-    name: "{{ rhel_packages_to_install }}"
+    name: "{{ rhel_updates_packages_to_install }}"
     state: present
 
 - name: Update DNF cache
   ansible.builtin.dnf:
     update_cache: true
-  when: dnf_update_cache_only | bool
+  when: rhel_updates_dnf_update_cache_only | bool
 
-- name: Update all packages using DNF  # noqa: package-latest
+- name: Update all packages using DNF # noqa: package-latest
   ansible.builtin.dnf:
     name: "*"
     state: latest
-    security: "{{ dnf_security_updates_only | bool }}"
-    exclude: "{{ dnf_exclude_packages | join(',') if dnf_exclude_packages | length > 0 else omit }}"
+    security: "{{ rhel_updates_dnf_security_updates_only | bool }}"
+    exclude: "{{ rhel_updates_dnf_exclude_packages | join(',') if rhel_updates_dnf_exclude_packages | length > 0 else omit }}"
     allowerasing: true
-  register: dnf_update_result
-  when: not dnf_update_cache_only | bool
+  register: rhel_updates_dnf_update_result
+  when: not rhel_updates_dnf_update_cache_only | bool
 
 # Guard: only run reboot check if needs-restarting exists
 - name: Check availability of needs-restarting
   ansible.builtin.shell: "command -v needs-restarting >/dev/null 2>&1"
-  register: needs_restarting_cmd
+  register: rhel_updates_needs_restarting_cmd
   changed_when: false
   failed_when: false
   when: enable_reboot | bool
 
 - name: Check if reboot is required
   ansible.builtin.command: needs-restarting -r
-  register: needs_restarting
+  register: rhel_updates_needs_restarting
   failed_when: false
   changed_when: false
   when:
     - enable_reboot | bool
-    - needs_restarting_cmd.rc == 0
+    - rhel_updates_needs_restarting_cmd.rc == 0
 
 - name: Reboot RHEL server if needed
   ansible.builtin.reboot:
@@ -46,5 +46,5 @@
     post_reboot_delay: "{{ post_reboot_delay }}"
   when:
     - enable_reboot | bool
-    - needs_restarting_cmd.rc == 0
-    - needs_restarting.rc == 1
+    - rhel_updates_needs_restarting_cmd.rc == 0
+    - rhel_updates_needs_restarting.rc == 1

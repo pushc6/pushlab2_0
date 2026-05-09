@@ -2,30 +2,33 @@
 # Packer Builder Role Defaults
 
 # Software versions
-packer_version: "1.11.2"
-terraform_version: "1.7.5"
-act_runner_version: "0.2.11"
+packer_builder_packer_version: "1.11.2"
+packer_builder_terraform_version: "1.7.5"
+packer_builder_act_runner_version: "0.2.11"
 
 # Installation paths
-packer_install_path: "/usr/local/bin/packer"
-terraform_install_path: "/usr/local/bin/terraform"
-act_runner_install_path: "/usr/local/bin/act_runner"
+packer_builder_packer_install_path: "/usr/local/bin/packer"
+packer_builder_terraform_install_path: "/usr/local/bin/terraform"
+packer_builder_act_runner_install_path: "/usr/local/bin/act_runner"
 
 # Download URLs (constructed from versions)
-packer_download_url: "https://releases.hashicorp.com/packer/{{ packer_version }}/packer_{{ packer_version }}_linux_amd64.zip"
-terraform_download_url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
-act_runner_download_url: "https://dl.gitea.com/act_runner/{{ act_runner_version }}/act_runner-{{ act_runner_version }}-linux-amd64"
+packer_builder_packer_download_url: >-
+  https://releases.hashicorp.com/packer/{{ packer_builder_packer_version }}/packer_{{ packer_builder_packer_version }}_linux_amd64.zip
+packer_builder_terraform_download_url: >-
+  https://releases.hashicorp.com/terraform/{{ packer_builder_terraform_version }}/terraform_{{ packer_builder_terraform_version }}_linux_amd64.zip
+packer_builder_act_runner_download_url: >-
+  https://dl.gitea.com/act_runner/{{ packer_builder_act_runner_version }}/act_runner-{{ packer_builder_act_runner_version }}-linux-amd64
 
 # Runner configuration
-gitea_runner_data_dir: "/opt/gitea-runner"
-gitea_runner_config_file: "{{ gitea_runner_data_dir }}/config.yaml"
-gitea_runner_work_dir: "{{ gitea_runner_data_dir }}"
+packer_builder_gitea_runner_data_dir: "/opt/gitea-runner"
+packer_builder_gitea_runner_config_file: "{{ packer_builder_gitea_runner_data_dir }}/config.yaml"
+packer_builder_gitea_runner_work_dir: "{{ packer_builder_gitea_runner_data_dir }}"
 
 # Gitea connection (MUST be overridden in host_vars)
-gitea_instance_url: ""
-gitea_runner_registration_token: ""
-gitea_runner_name: "{{ inventory_hostname }}"
-gitea_runner_labels:
+packer_builder_gitea_instance_url: ""
+packer_builder_gitea_runner_registration_token: ""
+packer_builder_gitea_runner_name: "{{ inventory_hostname }}"
+packer_builder_gitea_runner_labels:
   - "self-hosted"
   - "linux"
   - "x64"
@@ -44,8 +47,8 @@ packer_builder_packages:
   - nodejs # Required for Gitea Actions checkout
 
 # Packer configuration
-packer_config_dir: "/root/.config/packer"
-packer_plugin_dir: "{{ packer_config_dir }}/plugins"
+packer_builder_packer_config_dir: "/root/.config/packer"
+packer_builder_packer_plugin_dir: "{{ packer_builder_packer_config_dir }}/plugins"
 
 # vSphere plugin
-packer_vsphere_plugin_source: "github.com/hashicorp/vsphere"
+packer_builder_packer_vsphere_plugin_source: "github.com/hashicorp/vsphere"

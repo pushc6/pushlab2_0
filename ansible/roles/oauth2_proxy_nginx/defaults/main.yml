@@ -3,33 +3,33 @@
 # Default values for OAuth2-Proxy Nginx role
 
 # Default OAuth2-Proxy settings
-oauth2_proxy_host: "localhost"
-oauth2_proxy_port: "4180"
+oauth2_proxy_nginx_host: "localhost"
+oauth2_proxy_nginx_port: "4180"
 
 # Default nginx settings
-nginx_proxy_timeout: "60s"
-nginx_client_max_body_size: "100M"
+oauth2_proxy_nginx_proxy_timeout: "60s"
+oauth2_proxy_nginx_client_max_body_size: "100M"
 
 # Default paths
-nginx_sites_available: "/etc/nginx/sites-available"
-nginx_sites_enabled: "/etc/nginx/sites-enabled"
-nginx_conf_d: "/etc/nginx/conf.d"
+oauth2_proxy_nginx_sites_available: "/etc/nginx/sites-available"
+oauth2_proxy_nginx_sites_enabled: "/etc/nginx/sites-enabled"
+oauth2_proxy_nginx_conf_d: "/etc/nginx/conf.d"
 
 # Default authentication settings
-default_auth_type: "simple"
-default_ssl_domain: "localhost"
+oauth2_proxy_nginx_default_auth_type: "simple"
+oauth2_proxy_nginx_default_ssl_domain: "localhost"
 
 # Service filtering (empty means all services)
-oauth2_services_filter: []
+oauth2_proxy_nginx_services_filter: []
 # SSL settings
-ssl_protocols: "TLSv1.2 TLSv1.3"
-ssl_ciphers: "HIGH:!aNULL:!MD5"
-ssl_prefer_server_ciphers: "off"
+oauth2_proxy_nginx_ssl_protocols: "TLSv1.2 TLSv1.3"
+oauth2_proxy_nginx_ssl_ciphers: "HIGH:!aNULL:!MD5"
+oauth2_proxy_nginx_ssl_prefer_server_ciphers: "off"
 
 # ID Token Hint Logout Configuration
-enable_id_token_logout: true
-logout_success_page: true
-enable_sso_logout: true
-enable_force_logout: true
-keycloak_realm: "prod"
-keycloak_client_id: "oauth2-proxy-multi-domain"
+oauth2_proxy_nginx_enable_id_token_logout: true
+oauth2_proxy_nginx_logout_success_page: true
+oauth2_proxy_nginx_enable_sso_logout: true
+oauth2_proxy_nginx_enable_force_logout: true
+oauth2_proxy_nginx_keycloak_realm: "prod"
+oauth2_proxy_nginx_keycloak_client_id: "oauth2-proxy-multi-domain"

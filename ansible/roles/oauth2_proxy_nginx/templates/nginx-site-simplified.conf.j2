@@ -10,19 +10,19 @@ server {
     {% include 'ssl-config.j2' %}
     
     # OAuth2-Proxy includes
-    include {{ nginx_conf_d }}/oauth2-locations.conf;
+    include {{ oauth2_proxy_nginx_conf_d }}/oauth2-locations.conf;
     
     # ID Token Hint Logout Configuration (modular include)
-    {% if logout_config.enable_id_token_logout | default(true) %}
-    include {{ nginx_conf_d }}/logout-pages-{{ item.ssl_domain | replace('.', '_') }}.conf;
-    include {{ nginx_conf_d }}/logout-success-{{ item.ssl_domain | replace('.', '_') }}.conf;
-    include {{ nginx_conf_d }}/logout-javascript-{{ item.ssl_domain | replace('.', '_') }}.conf;
+    {% if logout_config.oauth2_proxy_nginx_enable_id_token_logout | default(true) %}
+    include {{ oauth2_proxy_nginx_conf_d }}/logout-pages-{{ item.ssl_domain | replace('.', '_') }}.conf;
+    include {{ oauth2_proxy_nginx_conf_d }}/logout-success-{{ item.ssl_domain | replace('.', '_') }}.conf;
+    include {{ oauth2_proxy_nginx_conf_d }}/logout-javascript-{{ item.ssl_domain | replace('.', '_') }}.conf;
     {% endif %}
     
     location / {
 {% if item.auth_type != 'none' %}
         # Include OAuth2 authentication
-        include {{ nginx_conf_d }}/oauth2-auth-{{ item.auth_type }}.conf;
+        include {{ oauth2_proxy_nginx_conf_d }}/oauth2-auth-{{ item.auth_type }}.conf;
         
 {% if item.auth_type == 'groups' and item.required_groups is defined %}
         # Group-based access control
@@ -67,9 +67,9 @@ server {
 {% endif %}
         
         # Proxy settings
-        proxy_connect_timeout {{ nginx_config.proxy_timeout | default(nginx_proxy_timeout) }};
-        proxy_send_timeout {{ nginx_config.send_timeout | default(nginx_proxy_timeout) }};
-        proxy_read_timeout {{ nginx_config.read_timeout | default(nginx_proxy_timeout) }};
+        proxy_connect_timeout {{ nginx_config.proxy_timeout | default(oauth2_proxy_nginx_proxy_timeout) }};
+        proxy_send_timeout {{ nginx_config.send_timeout | default(oauth2_proxy_nginx_proxy_timeout) }};
+        proxy_read_timeout {{ nginx_config.read_timeout | default(oauth2_proxy_nginx_proxy_timeout) }};
         proxy_redirect off;
         proxy_buffering {{ nginx_config.proxy_buffering | default('off') }};
         
@@ -79,7 +79,7 @@ server {
         proxy_set_header Connection "upgrade";
         
         # Size limits
-        client_max_body_size {{ nginx_config.client_max_body_size | default(nginx_client_max_body_size) }};
+        client_max_body_size {{ nginx_config.client_max_body_size | default(oauth2_proxy_nginx_client_max_body_size) }};
     }
     
 {% if item.health_check is defined %}

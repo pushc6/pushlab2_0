@@ -25,9 +25,9 @@
     description: "{{ item.description }}"
     update_frequency_days: "{{ item.refresh_frequency | default(omit) }}"
     state: present
-  loop: "{{ opnsense_aliases }}"
-  when: opnsense_aliases is defined and opnsense_aliases | length > 0
-  register: custom_aliases
+  loop: "{{ opnsense_firewall_aliases }}"
+  when: opnsense_firewall_aliases is defined and opnsense_firewall_aliases | length > 0
+  register: opnsense_firewall_custom_aliases
 
 - name: Create IP alias for Terraform hosts
   ansibleguy.opnsense.alias:
@@ -40,7 +40,7 @@
     content: "{{ groups['terraform_created'] | map('extract', hostvars, 'ansible_host') | list }}"
     description: "Hosts created by Terraform automation"
     state: present
-  register: terraform_alias
+  register: opnsense_firewall_terraform_alias
   when: groups['terraform_created'] is defined and groups['terraform_created'] | length > 0
 
 - name: Create individual host aliases
@@ -55,14 +55,14 @@
     description: "Terraform host: {{ item }}"
     state: present
   loop: "{{ groups['terraform_created'] | default([]) }}"
-  register: host_aliases
+  register: opnsense_firewall_host_aliases
   when: groups['terraform_created'] is defined and groups['terraform_created'] | length > 0
 
 - name: Build firewall rules list
   ansible.builtin.set_fact:
-    firewall_rules_list: |
+    opnsense_firewall_rules_list: |
       {% set result = [] %}
-      {% for rule in (terraform_host_firewall_rules + host_specific_rules) %}
+      {% for rule in (opnsense_firewall_terraform_rules + opnsense_firewall_host_specific_rules) %}
         {% if rule.interface is iterable and rule.interface is not string %}
           {% for iface in rule.interface %}
             {% set actual_iface = opnsense_interfaces.get(iface, iface) %}
@@ -93,11 +93,11 @@
     quick: "{{ firewall_defaults.quick }}"
     state: present
     match_fields: ["description"]
-  loop: "{{ firewall_rules_list | from_json }}"
+  loop: "{{ opnsense_firewall_rules_list | from_json }}"
   loop_control:
     label: "{{ item.0.name }} on {{ item.1 }}"
   when: item.0.when | default(true)
-  register: firewall_rules
+  register: opnsense_firewall_rules
 
 - name: Reload firewall rules
   ansibleguy.opnsense.reload:
@@ -107,7 +107,7 @@
     ssl_verify: "{{ opnsense_validate_certs }}"
     target: "rule"
   when: >
-    (custom_aliases is defined and custom_aliases.changed | default(false)) or
-    (terraform_alias is defined and terraform_alias.changed | default(false)) or
-    (host_aliases is defined and host_aliases.changed | default(false)) or
-    (firewall_rules is defined and firewall_rules.changed | default(false))
+    (opnsense_firewall_custom_aliases is defined and opnsense_firewall_custom_aliases.changed | default(false)) or
+    (opnsense_firewall_terraform_alias is defined and opnsense_firewall_terraform_alias.changed | default(false)) or
+    (opnsense_firewall_host_aliases is defined and opnsense_firewall_host_aliases.changed | default(false)) or
+    (opnsense_firewall_rules is defined and opnsense_firewall_rules.changed | default(false))

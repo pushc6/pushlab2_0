@@ -30,7 +30,7 @@ firewall_defaults:
 
 # Custom firewall aliases
 # These will be created/updated in OPNsense for use in rules
-opnsense_aliases:
+opnsense_firewall_aliases:
   # Veeam Backup Server
   - name: "veeammachine"
     type: host
@@ -95,7 +95,7 @@ opnsense_aliases:
 # Granular firewall rules for Terraform hosts
 # Define specific source -> destination -> port combinations
 # IMPORTANT: Specify the correct interface for each rule
-terraform_host_firewall_rules:
+opnsense_firewall_terraform_rules:
   # SSH access from Ansible (in DMZ) to cross-VLAN hosts only
   # Option 1: Target specific hosts explicitly
   - name: "SSH from Ansible to Gitea (cross-VLAN)"
@@ -254,4 +254,4 @@ terraform_host_firewall_rules:
 
 # Host-specific rules (optional)
 # Override per-host in host_vars/<hostname>/firewall.yml
-host_specific_rules: []
+opnsense_firewall_host_specific_rules: []

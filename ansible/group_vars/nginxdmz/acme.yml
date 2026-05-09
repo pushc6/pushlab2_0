@@ -7,7 +7,7 @@
 # To fully migrate existing certs to Ansible management, ensure key_length
 # matches the existing cert (check with: acme.sh --list)
 
-acme_certificates:
+acme_sh_certificates:
   # New domain for MQTT
   - domain: "rangernet.dev"
     wildcard: true

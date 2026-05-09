@@ -11,25 +11,25 @@
       Inventory Dir: {{ inventory_dir | default('UNKNOWN') }}
       Playbook Dir: {{ playbook_dir | default('UNKNOWN') }}
       Same directory: {{ (inventory_dir | dirname | dirname) == playbook_dir }}
-      firewall_services count: {{ firewall_services | default([]) | length }}
-      firewall_ssh_allowed_subnets: {{ firewall_ssh_allowed_subnets | default(['NOT SET']) }}
+      firewall_hardened_services count: {{ firewall_hardened_services | default([]) | length }}
+      firewall_hardened_ssh_allowed_subnets: {{ firewall_hardened_ssh_allowed_subnets | default(['NOT SET']) }}
       ========================================
 
 - name: Validate required variables are defined
   ansible.builtin.assert:
     that:
-      - firewall_ssh_allowed_subnets is defined
-      - firewall_ssh_allowed_subnets | length > 0
-      - firewall_trusted_vlan_subnet is defined
-      - firewall_trusted_vlan_subnet | length > 0
-      - firewall_ssh_port is defined
-      - firewall_ssh_port | int > 0
-      - firewall_ssh_port | int < 65536
+      - firewall_hardened_ssh_allowed_subnets is defined
+      - firewall_hardened_ssh_allowed_subnets | length > 0
+      - firewall_hardened_trusted_vlan_subnet is defined
+      - firewall_hardened_trusted_vlan_subnet | length > 0
+      - firewall_hardened_ssh_port is defined
+      - firewall_hardened_ssh_port | int > 0
+      - firewall_hardened_ssh_port | int < 65536
     fail_msg: |
       Required firewall variables not properly defined:
-        - firewall_ssh_allowed_subnets: {{ firewall_ssh_allowed_subnets | default('UNDEFINED') }}
-        - firewall_trusted_vlan_subnet: {{ firewall_trusted_vlan_subnet | default('UNDEFINED') }}
-        - firewall_ssh_port: {{ firewall_ssh_port | default('UNDEFINED') }}
+        - firewall_hardened_ssh_allowed_subnets: {{ firewall_hardened_ssh_allowed_subnets | default('UNDEFINED') }}
+        - firewall_hardened_trusted_vlan_subnet: {{ firewall_hardened_trusted_vlan_subnet | default('UNDEFINED') }}
+        - firewall_hardened_ssh_port: {{ firewall_hardened_ssh_port | default('UNDEFINED') }}
     success_msg: "All required variables are properly defined"
 
 - name: Verify firewalld is installed
@@ -37,24 +37,24 @@
     name: firewalld
     state: present
   check_mode: true
-  register: firewalld_installed
-  failed_when: firewalld_installed is changed
+  register: firewall_hardened_firewalld_installed
+  failed_when: firewall_hardened_firewalld_installed is changed
 
 - name: Ensure firewalld is started and enabled
   ansible.builtin.service:
     name: firewalld
     state: started
     enabled: true
-  register: firewalld_running
+  register: firewall_hardened_firewalld_running
 
 - name: Check current firewall state
   ansible.builtin.command: firewall-cmd --list-all
-  register: current_firewall_state
+  register: firewall_hardened_current_firewall_state
   changed_when: false
 
 - name: Save current firewall configuration backup
   ansible.builtin.copy:
-    content: "{{ current_firewall_state.stdout }}"
+    content: "{{ firewall_hardened_current_firewall_state.stdout }}"
     dest: "/tmp/firewall_backup_{{ ansible_facts['date_time']['epoch'] }}.txt"
     mode: "0644"
 
@@ -64,8 +64,8 @@
       ========================================
       Preflight Checks Complete
       ========================================
-      Firewall Status: {{ firewalld_running.state | default('unknown') }}
-      SSH Allowed Subnets: {{ firewall_ssh_allowed_subnets | join(', ') }}
-      SSH Port: {{ firewall_ssh_port }}
+      Firewall Status: {{ firewall_hardened_firewalld_running.state | default('unknown') }}
+      SSH Allowed Subnets: {{ firewall_hardened_ssh_allowed_subnets | join(', ') }}
+      SSH Port: {{ firewall_hardened_ssh_port }}
       Backup saved: /tmp/firewall_backup_{{ ansible_facts['date_time']['epoch'] }}.txt
       ========================================

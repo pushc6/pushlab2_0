@@ -6,28 +6,28 @@
 
 - name: Check if Docker is installed
   ansible.builtin.command: which docker
-  register: docker_installed
+  register: firewall_hardened_docker_installed
   changed_when: false
   failed_when: false
 
 - name: Enable IP forwarding in firewalld (allows Docker NAT to work)
   ansible.posix.firewalld:
-    zone: "{{ firewall_default_zone }}"
+    zone: "{{ firewall_hardened_default_zone }}"
     forward: true
     permanent: true
     immediate: true
     state: enabled
-  when: docker_installed.rc == 0
+  when: firewall_hardened_docker_installed.rc == 0
   notify: reload firewalld
 
 - name: Enable masquerading for Docker NAT
   ansible.posix.firewalld:
-    zone: "{{ firewall_default_zone }}"
+    zone: "{{ firewall_hardened_default_zone }}"
     masquerade: true
     permanent: true
     immediate: true
     state: enabled
-  when: docker_installed.rc == 0
+  when: firewall_hardened_docker_installed.rc == 0
   notify: reload firewalld
 
 - name: Display Docker firewall configuration
@@ -37,8 +37,8 @@
       Docker Firewall Configuration
       ========================================
       Docker Installed: Yes
-      Forwarding: Enabled in {{ firewall_default_zone }} zone
-      Masquerading: Enabled in {{ firewall_default_zone }} zone
+      Forwarding: Enabled in {{ firewall_hardened_default_zone }} zone
+      Masquerading: Enabled in {{ firewall_hardened_default_zone }} zone
 
       Docker manages container networking via its own iptables chains:
       - DOCKER-USER (custom filtering)
@@ -47,4 +47,4 @@
 
       Firewalld manages INPUT chain (host protection) only.
       ========================================
-  when: docker_installed.rc == 0
+  when: firewall_hardened_docker_installed.rc == 0

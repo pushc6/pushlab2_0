@@ -20,7 +20,7 @@
     # Service-level proxy mode override (optional)
     service_proxy_overrides: {}
     # SELinux configuration
-    selinux_config:
+    enhanced_proxy_nginx_selinux_config:
       auto_configure: true
       install_tools: true
       configure_booleans: true
@@ -43,7 +43,7 @@
       validate_dhparam: true
 
     # Traditional proxy specific settings
-    traditional_proxy_config:
+    enhanced_proxy_nginx_traditional_proxy_config:
       enable_caching: false
       cache_valid_time: "1h"
       enable_gzip: true
@@ -79,19 +79,21 @@
       ansible.builtin.include_tasks: tasks/proxy_service_filtering.yml
     - name: Add proxy mode to each service
       ansible.builtin.set_fact:
-        services_with_proxy_modes: []
+        enhanced_proxy_nginx_services_with_proxy_modes: []
 
     - name: Process each service with its proxy mode
       ansible.builtin.set_fact:
-        services_with_proxy_modes: "{{ services_with_proxy_modes + [item | combine({'proxy_mode': service_proxy_overrides.get(item.name, proxy_mode)})] }}"
+        enhanced_proxy_nginx_services_with_proxy_modes: >-
+          {{ enhanced_proxy_nginx_services_with_proxy_modes
+             + [item | combine({'proxy_mode': service_proxy_overrides.get(item.name, proxy_mode)})] }}
       loop: "{{ filtered_oauth2_services | default(oauth2_services) }}"
       when: oauth2_services is defined
 
     - name: Separate services by proxy mode
       ansible.builtin.set_fact:
-        oauth2_protected_services: "{{ services_with_proxy_modes | selectattr('proxy_mode', 'eq', 'oauth2') | list }}"
-        traditional_proxy_services: "{{ services_with_proxy_modes | selectattr('proxy_mode', 'eq', 'traditional') | list }}"
-      when: services_with_proxy_modes is defined
+        oauth2_protected_services: "{{ enhanced_proxy_nginx_services_with_proxy_modes | selectattr('proxy_mode', 'eq', 'oauth2') | list }}"
+        traditional_proxy_services: "{{ enhanced_proxy_nginx_services_with_proxy_modes | selectattr('proxy_mode', 'eq', 'traditional') | list }}"
+      when: enhanced_proxy_nginx_services_with_proxy_modes is defined
 
     - name: Display deployment parameters
       ansible.builtin.debug:
@@ -100,7 +102,7 @@
           - "Default proxy mode: {{ proxy_mode }}"
           - "OAuth2-protected services: {{ oauth2_protected_services | map(attribute='name') | list }}"
           - "Traditional proxy services: {{ traditional_proxy_services | map(attribute='name') | list }}"
-          - "OAuth2-Proxy endpoint: {{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}"
+          - "OAuth2-Proxy endpoint: {{ enhanced_proxy_nginx_oauth2_proxy_host }}:{{ enhanced_proxy_nginx_oauth2_proxy_port }}"
           - "SSL validation enabled: {{ deployment_config.validate_ssl_certificates }}"
           - "Backup enabled: {{ deployment_config.create_backup }}"
 
@@ -108,7 +110,7 @@
     # Enhanced proxy role supporting both modes
     - role: enhanced_proxy_nginx
       vars:
-        proxy_role_config:
+        enhanced_proxy_nginx_role_config:
           mode: "{{ proxy_mode }}"
           validate_ssl: "{{ deployment_config.validate_ssl_certificates }}"
           create_backup: "{{ deployment_config.create_backup }}"
@@ -117,7 +119,7 @@
           traditional_services: "{{ traditional_proxy_services }}"
           service_overrides: "{{ service_proxy_overrides }}"
         # Pass the processed services
-        services_with_proxy_modes: "{{ services_with_proxy_modes }}"
+        enhanced_proxy_nginx_services_with_proxy_modes: "{{ enhanced_proxy_nginx_services_with_proxy_modes }}"
 
   post_tasks:
     # Include modular post-deployment tasks
@@ -140,6 +142,6 @@
           - "Proxy mode: {{ proxy_mode }}"
           - "OAuth2-protected services: {{ oauth2_protected_services | length }}"
           - "Traditional proxy services: {{ traditional_proxy_services | length }}"
-          - "Total services deployed: {{ services_with_proxy_modes | length }}"
+          - "Total services deployed: {{ enhanced_proxy_nginx_services_with_proxy_modes | length }}"
           - "SSL certificates validated: {{ deployment_config.validate_ssl_certificates }}"
           - "Configuration backup created: {{ deployment_config.create_backup }}"

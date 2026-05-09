@@ -51,9 +51,9 @@
 
 - name: Verify deployed configuration files
   ansible.builtin.stat:
-    path: "{{ nginx_sites_available }}/{{ item.domain }}.conf"
+    path: "{{ oauth2_proxy_nginx_sites_available }}/{{ item.domain }}.conf"
   register: deployed_configs
-  loop: "{{ filtered_oauth2_services }}"
+  loop: "{{ oauth2_proxy_nginx_filtered_services }}"
 
 - name: Display deployment verification
   ansible.builtin.debug:
@@ -86,7 +86,7 @@
 
 - name: Test OAuth2-proxy connectivity
   ansible.builtin.uri:
-    url: "http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}/ping"
+    url: "http://{{ oauth2_proxy_nginx_host }}:{{ oauth2_proxy_nginx_port }}/ping"
     method: GET
     timeout: 10
   register: oauth2_ping
@@ -103,7 +103,7 @@
     mode: "0644"
   vars:
     deployment_timestamp: "{{ ansible_date_time.iso8601 }}"
-    deployed_services: "{{ filtered_oauth2_services }}"
+    deployed_services: "{{ oauth2_proxy_nginx_filtered_services }}"
     nginx_test_result: "{{ nginx_config_test }}"
     oauth2_test_result: "{{ oauth2_ping }}"
   when: deployment_config.create_summary_report | default(true)

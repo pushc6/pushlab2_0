@@ -3,83 +3,83 @@
 
 - name: "Set certificate variables for {{ cert.domain }}"
   ansible.builtin.set_fact:
-    cert_domain: "{{ cert.domain }}"
-    cert_wildcard: "{{ cert.wildcard | default(false) }}"
-    cert_key_length: "{{ cert.key_length | default(acme_default_key_length) }}"
-    cert_ecc_suffix: "{{ '_ecc' if (cert.key_length | default(acme_default_key_length)) in ['ec-256', 'ec-384'] else '' }}"
+    acme_sh_cert_domain: "{{ cert.domain }}"
+    acme_sh_cert_wildcard: "{{ cert.wildcard | default(false) }}"
+    acme_sh_cert_key_length: "{{ cert.key_length | default(acme_sh_default_key_length) }}"
+    acme_sh_cert_ecc_suffix: "{{ '_ecc' if (cert.key_length | default(acme_sh_default_key_length)) in ['ec-256', 'ec-384'] else '' }}"
 
-- name: "Check if certificate exists in acme.sh for {{ cert_domain }}"
+- name: "Check if certificate exists in acme.sh for {{ acme_sh_cert_domain }}"
   ansible.builtin.command:
     cmd: "{{ acme_sh_install_dir }}/acme.sh --list"
-  register: cert_list
+  register: acme_sh_cert_list
   changed_when: false
 
-- name: "Check if certificate file actually exists for {{ cert_domain }}"
+- name: "Check if certificate file actually exists for {{ acme_sh_cert_domain }}"
   ansible.builtin.stat:
-    path: "{{ acme_sh_install_dir }}/{{ cert_domain }}{{ cert_ecc_suffix }}/{{ cert_domain }}.cer"
-  register: cert_file_check
+    path: "{{ acme_sh_install_dir }}/{{ acme_sh_cert_domain }}{{ acme_sh_cert_ecc_suffix }}/{{ acme_sh_cert_domain }}.cer"
+  register: acme_sh_cert_file_check
 
-- name: "Clean up failed/partial issuance for {{ cert_domain }}"
+- name: "Clean up failed/partial issuance for {{ acme_sh_cert_domain }}"
   when:
-    - cert_domain in cert_list.stdout
-    - not cert_file_check.stat.exists
+    - acme_sh_cert_domain in acme_sh_cert_list.stdout
+    - not acme_sh_cert_file_check.stat.exists
   block:
-    - name: "Remove failed cert from acme.sh registry for {{ cert_domain }}"
+    - name: "Remove failed cert from acme.sh registry for {{ acme_sh_cert_domain }}"
       ansible.builtin.command:
-        cmd: "{{ acme_sh_install_dir }}/acme.sh --remove -d {{ cert_domain }}"
-      register: remove_result
+        cmd: "{{ acme_sh_install_dir }}/acme.sh --remove -d {{ acme_sh_cert_domain }}"
+      register: acme_sh_remove_result
       failed_when: false
-      changed_when: "'has been removed' in remove_result.stdout"
+      changed_when: "'has been removed' in acme_sh_remove_result.stdout"
 
-    - name: "Clean up partial certificate directory for {{ cert_domain }}"
+    - name: "Clean up partial certificate directory for {{ acme_sh_cert_domain }}"
       ansible.builtin.file:
-        path: "{{ acme_sh_install_dir }}/{{ cert_domain }}{{ cert_ecc_suffix }}"
+        path: "{{ acme_sh_install_dir }}/{{ acme_sh_cert_domain }}{{ acme_sh_cert_ecc_suffix }}"
         state: absent
 
-    - name: "Update cert_list after cleanup"
+    - name: "Update acme_sh_cert_list after cleanup"
       ansible.builtin.set_fact:
-        cert_needs_issue: true
+        acme_sh_cert_needs_issue: true
 
-- name: "Set cert_needs_issue flag"
+- name: "Set acme_sh_cert_needs_issue flag"
   ansible.builtin.set_fact:
-    cert_needs_issue: "{{ cert_domain not in cert_list.stdout or (cert_needs_issue | default(false)) }}"
+    acme_sh_cert_needs_issue: "{{ acme_sh_cert_domain not in acme_sh_cert_list.stdout or (acme_sh_cert_needs_issue | default(false)) }}"
 
-- name: "Check if certificate is already deployed for {{ cert_domain }}"
+- name: "Check if certificate is already deployed for {{ acme_sh_cert_domain }}"
   ansible.builtin.stat:
-    path: "{{ acme_cert_deploy_dir }}/{{ cert_domain }}/{{ cert_domain }}.fullchain.cer"
-  register: cert_deployed
+    path: "{{ acme_sh_cert_deploy_dir }}/{{ acme_sh_cert_domain }}/{{ acme_sh_cert_domain }}.fullchain.cer"
+  register: acme_sh_cert_deployed
 
-- name: "Issue certificate for {{ cert_domain }}"
+- name: "Issue certificate for {{ acme_sh_cert_domain }}"
   ansible.builtin.command:
     cmd: >
       {{ acme_sh_install_dir }}/acme.sh --issue
-      --dns {{ acme_dns_provider }}
-      -d {{ cert_domain }}
-      {% if cert_wildcard %}-d '*.{{ cert_domain }}'{% endif %}
-      --keylength {{ cert_key_length }}
-      --server {{ acme_default_ca }}
-  register: issue_result
-  changed_when: "'Cert success' in issue_result.stdout"
+      --dns {{ acme_sh_dns_provider }}
+      -d {{ acme_sh_cert_domain }}
+      {% if acme_sh_cert_wildcard %}-d '*.{{ acme_sh_cert_domain }}'{% endif %}
+      --keylength {{ acme_sh_cert_key_length }}
+      --server {{ acme_sh_default_ca }}
+  register: acme_sh_issue_result
+  changed_when: "'Cert success' in acme_sh_issue_result.stdout"
   failed_when:
-    - issue_result.rc != 0
-    - "'Domains not changed' not in issue_result.stdout"
-    - "'Skip' not in issue_result.stdout"
-    - "'already renewed' not in issue_result.stdout.lower()"
-  when: cert_needs_issue | bool
+    - acme_sh_issue_result.rc != 0
+    - "'Domains not changed' not in acme_sh_issue_result.stdout"
+    - "'Skip' not in acme_sh_issue_result.stdout"
+    - "'already renewed' not in acme_sh_issue_result.stdout.lower()"
+  when: acme_sh_cert_needs_issue | bool
 
-- name: "Deploy certificate for {{ cert_domain }}"
+- name: "Deploy certificate for {{ acme_sh_cert_domain }}"
   ansible.builtin.command:
     cmd: >
       {{ acme_sh_install_dir }}/acme.sh --install-cert
-      -d {{ cert_domain }}
-      {% if cert_wildcard %}-d '*.{{ cert_domain }}'{% endif %}
-      --key-file {{ acme_cert_deploy_dir }}/{{ cert_domain }}/{{ cert_domain }}.key
-      --cert-file {{ acme_cert_deploy_dir }}/{{ cert_domain }}/{{ cert_domain }}.cer
-      --fullchain-file {{ acme_cert_deploy_dir }}/{{ cert_domain }}/{{ cert_domain }}.fullchain.cer
-      --reloadcmd "{{ acme_reload_cmd }}"
-  register: deploy_result
-  changed_when: "'Installing' in deploy_result.stdout or 'Reload' in deploy_result.stdout"
+      -d {{ acme_sh_cert_domain }}
+      {% if acme_sh_cert_wildcard %}-d '*.{{ acme_sh_cert_domain }}'{% endif %}
+      --key-file {{ acme_sh_cert_deploy_dir }}/{{ acme_sh_cert_domain }}/{{ acme_sh_cert_domain }}.key
+      --cert-file {{ acme_sh_cert_deploy_dir }}/{{ acme_sh_cert_domain }}/{{ acme_sh_cert_domain }}.cer
+      --fullchain-file {{ acme_sh_cert_deploy_dir }}/{{ acme_sh_cert_domain }}/{{ acme_sh_cert_domain }}.fullchain.cer
+      --reloadcmd "{{ acme_sh_reload_cmd }}"
+  register: acme_sh_deploy_result
+  changed_when: "'Installing' in acme_sh_deploy_result.stdout or 'Reload' in acme_sh_deploy_result.stdout"
   when: >
-    (issue_result is defined and issue_result.changed) or
-    (not cert_deployed.stat.exists)
+    (acme_sh_issue_result is defined and acme_sh_issue_result.changed) or
+    (not acme_sh_cert_deployed.stat.exists)
   notify: reload nginx

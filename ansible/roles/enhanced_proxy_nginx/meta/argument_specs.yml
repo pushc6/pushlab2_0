@@ -6,28 +6,28 @@ argument_specs:
       - Renders unified nginx site templates that switch between OAuth2 and traditional modes per service, with optional caching, rate limiting, and access
         logging.
     options:
-      default_proxy_mode:
+      enhanced_proxy_nginx_default_proxy_mode:
         description: Mode used when a service entry does not override.
         type: str
         choices: ["oauth2", "traditional"]
         default: "oauth2"
-      oauth2_proxy_host:
+      enhanced_proxy_nginx_oauth2_proxy_host:
         description: Hostname of the OAuth2-Proxy backend.
         type: str
         default: "localhost"
-      oauth2_proxy_port:
+      enhanced_proxy_nginx_oauth2_proxy_port:
         description: Port of the OAuth2-Proxy backend.
         type: str
         default: "4180"
-      traditional_proxy_config:
+      enhanced_proxy_nginx_traditional_proxy_config:
         description: Traditional-mode configuration knobs (caching, gzip, rate limits, etc.).
         type: dict
         required: false
-      nginx_proxy_timeout:
+      enhanced_proxy_nginx_proxy_timeout:
         description: Default proxy_read_timeout / proxy_send_timeout.
         type: str
         default: "60s"
-      nginx_client_max_body_size:
+      enhanced_proxy_nginx_client_max_body_size:
         description: Default client_max_body_size.
         type: str
         default: "100M"

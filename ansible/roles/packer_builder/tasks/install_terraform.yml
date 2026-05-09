@@ -3,49 +3,49 @@
 
 - name: Check if Terraform is installed
   ansible.builtin.stat:
-    path: "{{ terraform_install_path }}"
-  register: terraform_binary
+    path: "{{ packer_builder_terraform_install_path }}"
+  register: packer_builder_terraform_binary
 
 - name: Get current Terraform version
-  ansible.builtin.command: "{{ terraform_install_path }} version"
-  register: terraform_current_version
+  ansible.builtin.command: "{{ packer_builder_terraform_install_path }} version"
+  register: packer_builder_terraform_current_version
   changed_when: false
   failed_when: false
-  when: terraform_binary.stat.exists
+  when: packer_builder_terraform_binary.stat.exists
 
 - name: Set Terraform installation required fact
   ansible.builtin.set_fact:
-    terraform_install_required: >-
-      {{ not terraform_binary.stat.exists or
-         terraform_version not in terraform_current_version.stdout | default('') }}
+    packer_builder_terraform_install_required: >-
+      {{ not packer_builder_terraform_binary.stat.exists or
+         packer_builder_terraform_version not in packer_builder_terraform_current_version.stdout | default('') }}
 
-- name: Download Terraform {{ terraform_version }}
+- name: Download Terraform {{ packer_builder_terraform_version }}
   ansible.builtin.get_url:
-    url: "{{ terraform_download_url }}"
-    dest: "/tmp/terraform_{{ terraform_version }}.zip"
+    url: "{{ packer_builder_terraform_download_url }}"
+    dest: "/tmp/terraform_{{ packer_builder_terraform_version }}.zip"
     mode: "0644"
-  when: terraform_install_required | bool
-  register: terraform_download
+  when: packer_builder_terraform_install_required | bool
+  register: packer_builder_terraform_download
 
 - name: Unzip Terraform
   ansible.builtin.unarchive:
-    src: "/tmp/terraform_{{ terraform_version }}.zip"
+    src: "/tmp/terraform_{{ packer_builder_terraform_version }}.zip"
     dest: "/usr/local/bin"
     remote_src: true
     mode: "0755"
-  when: terraform_install_required | bool
+  when: packer_builder_terraform_install_required | bool
 
 - name: Clean up Terraform zip
   ansible.builtin.file:
-    path: "/tmp/terraform_{{ terraform_version }}.zip"
+    path: "/tmp/terraform_{{ packer_builder_terraform_version }}.zip"
     state: absent
-  when: terraform_install_required | bool
+  when: packer_builder_terraform_install_required | bool
 
 - name: Verify Terraform installation
-  ansible.builtin.command: "{{ terraform_install_path }} version"
+  ansible.builtin.command: "{{ packer_builder_terraform_install_path }} version"
   changed_when: false
-  register: terraform_verify
+  register: packer_builder_terraform_verify
 
 - name: Display Terraform version
   ansible.builtin.debug:
-    msg: "Installed Terraform: {{ terraform_verify.stdout_lines[0] }}"
+    msg: "Installed Terraform: {{ packer_builder_terraform_verify.stdout_lines[0] }}"

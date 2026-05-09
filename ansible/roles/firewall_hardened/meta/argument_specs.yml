@@ -5,48 +5,48 @@ argument_specs:
     description:
       - Manages firewalld zones, services, and per-host rules with optional rollback timer, preflight connectivity check, and post-validation.
     options:
-      firewall_rollback_timer:
+      firewall_hardened_rollback_timer:
         description: Seconds before unsaved firewall rules auto-revert.
         type: int
         default: 300
-      firewall_enable_preflight:
+      firewall_hardened_enable_preflight:
         description: Run preflight SSH connectivity check before applying.
         type: bool
         default: true
-      firewall_enable_validation:
+      firewall_hardened_enable_validation:
         description: Run post-implementation validation tasks.
         type: bool
         default: true
-      firewall_strict_mode:
+      firewall_hardened_strict_mode:
         description: Remove unmanaged firewall rules.
         type: bool
         default: false
-      firewall_purge_stale_rules:
+      firewall_hardened_purge_stale_rules:
         description: Declaratively remove rules no longer in configuration.
         type: bool
         default: false
-      firewall_management_vlan_subnet:
+      firewall_hardened_management_vlan_subnet:
         description: Management VLAN CIDR (admin access).
         type: str
         default: "10.37.10.0/24"
-      firewall_trusted_vlan_subnet:
+      firewall_hardened_trusted_vlan_subnet:
         description: Trusted internal VLAN CIDR.
         type: str
         default: "10.37.20.0/24"
-      firewall_dmz_vlan_subnet:
+      firewall_hardened_dmz_vlan_subnet:
         description: DMZ VLAN CIDR (public-facing hosts).
         type: str
         default: "10.37.70.0/24"
-      firewall_wireguard_vlan_subnet:
+      firewall_hardened_wireguard_vlan_subnet:
         description: WireGuard VLAN CIDR.
         type: str
         default: "10.37.90.0/24"
-      firewall_ssh_allowed_subnets:
+      firewall_hardened_ssh_allowed_subnets:
         description: Source subnets permitted to reach SSH.
         type: list
         elements: str
         required: false
-      firewall_services:
+      firewall_hardened_services:
         description: Per-host service rules (port/protocol/access).
         type: list
         elements: dict

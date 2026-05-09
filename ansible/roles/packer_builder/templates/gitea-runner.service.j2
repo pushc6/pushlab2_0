@@ -1,5 +1,5 @@
 [Unit]
-Description=Gitea Actions Runner ({{ gitea_runner_name }})
+Description=Gitea Actions Runner ({{ packer_builder_gitea_runner_name }})
 After=network.target docker.service
 Requires=docker.service
 Documentation=https://docs.gitea.com/usage/actions/act-runner
@@ -8,15 +8,15 @@ Documentation=https://docs.gitea.com/usage/actions/act-runner
 Type=simple
 User=root
 Group=root
-WorkingDirectory={{ gitea_runner_data_dir }}
-ExecStart={{ act_runner_install_path }} daemon
+WorkingDirectory={{ packer_builder_gitea_runner_data_dir }}
+ExecStart={{ packer_builder_act_runner_install_path }} daemon
 Restart=always
 RestartSec=10s
 StartLimitInterval=0
 
 # Environment
-Environment="GITEA_INSTANCE_URL={{ gitea_instance_url }}"
-Environment="GITEA_RUNNER_NAME={{ gitea_runner_name }}"
+Environment="GITEA_INSTANCE_URL={{ packer_builder_gitea_instance_url }}"
+Environment="GITEA_RUNNER_NAME={{ packer_builder_gitea_runner_name }}"
 
 # Security hardening (minimal - runner needs full system access for Packer builds)
 PrivateTmp=true

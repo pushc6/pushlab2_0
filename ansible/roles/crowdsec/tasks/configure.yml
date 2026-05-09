@@ -6,11 +6,11 @@
 - name: Check for legacy acquis.yaml
   ansible.builtin.stat:
     path: /etc/crowdsec/acquis.yaml
-  register: legacy_acquis_file
+  register: crowdsec_legacy_acquis_file
 
 - name: Backup and remove legacy acquis.yaml (managed via acquis.d/ now)
   when:
-    - legacy_acquis_file.stat.exists
+    - crowdsec_legacy_acquis_file.stat.exists
     - crowdsec_acquis | length > 0
   block:
     - name: Backup legacy acquis.yaml
@@ -78,13 +78,13 @@
   ansible.builtin.find:
     paths: /etc/crowdsec/acquis.d
     patterns: "*.yaml"
-  register: existing_acquis_files
+  register: crowdsec_existing_acquis_files
 
 - name: Remove unmanaged acquisition files
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: absent
-  loop: "{{ existing_acquis_files.files }}"
+  loop: "{{ crowdsec_existing_acquis_files.files }}"
   when:
     - crowdsec_acquis | length > 0
     - (item.path | basename | splitext | first) not in (crowdsec_acquis | map(attribute='name') | list)

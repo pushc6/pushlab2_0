@@ -8,7 +8,7 @@
     - name: Check if firewalld is running
       ansible.builtin.systemd:
         name: firewalld
-      register: firewalld_status
+      register: tailscale_firewalld_status
 
     - name: Add tailscale0 interface to trusted zone
       ansible.posix.firewalld:
@@ -17,14 +17,14 @@
         permanent: true
         immediate: true
         state: enabled
-      when: firewalld_status.status.ActiveState == "active"
+      when: tailscale_firewalld_status.status.ActiveState == "active"
 
 - name: Configure firewall for Tailscale (Debian/Ubuntu with ufw)
   when: ansible_os_family == "Debian"
   block:
     - name: Check if ufw is available
       ansible.builtin.command: which ufw
-      register: ufw_available
+      register: tailscale_ufw_available
       changed_when: false
       failed_when: false
 
@@ -33,4 +33,4 @@
         rule: allow
         interface: tailscale0
         direction: in
-      when: ufw_available.rc == 0
+      when: tailscale_ufw_available.rc == 0

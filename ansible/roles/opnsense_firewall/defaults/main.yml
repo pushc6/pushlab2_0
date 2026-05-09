@@ -2,16 +2,18 @@
 # OPNsense Firewall Role Defaults
 # Override in group_vars or playbook as needed
 
-opnsense_api_key: "" # Set via extra vars from Gitea secrets
-opnsense_api_secret: "" # Set via extra vars from Gitea secrets
+# Set via extra-vars from Gitea secrets (Semaphore survey). The bare
+# names are part of the external contract — keep them despite var-naming.
+opnsense_api_key: ""  # noqa: var-naming[no-role-prefix]
+opnsense_api_secret: ""  # noqa: var-naming[no-role-prefix]
 
-firewall_defaults:
+opnsense_firewall_defaults:
   enabled: true
   log: false
   quick: true
 
 # Custom aliases (define in group_vars/opnsense/vars.yml)
-opnsense_aliases: []
+opnsense_firewall_aliases: []
 # Firewall rules (define in group_vars/opnsense/vars.yml)
-terraform_host_firewall_rules: []
-host_specific_rules: []
+opnsense_firewall_terraform_rules: []
+opnsense_firewall_host_specific_rules: []

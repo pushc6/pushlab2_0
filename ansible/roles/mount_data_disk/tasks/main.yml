@@ -1,7 +1,7 @@
 ---
 - name: Identify data disk by size
   ansible.builtin.set_fact:
-    target_disk: "{{ item.key }}"
+    mount_data_disk_target_disk: "{{ item.key }}"
   loop: "{{ ansible_facts['devices'] | dict2items }}"
   when:
     - item.value.size is defined
@@ -14,37 +14,39 @@
 - name: Fail if no disk found
   ansible.builtin.fail:
     msg: "Could not find a disk with size {{ data_disk_size_gb }} GB"
-  when: target_disk is not defined
+  when: mount_data_disk_target_disk is not defined
 
 - name: Determine if disk is partitioned
   ansible.builtin.set_fact:
-    target_partition: >-
-      {{ (ansible_facts['devices'][target_disk].partitions | length > 0)
+    mount_data_disk_target_partition: >-
+      {{ (ansible_facts['devices'][mount_data_disk_target_disk].partitions | length > 0)
          | ternary(
-             ansible_facts['devices'][target_disk].partitions.keys() | sort | first,
+             ansible_facts['devices'][mount_data_disk_target_disk].partitions.keys() | sort | first,
              ''
          )
       }}
 
 - name: Set target device path
   ansible.builtin.set_fact:
-    target_device: "/dev/{{ (target_partition | length > 0) | ternary(target_partition, target_disk) }}"
+    mount_data_disk_target_device: >-
+      /dev/{{ (mount_data_disk_target_partition | length > 0)
+              | ternary(mount_data_disk_target_partition, mount_data_disk_target_disk) }}
 
 - name: Check if filesystem exists on target device
-  ansible.builtin.command: blkid {{ target_device }}
-  register: disk_blkid
+  ansible.builtin.command: blkid {{ mount_data_disk_target_device }}
+  register: mount_data_disk_blkid
   failed_when: false
   changed_when: false
 
 - name: Create filesystem on data disk
-  ansible.builtin.command: mkfs.{{ data_fs_type | default('ext4') }} {{ target_device }}
+  ansible.builtin.command: mkfs.{{ mount_data_disk_fs_type | default('ext4') }} {{ mount_data_disk_target_device }}
   changed_when: true # mkfs is always state-changing when reached.
-  when: disk_blkid.rc != 0
+  when: mount_data_disk_blkid.rc != 0
 
 - name: Mount data disk
   ansible.posix.mount:
-    path: "{{ data_mount_point | default('/data') }}"
-    src: "{{ target_device }}"
-    fstype: "{{ data_fs_type | default('ext4') }}"
+    path: "{{ mount_data_disk_mount_point | default('/data') }}"
+    src: "{{ mount_data_disk_target_device }}"
+    fstype: "{{ mount_data_disk_fs_type | default('ext4') }}"
     opts: defaults
     state: mounted

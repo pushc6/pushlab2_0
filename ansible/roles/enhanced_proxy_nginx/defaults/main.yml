@@ -3,14 +3,14 @@
 # Default values for Enhanced Proxy Nginx role (OAuth2 + Traditional)
 
 # Default proxy mode
-default_proxy_mode: "oauth2" # Options: "oauth2" or "traditional"
+enhanced_proxy_nginx_default_proxy_mode: "oauth2" # Options: "oauth2" or "traditional"
 
 # OAuth2-Proxy settings
-oauth2_proxy_host: "localhost"
-oauth2_proxy_port: "4180"
+enhanced_proxy_nginx_oauth2_proxy_host: "localhost"
+enhanced_proxy_nginx_oauth2_proxy_port: "4180"
 
 # Traditional proxy defaults
-traditional_proxy_config:
+enhanced_proxy_nginx_traditional_proxy_config:
   enable_caching: false
   cache_valid_time: "1h"
   cache_bypass_headers:
@@ -34,40 +34,40 @@ traditional_proxy_config:
   keepalive_requests: 100
 
 # Nginx settings
-nginx_proxy_timeout: "60s"
-nginx_client_max_body_size: "100M"
+enhanced_proxy_nginx_proxy_timeout: "60s"
+enhanced_proxy_nginx_client_max_body_size: "100M"
 
 # Default paths
-nginx_sites_available: "/etc/nginx/sites-available"
-nginx_sites_enabled: "/etc/nginx/sites-enabled"
-nginx_conf_d: "/etc/nginx/conf.d"
+enhanced_proxy_nginx_sites_available: "/etc/nginx/sites-available"
+enhanced_proxy_nginx_sites_enabled: "/etc/nginx/sites-enabled"
+enhanced_proxy_nginx_conf_d: "/etc/nginx/conf.d"
 
 # SSL settings
-ssl_protocols: "TLSv1.2 TLSv1.3"
-ssl_ciphers: "HIGH:!aNULL:!MD5"
-ssl_prefer_server_ciphers: "off"
-ssl_session_timeout: "1d"
-ssl_session_tickets: "off"
-ssl_stapling_enabled: true
-ssl_resolver: "8.8.8.8 8.8.4.4"
-ssl_resolver_timeout: "5s"
+enhanced_proxy_nginx_ssl_protocols: "TLSv1.2 TLSv1.3"
+enhanced_proxy_nginx_ssl_ciphers: "HIGH:!aNULL:!MD5"
+enhanced_proxy_nginx_ssl_prefer_server_ciphers: "off"
+enhanced_proxy_nginx_ssl_session_timeout: "1d"
+enhanced_proxy_nginx_ssl_session_tickets: "off"
+enhanced_proxy_nginx_ssl_stapling_enabled: true
+enhanced_proxy_nginx_ssl_resolver: "8.8.8.8 8.8.4.4"
+enhanced_proxy_nginx_ssl_resolver_timeout: "5s"
 
 # Security headers defaults
-hsts_max_age: "63072000"
-hsts_preload: true
-x_frame_options: "DENY"
-x_content_type_options: "nosniff"
-x_xss_protection: "1; mode=block"
-referrer_policy: "strict-origin-when-cross-origin"
+enhanced_proxy_nginx_hsts_max_age: "63072000"
+enhanced_proxy_nginx_hsts_preload: true
+enhanced_proxy_nginx_x_frame_options: "DENY"
+enhanced_proxy_nginx_x_content_type_options: "nosniff"
+enhanced_proxy_nginx_x_xss_protection: "1; mode=block"
+enhanced_proxy_nginx_referrer_policy: "strict-origin-when-cross-origin"
 
 # Default authentication settings
-default_auth_type: "simple"
-default_ssl_domain: "localhost"
+enhanced_proxy_nginx_default_auth_type: "simple"
+enhanced_proxy_nginx_default_ssl_domain: "localhost"
 
 # Service filtering (empty means all services)
-oauth2_services_filter: []
+enhanced_proxy_nginx_oauth2_services_filter: []
 # Logout configuration defaults
-logout_config:
+enhanced_proxy_nginx_logout_config:
   enable_id_token_logout: true
   enable_sso_logout: true
   enable_force_logout: true
@@ -77,7 +77,7 @@ logout_config:
   logout_success_redirect: true
 
 # Nginx configuration defaults
-nginx_config:
+enhanced_proxy_nginx_config:
   proxy_timeout: "60s"
   client_max_body_size: "100M"
   proxy_buffering: "off"
@@ -88,14 +88,14 @@ nginx_config:
   read_timeout: "60s"
 
 # Monitoring defaults
-monitoring:
+enhanced_proxy_nginx_monitoring:
   access_log_format: "combined"
   error_log_level: "warn"
   enable_metrics: false
   metrics_endpoint: "/nginx_status"
 
 # SELinux defaults
-selinux_config:
+enhanced_proxy_nginx_selinux_config:
   auto_configure: true
   install_tools: true
   configure_booleans: true

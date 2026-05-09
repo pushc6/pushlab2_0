@@ -1,23 +1,23 @@
 ---
-- name: reload firewalld
+- name: Reload firewalld
   ansible.builtin.service:
     name: firewalld
     state: reloaded
-  register: firewalld_reload_handler
+  register: firewall_hardened_firewalld_reload_handler
 
-- name: wait for firewall stabilization after handler reload
+- name: Wait for firewall stabilization after handler reload
   ansible.builtin.pause:
     seconds: 5
-  when: firewalld_reload_handler is changed
+  when: firewall_hardened_firewalld_reload_handler is changed
 
-- name: verify firewalld is running after handler reload
+- name: Verify firewalld is running after handler reload
   ansible.builtin.systemd:
     name: firewalld
-  register: firewalld_handler_status
-  failed_when: firewalld_handler_status.status.ActiveState != 'active'
-  when: firewalld_reload_handler is changed
+  register: firewall_hardened_firewalld_handler_status
+  failed_when: firewall_hardened_firewalld_handler_status.status.ActiveState != 'active'
+  when: firewall_hardened_firewalld_reload_handler is changed
 
-- name: restart firewalld
+- name: Restart firewalld
   ansible.builtin.service:
     name: firewalld
     state: restarted

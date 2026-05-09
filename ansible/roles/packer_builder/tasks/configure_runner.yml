@@ -3,39 +3,39 @@
 
 - name: Create runner data directory
   ansible.builtin.file:
-    path: "{{ gitea_runner_data_dir }}"
+    path: "{{ packer_builder_gitea_runner_data_dir }}"
     state: directory
     mode: "0755"
 
 - name: Check if runner is already registered
   ansible.builtin.stat:
-    path: "{{ gitea_runner_data_dir }}/.runner"
-  register: runner_registration_file
+    path: "{{ packer_builder_gitea_runner_data_dir }}/.runner"
+  register: packer_builder_runner_registration_file
 
 - name: Register Gitea Actions Runner
   block:
     - name: Execute runner registration
       ansible.builtin.shell: |
         set -euo pipefail
-        {{ act_runner_install_path }} register --no-interactive \
-          --instance {{ gitea_instance_url }} \
-          --token {{ gitea_runner_registration_token }} \
-          --name {{ gitea_runner_name }} \
-          --labels {{ gitea_runner_labels | join(',') }}
+        {{ packer_builder_act_runner_install_path }} register --no-interactive \
+          --instance {{ packer_builder_gitea_instance_url }} \
+          --token {{ packer_builder_gitea_runner_registration_token }} \
+          --name {{ packer_builder_gitea_runner_name }} \
+          --labels {{ packer_builder_gitea_runner_labels | join(',') }}
       args:
-        chdir: "{{ gitea_runner_data_dir }}"
-        creates: "{{ gitea_runner_data_dir }}/.runner"
+        chdir: "{{ packer_builder_gitea_runner_data_dir }}"
+        creates: "{{ packer_builder_gitea_runner_data_dir }}/.runner"
         executable: /bin/bash
       no_log: true
-      register: runner_registration
+      register: packer_builder_runner_registration
 
   rescue:
     - name: Display registration error
       ansible.builtin.debug:
         msg:
           - "Failed to register Gitea Actions runner"
-          - "Instance URL: {{ gitea_instance_url }}"
-          - "Runner Name: {{ gitea_runner_name }}"
+          - "Instance URL: {{ packer_builder_gitea_instance_url }}"
+          - "Runner Name: {{ packer_builder_gitea_runner_name }}"
           - "Please verify:"
           - "  - Gitea server is reachable"
           - "  - Registration token is valid"

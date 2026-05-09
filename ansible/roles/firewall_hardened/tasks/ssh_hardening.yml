@@ -10,53 +10,53 @@
 
     - name: Detect Ansible controller IP address
       ansible.builtin.set_fact:
-        ansible_controller_ip: "{{ ansible_env.SSH_CLIENT.split()[0] }}"
+        firewall_hardened_ansible_controller_ip: "{{ ansible_env.SSH_CLIENT.split()[0] }}"
       when: ansible_env.SSH_CLIENT is defined
 
     - name: Display controller IP for verification
       ansible.builtin.debug:
-        msg: "Ansible controller IP: {{ ansible_controller_ip | default('UNKNOWN - not connected via SSH') }}"
+        msg: "Ansible controller IP: {{ firewall_hardened_ansible_controller_ip | default('UNKNOWN - not connected via SSH') }}"
 
     - name: Check if controller IP is in allowed subnets
       ansible.builtin.set_fact:
-        controller_in_allowed_subnet: >-
+        firewall_hardened_controller_in_allowed_subnet: >-
           {{
-            firewall_ssh_allowed_subnets |
-            select('ansible.utils.ipaddr', ansible_controller_ip) |
+            firewall_hardened_ssh_allowed_subnets |
+            select('ansible.utils.ipaddr', firewall_hardened_ansible_controller_ip) |
             list | length > 0
           }}
-      when: ansible_controller_ip is defined
+      when: firewall_hardened_ansible_controller_ip is defined
 
     - name: Validate Ansible controller IP is in allowed SSH subnets
       ansible.builtin.assert:
         that:
-          - ansible_controller_ip is defined
-          - controller_in_allowed_subnet | default(false)
+          - firewall_hardened_ansible_controller_ip is defined
+          - firewall_hardened_controller_in_allowed_subnet | default(false)
         fail_msg: |
           ========================================
           CRITICAL: SSH LOCKOUT PREVENTION
           ========================================
-          Ansible controller IP: {{ ansible_controller_ip | default('UNKNOWN') }}
-          Allowed SSH subnets: {{ firewall_ssh_allowed_subnets | join(', ') }}
+          Ansible controller IP: {{ firewall_hardened_ansible_controller_ip | default('UNKNOWN') }}
+          Allowed SSH subnets: {{ firewall_hardened_ssh_allowed_subnets | join(', ') }}
 
           ⚠️  YOUR IP IS NOT IN THE ALLOWED SUBNETS!
 
           If we proceed, you will be LOCKED OUT immediately when the
           default SSH service is removed.
 
-          To fix this, add your subnet to firewall_ssh_allowed_subnets
+          To fix this, add your subnet to firewall_hardened_ssh_allowed_subnets
           in group_vars or host_vars.
           ========================================
-        success_msg: "✓ Controller IP {{ ansible_controller_ip }} is allowed"
-      when: ansible_controller_ip is defined
+        success_msg: "✓ Controller IP {{ firewall_hardened_ansible_controller_ip }} is allowed"
+      when: firewall_hardened_ansible_controller_ip is defined
 
     - name: Validate SSH allowed subnets are valid CIDRs
       ansible.builtin.assert:
         that:
           - (item | ansible.utils.ipaddr) != false
-        fail_msg: "Invalid CIDR notation in firewall_ssh_allowed_subnets: {{ item }}"
+        fail_msg: "Invalid CIDR notation in firewall_hardened_ssh_allowed_subnets: {{ item }}"
         success_msg: "✓ Valid CIDR: {{ item }}"
-      loop: "{{ firewall_ssh_allowed_subnets }}"
+      loop: "{{ firewall_hardened_ssh_allowed_subnets }}"
       loop_control:
         label: "{{ item }}"
 
@@ -66,13 +66,13 @@
 
     - name: Check if SSH service is currently enabled
       ansible.builtin.command: firewall-cmd --query-service=ssh
-      register: ssh_service_enabled
+      register: firewall_hardened_ssh_service_enabled
       changed_when: false
       failed_when: false
 
     - name: Save SSH service state for rollback
       ansible.builtin.set_fact:
-        ssh_was_enabled: "{{ ssh_service_enabled.rc == 0 }}"
+        firewall_hardened_ssh_was_enabled: "{{ firewall_hardened_ssh_service_enabled.rc == 0 }}"
 
     # ========================================================================
     # PHASE 2: Add SSH rich rules for allowed subnets (permanent, not immediate)
@@ -83,13 +83,13 @@
         rich_rule: >-
           rule family="ipv4"
           source address="{{ item }}"
-          port port="{{ firewall_ssh_port }}" protocol="tcp"
+          port port="{{ firewall_hardened_ssh_port }}" protocol="tcp"
           accept
         permanent: true
         immediate: false
         state: enabled
-      loop: "{{ firewall_ssh_allowed_subnets }}"
-      register: ssh_rich_rules_ipv4
+      loop: "{{ firewall_hardened_ssh_allowed_subnets }}"
+      register: firewall_hardened_ssh_rich_rules_ipv4
       notify: reload firewalld
 
     - name: Add rich rules for SSH from allowed subnets (IPv6)
@@ -97,14 +97,14 @@
         rich_rule: >-
           rule family="ipv6"
           source address="{{ item }}"
-          port port="{{ firewall_ssh_port }}" protocol="tcp"
+          port port="{{ firewall_hardened_ssh_port }}" protocol="tcp"
           accept
         permanent: true
         immediate: false
         state: enabled
-      loop: "{{ firewall_ssh_allowed_subnets_ipv6 }}"
-      register: ssh_rich_rules_ipv6
-      when: firewall_enable_ipv6 | default(true)
+      loop: "{{ firewall_hardened_ssh_allowed_subnets_ipv6 }}"
+      register: firewall_hardened_ssh_rich_rules_ipv6
+      when: firewall_hardened_enable_ipv6 | default(true)
       notify: reload firewalld
 
     # ========================================================================
@@ -113,7 +113,7 @@
 
     - name: Verify SSH rich rules are in permanent configuration
       ansible.builtin.command: firewall-cmd --permanent --list-rich-rules
-      register: permanent_rich_rules
+      register: firewall_hardened_permanent_rich_rules
       changed_when: false
       failed_when: false
 
@@ -121,14 +121,14 @@
       ansible.builtin.assert:
         that:
           - >-
-            permanent_rich_rules.stdout_lines | select('search', 'source address="' + item + '"') |
-            select('search', 'port port="' + (firewall_ssh_port | string) + '"') |
+            firewall_hardened_permanent_rich_rules.stdout_lines | select('search', 'source address="' + item + '"') |
+            select('search', 'port port="' + (firewall_hardened_ssh_port | string) + '"') |
             select('search', 'protocol="tcp"') |
             select('search', 'accept') |
             list | length > 0
         fail_msg: "SSH rich rule for subnet {{ item }} NOT found in permanent firewall configuration!"
         success_msg: "✓ SSH rich rule for {{ item }} verified in permanent configuration"
-      loop: "{{ firewall_ssh_allowed_subnets }}"
+      loop: "{{ firewall_hardened_ssh_allowed_subnets }}"
       loop_control:
         label: "{{ item }}"
 
@@ -136,17 +136,17 @@
       ansible.builtin.assert:
         that:
           - >-
-            permanent_rich_rules.stdout_lines | select('search', 'source address="' + item + '"') |
-            select('search', 'port port="' + (firewall_ssh_port | string) + '"') |
+            firewall_hardened_permanent_rich_rules.stdout_lines | select('search', 'source address="' + item + '"') |
+            select('search', 'port port="' + (firewall_hardened_ssh_port | string) + '"') |
             select('search', 'protocol="tcp"') |
             select('search', 'accept') |
             list | length > 0
         fail_msg: "SSH rich rule for IPv6 subnet {{ item }} NOT found in permanent firewall configuration!"
         success_msg: "✓ SSH rich rule for IPv6 {{ item }} verified in permanent configuration"
-      loop: "{{ firewall_ssh_allowed_subnets_ipv6 }}"
+      loop: "{{ firewall_hardened_ssh_allowed_subnets_ipv6 }}"
       loop_control:
         label: "{{ item }}"
-      when: firewall_enable_ipv6 | default(true)
+      when: firewall_hardened_enable_ipv6 | default(true)
 
     - name: Display SSH rule validation success
       ansible.builtin.debug:
@@ -162,8 +162,8 @@
         permanent: true
         immediate: false
         state: disabled
-      register: ssh_service_removed
-      when: permanent_rich_rules.rc == 0
+      register: firewall_hardened_ssh_service_removed
+      when: firewall_hardened_permanent_rich_rules.rc == 0
       notify: reload firewalld
 
     # ========================================================================
@@ -172,38 +172,38 @@
 
     - name: Get final permanent firewall configuration
       ansible.builtin.command: firewall-cmd --permanent --zone=public --list-services
-      register: final_firewall_services
+      register: firewall_hardened_final_services
       changed_when: false
       failed_when: false
 
     - name: Verify SSH service is NOT in permanent configuration
       ansible.builtin.assert:
         that:
-          - "'ssh' not in final_firewall_services.stdout"
+          - "'ssh' not in firewall_hardened_final_services.stdout"
         fail_msg: "ERROR: Default SSH service still present in permanent firewall configuration!"
         success_msg: "✓ Default SSH service successfully removed from permanent configuration"
 
     - name: Get final permanent rich rules
       ansible.builtin.command: firewall-cmd --permanent --list-rich-rules
-      register: final_rich_rules
+      register: firewall_hardened_final_rich_rules
       changed_when: false
 
     - name: Final validation - SSH rich rules in permanent configuration (IPv4)
       ansible.builtin.assert:
         that:
           - >-
-            final_rich_rules.stdout_lines | select('search', 'source address="' + item + '"') |
-            select('search', 'port port="' + (firewall_ssh_port | string) + '"') |
+            firewall_hardened_final_rich_rules.stdout_lines | select('search', 'source address="' + item + '"') |
+            select('search', 'port port="' + (firewall_hardened_ssh_port | string) + '"') |
             list | length > 0
         fail_msg: "CRITICAL: SSH rich rule for {{ item }} MISSING from permanent configuration!"
         success_msg: "✓ SSH rich rule for {{ item }} in permanent configuration"
-      loop: "{{ firewall_ssh_allowed_subnets }}"
+      loop: "{{ firewall_hardened_ssh_allowed_subnets }}"
       loop_control:
         label: "{{ item }}"
 
     - name: Set final test status
       ansible.builtin.set_fact:
-        final_ssh_test:
+        firewall_hardened_final_ssh_test:
           failed: false
 
     - name: Display SSH hardening success
@@ -213,7 +213,7 @@
           SSH Hardening Complete
           ========================================
           ✓ SSH rich rules added for:
-          {% for subnet in firewall_ssh_allowed_subnets %}
+          {% for subnet in firewall_hardened_ssh_allowed_subnets %}
             - {{ subnet }}
           {% endfor %}
           ✓ Default SSH service removed
@@ -242,19 +242,19 @@
         permanent: true
         immediate: false
         state: enabled
-      when: ssh_was_enabled | default(true)
+      when: firewall_hardened_ssh_was_enabled | default(true)
 
     - name: Remove potentially malformed SSH rich rules (IPv4)
       ansible.posix.firewalld:
         rich_rule: >-
           rule family="ipv4"
           source address="{{ item }}"
-          port port="{{ firewall_ssh_port }}" protocol="tcp"
+          port port="{{ firewall_hardened_ssh_port }}" protocol="tcp"
           accept
         permanent: true
         immediate: false
         state: disabled
-      loop: "{{ firewall_ssh_allowed_subnets }}"
+      loop: "{{ firewall_hardened_ssh_allowed_subnets }}"
       failed_when: false
 
     - name: Remove potentially malformed SSH rich rules (IPv6)
@@ -262,36 +262,36 @@
         rich_rule: >-
           rule family="ipv6"
           source address="{{ item }}"
-          port port="{{ firewall_ssh_port }}" protocol="tcp"
+          port port="{{ firewall_hardened_ssh_port }}" protocol="tcp"
           accept
         permanent: true
         immediate: false
         state: disabled
-      loop: "{{ firewall_ssh_allowed_subnets_ipv6 }}"
+      loop: "{{ firewall_hardened_ssh_allowed_subnets_ipv6 }}"
       failed_when: false
-      when: firewall_enable_ipv6 | default(true)
+      when: firewall_hardened_enable_ipv6 | default(true)
 
     - name: Reload firewall after rollback (atomic operation)
       ansible.builtin.service:
         name: firewalld
         state: reloaded
-      register: rollback_reload
+      register: firewall_hardened_rollback_reload
 
-    - name: Wait for firewall to stabilize after rollback  # noqa: no-handler
+    - name: Wait for firewall to stabilize after rollback # noqa: no-handler
       ansible.builtin.pause:
         seconds: 5
-      when: rollback_reload is changed
+      when: firewall_hardened_rollback_reload is changed
 
-    - name: Verify firewalld is running after rollback  # noqa: no-handler
+    - name: Verify firewalld is running after rollback # noqa: no-handler
       ansible.builtin.systemd:
         name: firewalld
-      register: rollback_firewalld_status
-      failed_when: rollback_firewalld_status.status.ActiveState != 'active'
-      when: rollback_reload is changed
+      register: firewall_hardened_rollback_firewalld_status
+      failed_when: firewall_hardened_rollback_firewalld_status.status.ActiveState != 'active'
+      when: firewall_hardened_rollback_reload is changed
 
     - name: Verify SSH service restored in firewall
       ansible.builtin.command: firewall-cmd --query-service=ssh
-      register: ssh_service_check
+      register: firewall_hardened_ssh_service_check
       changed_when: false
       failed_when: false
       ignore_errors: true
@@ -325,7 +325,7 @@
         line: >-
           {{ ansible_facts['date_time']['iso8601'] }} - {{ inventory_hostname }}
           - SSH hardening {{ 'SUCCESS'
-            if final_ssh_test is defined and final_ssh_test is not failed
+            if firewall_hardened_final_ssh_test is defined and firewall_hardened_final_ssh_test is not failed
             else 'FAILED' }}
         create: true
         mode: "0640"

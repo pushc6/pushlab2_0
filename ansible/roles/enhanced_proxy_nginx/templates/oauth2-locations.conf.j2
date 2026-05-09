@@ -3,7 +3,7 @@
 # Single OAuth2-proxy instance serving multiple domains
 
 location /oauth2/ {
-    proxy_pass http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }};
+    proxy_pass http://{{ enhanced_proxy_nginx_oauth2_proxy_host }}:{{ enhanced_proxy_nginx_oauth2_proxy_port }};
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -11,16 +11,16 @@ location /oauth2/ {
     proxy_set_header X-Auth-Request-Redirect $scheme://$host$request_uri;
     
     # OAuth2 optimizations
-    proxy_connect_timeout {{ nginx_proxy_timeout }};
-    proxy_send_timeout {{ nginx_proxy_timeout }};
-    proxy_read_timeout {{ nginx_proxy_timeout }};
+    proxy_connect_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
+    proxy_send_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
+    proxy_read_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
     proxy_redirect off;
     proxy_buffering off;
 }
 
 location = /oauth2/auth {
     internal;
-    proxy_pass http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }};
+    proxy_pass http://{{ enhanced_proxy_nginx_oauth2_proxy_host }}:{{ enhanced_proxy_nginx_oauth2_proxy_port }};
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -32,15 +32,15 @@ location = /oauth2/auth {
     proxy_pass_request_body off;
     
     # Auth-specific timeouts
-    proxy_connect_timeout {{ nginx_proxy_timeout }};
-    proxy_send_timeout {{ nginx_proxy_timeout }};
-    proxy_read_timeout {{ nginx_proxy_timeout }};
+    proxy_connect_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
+    proxy_send_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
+    proxy_read_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
     proxy_buffering off;
 }
 
 # Enhanced userinfo endpoint for ID token extraction
 location = /oauth2/userinfo {
-    proxy_pass http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }};
+    proxy_pass http://{{ enhanced_proxy_nginx_oauth2_proxy_host }}:{{ enhanced_proxy_nginx_oauth2_proxy_port }};
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

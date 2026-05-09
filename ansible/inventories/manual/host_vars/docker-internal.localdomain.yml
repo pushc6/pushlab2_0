@@ -3,14 +3,14 @@
 # Monitoring, Authentication, and Infrastructure Services
 
 # SSH access (host-specific)
-firewall_ssh_allowed_subnets:
+firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
   - "10.37.90.0/24" # wireguard_vlan
   - "10.37.70.21/32" # Ansible controller (veeam)
   - "10.37.70.7/32" # docker host
 
-# Using unified firewall_services structure with rich rules
-firewall_services:
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
   # ============================================================================
   # Automation & CI/CD
   # ============================================================================

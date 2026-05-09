@@ -4,34 +4,34 @@
 
 - name: Check SELinux status
   ansible.builtin.command: getenforce
-  register: selinux_status
+  register: oauth2_proxy_nginx_selinux_status
   changed_when: false
   failed_when: false
   when: ansible_os_family == "RedHat"
 
 - name: SELinux pre-deployment checks
   when:
-    - selinux_status.rc == 0
-    - selinux_status.stdout != "Disabled"
+    - oauth2_proxy_nginx_selinux_status.rc == 0
+    - oauth2_proxy_nginx_selinux_status.stdout != "Disabled"
     - ansible_os_family == "RedHat"
 
   block:
     - name: Display SELinux status
       ansible.builtin.debug:
-        msg: "SELinux is {{ selinux_status.stdout }} on {{ inventory_hostname }}"
+        msg: "SELinux is {{ oauth2_proxy_nginx_selinux_status.stdout }} on {{ inventory_hostname }}"
 
     - name: Check current httpd_can_network_connect status
       ansible.builtin.command: getsebool httpd_can_network_connect
-      register: httpd_network_connect_status
+      register: oauth2_proxy_nginx_httpd_network_connect_status
       changed_when: false
       failed_when: false
 
     - name: Parse httpd_can_network_connect status
       ansible.builtin.set_fact:
-        httpd_network_status: >-
+        oauth2_proxy_nginx_httpd_network_status: >-
           {{
-            httpd_network_connect_status.stdout | regex_search('on|off') | default('unknown')
-            if httpd_network_connect_status.rc == 0 else 'unknown'
+            oauth2_proxy_nginx_httpd_network_connect_status.stdout | regex_search('on|off') | default('unknown')
+            if oauth2_proxy_nginx_httpd_network_connect_status.rc == 0 else 'unknown'
           }}
 
     - name: Check if SELinux management tools are available
@@ -40,80 +40,94 @@
 
     - name: Prepare SELinux management tools list
       ansible.builtin.set_fact:
-        selinux_tools_needed: >-
+        oauth2_proxy_nginx_selinux_tools_needed: >-
           {% if ansible_distribution_major_version | int >= 8 -%} ['policycoreutils-python-utils']{%- else -%} ['policycoreutils-python']{%- endif %}
 
     - name: Check if SELinux tools are installed
       ansible.builtin.set_fact:
-        selinux_tools_missing: >-
+        oauth2_proxy_nginx_selinux_tools_missing: >-
           {{
-            selinux_tools_needed |
+            oauth2_proxy_nginx_selinux_tools_needed |
             reject('in', ansible_facts.packages.keys()) |
             list
           }}
 
     - name: Extract backend ports for pre-check
       ansible.builtin.set_fact:
-        oauth2_backend_ports_check: "{{ oauth2_services | map(attribute='backend_port') | list | unique | map('int') | list }}"
+        oauth2_proxy_nginx_backend_ports_check: "{{ oauth2_services | map(attribute='backend_port') | list | unique | map('int') | list }}"
 
     - name: Check current SELinux port configurations
       ansible.builtin.command: semanage port -l | grep "http_port_t.*tcp"
-      register: current_selinux_ports
+      register: oauth2_proxy_nginx_current_selinux_ports
       changed_when: false
       failed_when: false
-      when: selinux_tools_missing | length == 0
+      when: oauth2_proxy_nginx_selinux_tools_missing | length == 0
 
     - name: Analyze SELinux port requirements
       ansible.builtin.set_fact:
-        existing_http_ports: >-
+        oauth2_proxy_nginx_existing_http_ports: >-
           {{
-            current_selinux_ports.stdout_lines |
+            oauth2_proxy_nginx_current_selinux_ports.stdout_lines |
             map('regex_replace', '^.*tcp\s+(.+)$', '\1') |
             join(',') |
             split(',') |
             map('trim') |
             map('int') |
-            list if current_selinux_ports.rc == 0 else []
+            list if oauth2_proxy_nginx_current_selinux_ports.rc == 0 else []
           }}
-        ports_to_configure: >-
+        oauth2_proxy_nginx_ports_to_configure: >-
           {{
-            oauth2_backend_ports_check |
+            oauth2_proxy_nginx_backend_ports_check |
             difference(
-              current_selinux_ports.stdout_lines |
+              oauth2_proxy_nginx_current_selinux_ports.stdout_lines |
               map('regex_replace', '^.*tcp\s+(.+)$', '\1') |
               join(',') |
               split(',') |
               map('trim') |
               map('int') |
-              list if current_selinux_ports.rc == 0 else []
+              list if oauth2_proxy_nginx_current_selinux_ports.rc == 0 else []
             )
           }}
-      when: current_selinux_ports.rc is defined
+      when: oauth2_proxy_nginx_current_selinux_ports.rc is defined
 
     - name: Display SELinux pre-deployment analysis
       ansible.builtin.debug:
         msg:
           - "🔍 SELinux Pre-Deployment Analysis"
           - "─────────────────────────────────"
-          - "SELinux Status: {{ selinux_status.stdout }}"
-          - "httpd_can_network_connect: {{ httpd_network_status }}"
-          - "SELinux tools missing: {{ selinux_tools_missing | join(', ') if selinux_tools_missing | length > 0 else 'none' }}"
-          - "Backend ports needed: {{ oauth2_backend_ports_check | join(', ') }}"
-          - "Ports already configured: {{ existing_http_ports | join(', ') if existing_http_ports | default([]) | length > 0 else 'none' }}"
-          - "Ports to be configured: {{ ports_to_configure | join(', ') if ports_to_configure | default([]) | length > 0 else 'none' }}"
+          - "SELinux Status: {{ oauth2_proxy_nginx_selinux_status.stdout }}"
+          - "httpd_can_network_connect: {{ oauth2_proxy_nginx_httpd_network_status }}"
+          - >-
+            SELinux tools missing:
+            {{ (oauth2_proxy_nginx_selinux_tools_missing | join(', '))
+               if (oauth2_proxy_nginx_selinux_tools_missing | length > 0)
+               else 'none' }}
+          - "Backend ports needed: {{ oauth2_proxy_nginx_backend_ports_check | join(', ') }}"
+          - >-
+            Ports already configured:
+            {{ (oauth2_proxy_nginx_existing_http_ports | join(', '))
+               if (oauth2_proxy_nginx_existing_http_ports | default([]) | length > 0)
+               else 'none' }}
+          - >-
+            Ports to be configured:
+            {{ (oauth2_proxy_nginx_ports_to_configure | join(', '))
+               if (oauth2_proxy_nginx_ports_to_configure | default([]) | length > 0)
+               else 'none' }}
           - "─────────────────────────────────"
 
     - name: Warning about SELinux configuration changes
       ansible.builtin.debug:
         msg:
           - "⚠️  SELinux Configuration Changes Required:"
-          - "  - Will install: {{ selinux_tools_missing | join(', ') }}"
+          - "  - Will install: {{ oauth2_proxy_nginx_selinux_tools_missing | join(', ') }}"
           - "  - Will enable: httpd_can_network_connect, httpd_can_network_relay"
-          - "  - Will configure ports: {{ ports_to_configure | join(', ') }}"
+          - "  - Will configure ports: {{ oauth2_proxy_nginx_ports_to_configure | join(', ') }}"
           - "  These changes will be applied automatically during deployment."
-      when:
-        - (selinux_tools_missing | length > 0) or (httpd_network_status is defined and httpd_network_status == 'off') or (ports_to_configure | default([]) |
-          length > 0)
+      when: >-
+        (oauth2_proxy_nginx_selinux_tools_missing | length > 0)
+        or (oauth2_proxy_nginx_httpd_network_status is defined
+            and oauth2_proxy_nginx_httpd_network_status == 'off')
+        or (oauth2_proxy_nginx_ports_to_configure | default([]) | length > 0)
 
     - name: Confirm SELinux is ready
       ansible.builtin.debug:
@@ -121,9 +135,9 @@
           - "✅ SELinux is properly configured for OAuth2-proxy"
           - "No additional SELinux changes needed."
       when:
-        - selinux_tools_missing | length == 0
-        - httpd_network_status is defined and httpd_network_status == 'on'
-        - ports_to_configure | default([]) | length == 0
+        - oauth2_proxy_nginx_selinux_tools_missing | length == 0
+        - oauth2_proxy_nginx_httpd_network_status is defined and oauth2_proxy_nginx_httpd_network_status == 'on'
+        - oauth2_proxy_nginx_ports_to_configure | default([]) | length == 0
 
 - name: SELinux disabled notification
   ansible.builtin.debug:
@@ -131,5 +145,5 @@
       - "ℹ️  SELinux is disabled on {{ inventory_hostname }}"
       - "OAuth2-proxy will work without SELinux configuration."
   when:
-    - selinux_status.rc == 0
-    - selinux_status.stdout == "Disabled"
+    - oauth2_proxy_nginx_selinux_status.rc == 0
+    - oauth2_proxy_nginx_selinux_status.stdout == "Disabled"

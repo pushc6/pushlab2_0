@@ -4,16 +4,16 @@
   ansible.builtin.shell:
     cmd: set -o pipefail && df -h / | awk 'NR==2 {print $5}' | sed 's/%//'
     executable: /bin/bash
-  register: disk_usage
+  register: common_disk_usage
   changed_when: false
   when: pre_update_tasks_enabled | bool
 
 - name: Fail if disk space is too low
   ansible.builtin.fail:
-    msg: "Not enough disk space for updates ({{ disk_usage.stdout }}% used, maximum 85% allowed)."
+    msg: "Not enough disk space for updates ({{ common_disk_usage.stdout }}% used, maximum 85% allowed)."
   when:
     - pre_update_tasks_enabled | bool
-    - disk_usage.stdout|int > 85
+    - common_disk_usage.stdout|int > 85
 
 # Common post-update tasks
 - name: Record update time

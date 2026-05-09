@@ -1,1 +1,46 @@
-../manual/host_vars/linuxgameserver.localdomain.yml
+---
+# Firewall configuration for linuxgameserver.localdomain - Game Server
+
+# SSH access (host-specific)
+firewall_hardened_ssh_allowed_subnets:
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller
+  - "10.37.70.25/32" # semaphore
+
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
+  # Public services - game servers need to be publicly accessible
+  - port: 7777
+    protocol: tcp
+    name: "Satisfactory Game Server TCP"
+    access: public
+
+  - port: 7777
+    protocol: udp
+    name: "Satisfactory Game Server UDP"
+    access: public
+
+  - port: 8888
+    protocol: tcp
+    name: "Game Server Query"
+    access: public
+
+  # Management services - AMP control interfaces
+  - port: 2223
+    protocol: tcp
+    name: "AMP Instance 1"
+    access: trusted_vlan
+
+  - port: 2224
+    protocol: tcp
+    name: "AMP Instance 2"
+    access: trusted_vlan
+
+  - port: 8080
+    protocol: tcp
+    name: "AMP Web UI"
+    access: custom
+    sources:
+      - "10.37.20.0/24" # trusted_vlan - direct access
+      - "10.37.70.5/32" # nginx-internal reverse proxy

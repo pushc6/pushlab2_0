@@ -20,5 +20,5 @@ ssl_key_path: /etc/ssl/private
 # NGINX performance tuning
 nginx_worker_processes: 4
 nginx_worker_connections: 2048
-nginx_client_max_body_size: 100M
-nginx_proxy_timeout: 120s
+enhanced_proxy_nginx_client_max_body_size: 100M
+enhanced_proxy_nginx_proxy_timeout: 120s

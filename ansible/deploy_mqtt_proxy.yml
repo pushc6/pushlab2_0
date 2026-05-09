@@ -24,14 +24,14 @@
   vars:
     nginx_stream_dir: "/etc/nginx/stream.d"
     # Skip dhparams for stream-only deployment (faster)
-    acme_generate_dhparams: false
+    acme_sh_generate_dhparams: false
 
   pre_tasks:
     - name: Validate required variables
       ansible.builtin.assert:
         that:
-          - acme_cf_token is defined and acme_cf_token | length > 0
-          - acme_cf_account_id is defined and acme_cf_account_id | length > 0
+          - acme_sh_cf_token is defined and acme_sh_cf_token | length > 0
+          - acme_sh_cf_account_id is defined and acme_sh_cf_account_id | length > 0
           - mqtt_backend_host is defined
           - mqtt_backend_port is defined
         fail_msg: >
@@ -70,7 +70,7 @@
           }
         insertafter: EOF
       when: stream_block_check.rc != 0
-      notify: reload nginx
+      notify: Reload nginx
       tags: [nginx, stream]
 
     - name: Verify SSL certificate exists
@@ -94,7 +94,7 @@
         owner: root
         group: root
         mode: "0644"
-      notify: reload nginx
+      notify: Reload nginx
       tags: [nginx, mqtt]
 
     - name: Configure SELinux for MQTT port
@@ -120,7 +120,7 @@
       tags: [nginx, validate]
 
   handlers:
-    - name: reload nginx
+    - name: Reload nginx
       ansible.builtin.systemd:
         name: nginx
         state: reloaded

@@ -35,7 +35,7 @@
       --admin
   args:
     creates: "/var/lib/gitea/data/created_admin_{{ gitea_admin_username }}"
-  register: create_admin
+  register: gitea_create_admin
   no_log: true
   when: (gitea_admin_username is defined and gitea_admin_password is defined) and (gitea_admin_exists.rc | default(1) != 0)
 

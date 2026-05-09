@@ -16,17 +16,17 @@
 
 - name: Determine bouncer name
   ansible.builtin.set_fact:
-    bouncer_full_name: "{{ crowdsec_machine_name }}-{{ bouncer.name }}"
+    crowdsec_bouncer_full_name: "{{ crowdsec_machine_name }}-{{ bouncer.name }}"
 
 - name: Register bouncer with LAPI
   when:
     - crowdsec_mode == 'agent'
-    - bouncer_full_name not in (crowdsec_bouncers_list.stdout | default(''))
+    - crowdsec_bouncer_full_name not in (crowdsec_bouncers_list.stdout | default(''))
   block:
     - name: Generate bouncer API key on LAPI server
       ansible.builtin.command: >-
-        cscli bouncers add {{ bouncer_full_name }} -o raw
-      register: bouncer_api_key_result
+        cscli bouncers add {{ crowdsec_bouncer_full_name }} -o raw
+      register: crowdsec_bouncer_api_key_result
       delegate_to: "{{ crowdsec_lapi_host }}"
       become: true
       changed_when: true
@@ -34,14 +34,14 @@
 
     - name: Store bouncer API key
       ansible.builtin.set_fact:
-        bouncer_api_key: "{{ bouncer_api_key_result.stdout | trim }}"
+        crowdsec_bouncer_api_key: "{{ crowdsec_bouncer_api_key_result.stdout | trim }}"
       no_log: true
 
     - name: Configure bouncer with API key
       ansible.builtin.lineinfile:
         path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
         regexp: "^api_key:"
-        line: "api_key: {{ bouncer_api_key }}"
+        line: "api_key: {{ crowdsec_bouncer_api_key }}"
         backup: true
       no_log: true
       notify: Restart crowdsec-firewall-bouncer

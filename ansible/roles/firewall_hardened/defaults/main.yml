@@ -6,20 +6,20 @@
 # ============================================================================
 
 # Rollback timer (seconds) - firewall rules auto-revert if not made permanent
-firewall_rollback_timer: 300
+firewall_hardened_rollback_timer: 300
 
 # Enable preflight connectivity checks
-firewall_enable_preflight: true
+firewall_hardened_enable_preflight: true
 
 # Enable post-implementation validation
-firewall_enable_validation: true
+firewall_hardened_enable_validation: true
 
 # Enable strict mode (remove unmanaged rules)
-firewall_strict_mode: false
+firewall_hardened_strict_mode: false
 
 # Purge stale rules - removes firewall rules that are no longer in configuration
 # This makes firewall management declarative (recommended for production)
-firewall_purge_stale_rules: false
+firewall_hardened_purge_stale_rules: false
 
 # ============================================================================
 # NETWORK CONFIGURATION
@@ -30,21 +30,21 @@ firewall_purge_stale_rules: false
 # 10.37.20.0/24 = Trusted VLAN (internal hosts)
 # 10.37.70.0/24 = DMZ VLAN (public-facing hosts)
 # 10.37.90.0/24 = WireGuard VLAN (VPN access)
-firewall_management_vlan_subnet: "10.37.10.0/24"
-firewall_management_vlan_subnet_ipv6: "fd00:1337:1337:10::/64"
+firewall_hardened_management_vlan_subnet: "10.37.10.0/24"
+firewall_hardened_management_vlan_subnet_ipv6: "fd00:1337:1337:10::/64"
 
-firewall_trusted_vlan_subnet: "10.37.20.0/24"
-firewall_trusted_vlan_subnet_ipv6: "fd00:1337:1337:20::/64"
+firewall_hardened_trusted_vlan_subnet: "10.37.20.0/24"
+firewall_hardened_trusted_vlan_subnet_ipv6: "fd00:1337:1337:20::/64"
 
-firewall_dmz_vlan_subnet: "10.37.70.0/24"
-firewall_dmz_vlan_subnet_ipv6: "fd00:1337:1337:70::/64"
+firewall_hardened_dmz_vlan_subnet: "10.37.70.0/24"
+firewall_hardened_dmz_vlan_subnet_ipv6: "fd00:1337:1337:70::/64"
 
-firewall_wireguard_vlan_subnet: "10.37.90.0/24"
-firewall_wireguard_vlan_subnet_ipv6: "fd00:1337:1337:90::/64"
+firewall_hardened_wireguard_vlan_subnet: "10.37.90.0/24"
+firewall_hardened_wireguard_vlan_subnet_ipv6: "fd00:1337:1337:90::/64"
 
 # SSH Access - Define per-host in host_vars for full customization
 # Example:
-# firewall_ssh_allowed_subnets:
+# firewall_hardened_ssh_allowed_subnets:
 #   - "10.37.20.0/24"   # trusted_vlan
 #   - "10.37.90.0/24"   # wireguard_vlan
 #   - "10.37.70.25/32"  # semaphore.localdomain
@@ -52,16 +52,16 @@ firewall_wireguard_vlan_subnet_ipv6: "fd00:1337:1337:90::/64"
 #
 # Anti-lockout safeguard: trusted_vlan always has SSH access by default
 # Override in host_vars if different access is needed (e.g., VPS with public SSH)
-firewall_ssh_allowed_subnets:
-  - "{{ firewall_trusted_vlan_subnet }}" # Anti-lockout safeguard
+firewall_hardened_ssh_allowed_subnets:
+  - "{{ firewall_hardened_trusted_vlan_subnet }}" # Anti-lockout safeguard
 
 # SSH Access - Allow SSH from these subnets (IPv6) - optional
-firewall_ssh_allowed_subnets_ipv6:
-  - "{{ firewall_trusted_vlan_subnet_ipv6 }}"
-  - "{{ firewall_wireguard_vlan_subnet_ipv6 }}"
+firewall_hardened_ssh_allowed_subnets_ipv6:
+  - "{{ firewall_hardened_trusted_vlan_subnet_ipv6 }}"
+  - "{{ firewall_hardened_wireguard_vlan_subnet_ipv6 }}"
 
 # Reverse proxy IPs (override in group_vars)
-firewall_reverse_proxy_ips:
+firewall_hardened_reverse_proxy_ips:
   - "10.37.70.5"
   - "10.37.70.24"
 
@@ -69,13 +69,13 @@ firewall_reverse_proxy_ips:
 # SSH CONFIGURATION
 # ============================================================================
 
-firewall_ssh_port: 22
+firewall_hardened_ssh_port: 22
 
 # Enable IPv6 firewall rules (set to true to enable IPv6 support)
-firewall_enable_ipv6: true
+firewall_hardened_enable_ipv6: true
 
 # Enable SSH hardening (set to false for VPS hosts that need public SSH)
-firewall_ssh_hardening_enabled: true
+firewall_hardened_ssh_hardening_enabled: true
 
 # ============================================================================
 # DOCKER CONFIGURATION
@@ -106,23 +106,23 @@ firewall_ssh_hardening_enabled: true
 #   - proxy: Accessible from reverse proxies + management VLAN
 #   - custom: Accessible from custom source list (requires 'sources' field)
 
-firewall_services: []
+firewall_hardened_services: []
 # Global services applied to ALL hosts (from group_vars/all.yml)
-firewall_global_services: []
-# LEGACY VARIABLES (for backward compatibility, will be merged into firewall_services)
-firewall_public_services: []
-firewall_management_services: []
-firewall_proxy_services: []
-firewall_custom_rich_rules: []
+firewall_hardened_global_services: []
+# LEGACY VARIABLES (for backward compatibility, will be merged into firewall_hardened_services)
+firewall_hardened_public_services: []
+firewall_hardened_management_services: []
+firewall_hardened_proxy_services: []
+firewall_hardened_custom_rich_rules: []
 # ============================================================================
 # LOGGING
 # ============================================================================
 
-firewall_log_denied_packets: false
-firewall_log_level: "info"
+firewall_hardened_log_denied_packets: false
+firewall_hardened_log_level: "info"
 
 # ============================================================================
 # FIREWALL ZONE
 # ============================================================================
 
-firewall_default_zone: "public"
+firewall_hardened_default_zone: "public"

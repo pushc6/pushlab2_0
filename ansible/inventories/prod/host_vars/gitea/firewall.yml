@@ -2,13 +2,13 @@
 # Firewall configuration for gitea (10.37.80.4) - Gitea Server
 
 # SSH access (host-specific)
-firewall_ssh_allowed_subnets:
+firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
   - "10.37.90.0/24" # wireguard_vlan
   - "10.37.70.25/32" # semaphore
 
-# Using unified firewall_services structure with rich rules
-firewall_services:
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
   # Proxy-accessible services - Gitea web UI and SSH
   - port: 2222
     protocol: tcp

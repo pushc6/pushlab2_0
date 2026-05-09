@@ -1,18 +1,18 @@
 ---
 - name: Determine sudo group based on OS
   ansible.builtin.set_fact:
-    sudo_group: "{{ 'sudo' if ansible_facts['os_family'] == 'Debian' else 'wheel' }}"
+    system_users_sudo_group: "{{ 'sudo' if ansible_facts['os_family'] == 'Debian' else 'wheel' }}"
 
 - name: Ensure sudo group exists
   ansible.builtin.group:
-    name: "{{ sudo_group }}"
+    name: "{{ system_users_sudo_group }}"
     state: present
 
 - name: Create user push
   ansible.builtin.user:
     name: push
     shell: /bin/bash
-    groups: "{{ sudo_group }}"
+    groups: "{{ system_users_sudo_group }}"
     append: true
     create_home: true
 
@@ -26,7 +26,7 @@
   ansible.builtin.user:
     name: ansible
     shell: /bin/bash
-    groups: "{{ sudo_group }}"
+    groups: "{{ system_users_sudo_group }}"
     append: true
     create_home: true
 

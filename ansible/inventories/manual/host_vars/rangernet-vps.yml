@@ -49,15 +49,15 @@ crowdsec_drift_check_nft_set: crowdsec-blacklists-crowdsec
 # =============================================================================
 
 # VPS-specific: SSH must remain publicly accessible (no SSH hardening)
-firewall_ssh_hardening_enabled: false
+firewall_hardened_ssh_hardening_enabled: false
 
 # SSH access - public VPS needs unrestricted SSH access
-# (firewall_ssh_hardening_enabled: false disables rich rules, but we define this for documentation)
-firewall_ssh_allowed_subnets:
+# (firewall_hardened_ssh_hardening_enabled: false disables rich rules, but we define this for documentation)
+firewall_hardened_ssh_allowed_subnets:
   - "0.0.0.0/0" # Public SSH access required for VPS
 
-# Using unified firewall_services structure with rich rules
-firewall_services:
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
   # Tailscale direct connection (avoid DERP relay)
   - port: 41641
     protocol: udp

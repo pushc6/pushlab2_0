@@ -2,7 +2,7 @@
 # Reverse proxy firewall settings
 
 # Public web services (using new unified format)
-firewall_services:
+firewall_hardened_services:
   - port: 80
     protocol: tcp
     name: "HTTP"

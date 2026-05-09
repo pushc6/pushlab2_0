@@ -6,7 +6,7 @@ proxy_cache_path /var/cache/nginx/proxy_cache
     levels=1:2 
     keys_zone=proxy_cache_zone:10m 
     max_size=1g 
-    inactive={{ traditional_proxy_config.cache_valid_time | default('1h') }}
+    inactive={{ enhanced_proxy_nginx_traditional_proxy_config.cache_valid_time | default('1h') }}
     use_temp_path=off;
 
 # Cache key configuration

@@ -1,1 +1,64 @@
-../manual/host_vars/docker-secure.localdomain.yml
+---
+# Firewall configuration for docker-secure.localdomain (10.37.20.2)
+
+# Defer reboot so Semaphore can finish the Ansible run before the host restarts
+debian_updates_schedule_reboot: true
+debian_updates_reboot_delay_minutes: 15
+
+# SSH access (host-specific)
+firewall_hardened_ssh_allowed_subnets:
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller
+  - "10.37.70.25/32" # semaphore
+
+firewall_hardened_services:
+  # ============================================================================
+  # DNS Services - Allow DNS queries from all internal networks
+  # ============================================================================
+
+  - port: 53
+    protocol: tcp
+    name: "DNS TCP"
+    access: custom
+    sources:
+      - "10.37.0.0/16" # All internal networks (IPv4)
+      - "fd00:1337:1337::/48" # All internal networks (IPv6)
+
+  - port: 53
+    protocol: udp
+    name: "DNS UDP"
+    access: custom
+    sources:
+      - "10.37.0.0/16" # All internal networks (IPv4)
+      - "fd00:1337:1337::/48" # All internal networks (IPv6)
+
+  # ============================================================================
+  # DHCP Services - Allow DHCP from all internal networks
+  # ============================================================================
+
+  - port: 67
+    protocol: udp
+    name: "DHCP Server"
+    access: custom
+    sources:
+      - "10.37.0.0/16" # All internal networks (IPv4)
+
+  - port: 68
+    protocol: udp
+    name: "DHCP Client"
+    access: custom
+    sources:
+      - "10.37.0.0/16" # All internal networks (IPv4)
+
+  # ============================================================================
+  # Technitium DNS Web UI - Management access only
+  # ============================================================================
+
+  - port: 5380
+    protocol: tcp
+    name: "Technitium DNS Web UI"
+    access: custom
+    sources:
+      - "10.37.20.0/24" # Trusted VLAN (IPv4)
+      - "fd00:1337:1337:20::/64" # Trusted VLAN (IPv6)

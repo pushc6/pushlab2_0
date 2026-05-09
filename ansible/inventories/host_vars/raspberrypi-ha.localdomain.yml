@@ -1,1 +1,70 @@
-../manual/host_vars/raspberrypi-ha.localdomain.yml
+---
+# Firewall configuration for raspberrypi-ha.localdomain (10.37.50.12)
+# Home Assistant companion services - Zigbee2MQTT and Z-Wave JS UI
+# OS: Debian 12 (Bookworm) on Raspberry Pi
+
+# SSH access (host-specific)
+firewall_hardened_ssh_allowed_subnets:
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller
+  - "10.37.70.25/32" # semaphore
+
+firewall_hardened_services:
+  # ============================================================================
+  # Zigbee2MQTT Web Interface
+  # ============================================================================
+
+  - port: 8080
+    protocol: tcp
+    name: "Zigbee2MQTT Web UI"
+    access: custom
+    sources:
+      - "10.37.20.0/24" # Trusted VLAN (IPv4)
+      - "fd00:1337:1337:20::/64" # Trusted VLAN (IPv6)
+      - "10.37.50.0/24" # IoT VLAN (IPv4)
+      - "fd00:1337:1337:50::/64" # IoT VLAN (IPv6)
+      - "10.37.70.20/32" # HomeAssistant DMZ (IPv4)
+      - "fd00:1337:1337:70::20/128" # HomeAssistant DMZ (IPv6)
+
+  # ============================================================================
+  # Z-Wave JS UI - Web Interface and WebSocket
+  # ============================================================================
+
+  - port: 3000
+    protocol: tcp
+    name: "Z-Wave JS UI Web"
+    access: custom
+    sources:
+      - "10.37.20.0/24" # Trusted VLAN (IPv4)
+      - "fd00:1337:1337:20::/64" # Trusted VLAN (IPv6)
+      - "10.37.50.0/24" # IoT VLAN (IPv4)
+      - "fd00:1337:1337:50::/64" # IoT VLAN (IPv6)
+      - "10.37.70.20/32" # HomeAssistant DMZ (IPv4)
+      - "fd00:1337:1337:70::20/128" # HomeAssistant DMZ (IPv6)
+
+  - port: 8091
+    protocol: tcp
+    name: "Z-Wave JS UI WebSocket"
+    access: custom
+    sources:
+      - "10.37.20.0/24" # Trusted VLAN (IPv4)
+      - "fd00:1337:1337:20::/64" # Trusted VLAN (IPv6)
+      - "10.37.50.0/24" # IoT VLAN (IPv4)
+      - "fd00:1337:1337:50::/64" # IoT VLAN (IPv6)
+      - "10.37.70.20/32" # HomeAssistant DMZ (IPv4)
+      - "fd00:1337:1337:70::20/128" # HomeAssistant DMZ (IPv6)
+
+  # ============================================================================
+  # mDNS/Avahi - Local service discovery (IoT VLAN only)
+  # ============================================================================
+
+  - port: 5353
+    protocol: udp
+    name: "mDNS Avahi"
+    access: custom
+    sources:
+      - "10.37.20.0/24" # Trusted VLAN (IPv4)
+      - "fd00:1337:1337:20::/64" # Trusted VLAN (IPv6)
+      - "10.37.50.0/24" # IoT VLAN (IPv4)
+      - "fd00:1337:1337:50::/64" # IoT VLAN (IPv6)

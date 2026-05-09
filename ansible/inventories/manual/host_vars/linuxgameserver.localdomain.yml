@@ -2,14 +2,14 @@
 # Firewall configuration for linuxgameserver.localdomain - Game Server
 
 # SSH access (host-specific)
-firewall_ssh_allowed_subnets:
+firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
   - "10.37.90.0/24" # wireguard_vlan
   - "10.37.70.21/32" # Ansible controller
   - "10.37.70.25/32" # semaphore
 
-# Using unified firewall_services structure with rich rules
-firewall_services:
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
   # Public services - game servers need to be publicly accessible
   - port: 7777
     protocol: tcp

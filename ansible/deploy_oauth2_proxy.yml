@@ -53,8 +53,8 @@
         msg:
           - "Target group: {{ target_group }}"
           - "Deploy all services: {{ deploy_all_services_bool }}"
-          - "Service filter: {{ oauth2_services_filter if oauth2_services_filter | length > 0 else 'All services' }}"
-          - "OAuth2-Proxy endpoint: {{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}"
+          - "Service filter: {{ oauth2_proxy_nginx_services_filter if oauth2_proxy_nginx_services_filter | length > 0 else 'All services' }}"
+          - "OAuth2-Proxy endpoint: {{ oauth2_proxy_nginx_host }}:{{ oauth2_proxy_nginx_port }}"
           - "SSL validation enabled: {{ deployment_config.validate_ssl_certificates }}"
           - "Backup enabled: {{ deployment_config.create_backup }}"
 
@@ -62,7 +62,7 @@
     # Main OAuth2 proxy role with enhanced configuration
     - role: oauth2_proxy_nginx
       vars:
-        oauth2_role_config:
+        oauth2_proxy_nginx_role_config:
           validate_ssl: "{{ deployment_config.validate_ssl_certificates }}"
           create_backup: "{{ deployment_config.create_backup }}"
           test_config: "{{ deployment_config.test_nginx_config }}"
@@ -76,7 +76,7 @@
         msg:
           - "OAuth2-Proxy deployment completed"
           - "Target hosts: {{ ansible_play_hosts }}"
-          - "Services deployed: {{ oauth2_services_filter if oauth2_services_filter | length > 0 else 'All configured services' }}"
+          - "Services deployed: {{ oauth2_proxy_nginx_services_filter if oauth2_proxy_nginx_services_filter | length > 0 else 'All configured services' }}"
           - "Total services available: {{ oauth2_services | length }}"
           - "SSL certificates validated: {{ deployment_config.validate_ssl_certificates }}"
           - "Configuration backup created: {{ deployment_config.create_backup }}"

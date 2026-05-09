@@ -3,8 +3,8 @@
 # Enhanced OAuth2-Proxy Configuration with Modular Components
 
 # OAuth2-Proxy server settings
-oauth2_proxy_host: "10.37.70.25"
-oauth2_proxy_port: "4180"
+oauth2_proxy_nginx_host: "10.37.70.25"
+oauth2_proxy_nginx_port: "4180"
 
 # Debug mode for troubleshooting
 oauth2_debug_mode: false
@@ -48,12 +48,12 @@ security_headers:
 
 # Logout Configuration (modular)
 logout_config:
-  enable_id_token_logout: true
-  enable_sso_logout: true
-  enable_force_logout: true
+  oauth2_proxy_nginx_enable_id_token_logout: true
+  oauth2_proxy_nginx_enable_sso_logout: true
+  oauth2_proxy_nginx_enable_force_logout: true
   enable_logout_success_page: true
-  keycloak_realm: "prod"
-  keycloak_client_id: "oauth2-proxy-multi-domain"
+  oauth2_proxy_nginx_keycloak_realm: "prod"
+  oauth2_proxy_nginx_keycloak_client_id: "oauth2-proxy-multi-domain"
   logout_success_redirect: true
 
 # OAuth2 Service definitions (enhanced with metadata)
@@ -219,5 +219,5 @@ maintenance:
   auto_reload: true
 
 # Optional: Default authentication settings (backwards compatibility)
-default_auth_type: "simple"
-default_ssl_domain: "push-lab.com"
+oauth2_proxy_nginx_default_auth_type: "simple"
+oauth2_proxy_nginx_default_ssl_domain: "push-lab.com"

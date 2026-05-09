@@ -1,5 +1,5 @@
 ---
-- name: restart gitea-runner
+- name: Restart gitea-runner
   ansible.builtin.systemd:
     name: gitea-runner
     state: restarted

@@ -1,7 +1,10 @@
 ---
-# Common variables
-pre_update_tasks_enabled: true
-post_update_tasks_enabled: true
-enable_reboot: true
-reboot_timeout: 300
-post_reboot_delay: 30
+# Cross-role flags shared with system_updates / debian_updates / rhel_updates.
+# Bare names are intentional — they serve as the public switch the user
+# overrides via group_vars; renaming would force every consuming role
+# to be updated in lockstep.
+pre_update_tasks_enabled: true   # noqa: var-naming[no-role-prefix]
+post_update_tasks_enabled: true  # noqa: var-naming[no-role-prefix]
+enable_reboot: true              # noqa: var-naming[no-role-prefix]
+reboot_timeout: 300              # noqa: var-naming[no-role-prefix]
+post_reboot_delay: 30            # noqa: var-naming[no-role-prefix]

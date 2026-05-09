@@ -1,5 +1,6 @@
 ---
-# Defaults for system_updates role
-enable_reboot: true
-reboot_timeout: 300
-post_reboot_delay: 30
+# Cross-role flags shared with common / debian_updates / rhel_updates.
+# See note in roles/common/defaults/main.yml.
+enable_reboot: true       # noqa: var-naming[no-role-prefix]
+reboot_timeout: 300       # noqa: var-naming[no-role-prefix]
+post_reboot_delay: 30     # noqa: var-naming[no-role-prefix]

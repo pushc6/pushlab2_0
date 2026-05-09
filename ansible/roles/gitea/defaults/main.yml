@@ -36,8 +36,8 @@ gitea_external_url: "http://{{ (gitea_domain | default(ansible_host)) }}:{{ gite
 gitea_ssh_port: 2222
 
 # Actions runner settings (optional)
-act_runner_version: "0.2.10"
-gitea_runner_download_url: "https://dl.gitea.com/act_runner/{{ act_runner_version }}/act_runner-{{ act_runner_version }}-linux-amd64.tar.gz"
+gitea_act_runner_version: "0.2.10"
+gitea_runner_download_url: "https://dl.gitea.com/act_runner/{{ gitea_act_runner_version }}/act_runner-{{ gitea_act_runner_version }}-linux-amd64.tar.gz"
 # Provide a registration token to auto-register a runner
 # gitea_runner_registration_token: ""
 # Runner name and labels

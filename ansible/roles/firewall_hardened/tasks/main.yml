@@ -10,7 +10,7 @@
 
     - name: Include preflight checks
       ansible.builtin.include_tasks: preflight.yml
-      when: firewall_enable_preflight | default(true)
+      when: firewall_hardened_enable_preflight | default(true)
       tags:
         - firewall
         - preflight
@@ -21,14 +21,14 @@
 
     - name: Include SSH hardening
       ansible.builtin.include_tasks: ssh_hardening.yml
-      when: firewall_ssh_hardening_enabled | default(true)
+      when: firewall_hardened_ssh_hardening_enabled | default(true)
       tags:
         - firewall
         - ssh
 
     - name: Flush handlers after SSH hardening to stabilize state
       ansible.builtin.meta: flush_handlers
-      when: firewall_ssh_hardening_enabled | default(true)
+      when: firewall_hardened_ssh_hardening_enabled | default(true)
       tags:
         - firewall
         - ssh
@@ -42,7 +42,7 @@
           SSH hardening is disabled for this host.
           SSH will remain publicly accessible.
           ========================================
-      when: not (firewall_ssh_hardening_enabled | default(true))
+      when: not (firewall_hardened_ssh_hardening_enabled | default(true))
 
     # ========================================================================
     # DOCKER CONFIGURATION
@@ -67,12 +67,12 @@
     - name: Configure firewall services
       ansible.builtin.include_tasks: service_rules.yml
       when: >
-        (firewall_global_services is defined and firewall_global_services | length > 0) or
-        (firewall_services is defined and firewall_services | length > 0) or
-        (firewall_public_services is defined and firewall_public_services | length > 0) or
-        (firewall_management_services is defined and firewall_management_services | length > 0) or
-        (firewall_proxy_services is defined and firewall_proxy_services | length > 0) or
-        (firewall_custom_rich_rules is defined and firewall_custom_rich_rules | length > 0)
+        (firewall_hardened_global_services is defined and firewall_hardened_global_services | length > 0) or
+        (firewall_hardened_services is defined and firewall_hardened_services | length > 0) or
+        (firewall_hardened_public_services is defined and firewall_hardened_public_services | length > 0) or
+        (firewall_hardened_management_services is defined and firewall_hardened_management_services | length > 0) or
+        (firewall_hardened_proxy_services is defined and firewall_hardened_proxy_services | length > 0) or
+        (firewall_hardened_custom_rich_rules is defined and firewall_hardened_custom_rich_rules | length > 0)
       tags:
         - firewall
         - services
@@ -83,7 +83,7 @@
 
     - name: Purge stale firewall rules not in configuration
       ansible.builtin.include_tasks: purge_stale_rules.yml
-      when: firewall_purge_stale_rules | default(false)
+      when: firewall_hardened_purge_stale_rules | default(false)
       tags:
         - firewall
         - services
@@ -97,7 +97,7 @@
       ansible.builtin.meta: flush_handlers
     - name: Include validation
       ansible.builtin.include_tasks: validate.yml
-      when: firewall_enable_validation | default(true)
+      when: firewall_hardened_enable_validation | default(true)
       tags:
         - firewall
         - validate
@@ -122,7 +122,7 @@
         paths: /tmp
         patterns: "firewall_backup_*.txt"
         age: -1d
-      register: backup_files
+      register: firewall_hardened_backup_files
 
     - name: Emergency - Re-enable SSH service to prevent lockout
       ansible.posix.firewalld:
@@ -137,17 +137,17 @@
         name: firewalld
         state: reloaded
       failed_when: false # Best-effort lockout recovery.
-      register: emergency_reload
+      register: firewall_hardened_emergency_reload
 
-    - name: Wait for firewall stabilization after emergency restore  # noqa: no-handler
+    - name: Wait for firewall stabilization after emergency restore # noqa: no-handler
       ansible.builtin.pause:
         seconds: 5
-      when: emergency_reload is changed
+      when: firewall_hardened_emergency_reload is changed
 
     - name: Verify emergency SSH access
       ansible.builtin.wait_for:
         host: "{{ ansible_host | default(inventory_hostname) }}"
-        port: "{{ firewall_ssh_port | default(22) }}"
+        port: "{{ firewall_hardened_ssh_port | default(22) }}"
         timeout: 15
       delegate_to: localhost
       become: false
@@ -165,7 +165,7 @@
           You should now have SSH access to the host.
 
           Firewall backup available at:
-          {{ backup_files.files[0].path if backup_files.files | length > 0 else 'No backup found' }}
+          {{ firewall_hardened_backup_files.files[0].path if firewall_hardened_backup_files.files | length > 0 else 'No backup found' }}
 
           Please review the error below and investigate before retrying.
           ========================================

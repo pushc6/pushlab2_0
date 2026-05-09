@@ -1,11 +1,11 @@
 ---
 # Ubuntu-specific variables
-apt_cache_valid_time: 3600
-apt_upgrade_type: dist # Options: yes, safe, full, dist
-apt_autoremove: true
-apt_autoclean: true
-apt_update_cache_only: false
+debian_updates_apt_cache_valid_time: 3600
+debian_updates_apt_upgrade_type: dist # Options: yes, safe, full, dist
+debian_updates_apt_autoremove: true
+debian_updates_apt_autoclean: true
+debian_updates_apt_update_cache_only: false
 
 # Schedule reboot instead of rebooting immediately (useful for hosts running orchestrators)
-schedule_reboot: false
-reboot_delay_minutes: 15
+debian_updates_schedule_reboot: false
+debian_updates_reboot_delay_minutes: 15

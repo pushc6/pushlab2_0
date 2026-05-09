@@ -4,7 +4,7 @@
 
 # Default proxy mode for all services
 # Options: "oauth2" or "traditional"
-default_proxy_mode: "oauth2"
+enhanced_proxy_nginx_default_proxy_mode: "oauth2"
 
 # Service-specific proxy mode overrides
 # This allows you to mix OAuth2 and traditional proxy modes
@@ -12,14 +12,14 @@ service_proxy_overrides:
   dashboard: "traditional" # No authentication for dashboard
   truenas: "traditional" # TrueNAS handles its own auth
   grafana: "traditional" # Grafana has built-in auth
-  # All other services will use the default_proxy_mode
+  # All other services will use the enhanced_proxy_nginx_default_proxy_mode
 
 # OAuth2-Proxy server settings (used only for OAuth2 mode services)
-oauth2_proxy_host: "10.37.70.25"
-oauth2_proxy_port: "4180"
+enhanced_proxy_nginx_oauth2_proxy_host: "10.37.70.25"
+enhanced_proxy_nginx_oauth2_proxy_port: "4180"
 
 # Traditional proxy configuration
-traditional_proxy_config:
+enhanced_proxy_nginx_traditional_proxy_config:
   # Caching settings
   enable_caching: false
   cache_valid_time: "1h"
@@ -142,10 +142,10 @@ oauth2_services:
     proxy_mode: "traditional" # Traditional proxy mode
     ssl_domain: "push-lab.com"
     description: "Grafana Monitoring Dashboard"
-    category: "monitoring"
+    category: "enhanced_proxy_nginx_monitoring"
     health_check: "/api/health"
     custom_headers:
-      X-Service-Type: "monitoring"
+      X-Service-Type: "enhanced_proxy_nginx_monitoring"
       X-Environment: "production"
     # Traditional proxy with caching disabled for real-time data
     enable_caching: false
@@ -215,7 +215,7 @@ oauth2_services:
       - "192.168.0.0/16"
 
 # Nginx proxy settings (applies to both modes)
-nginx_config:
+enhanced_proxy_nginx_config:
   proxy_timeout: "60s"
   client_max_body_size: "100M"
   proxy_buffering: "off"
@@ -226,7 +226,7 @@ nginx_config:
   read_timeout: "60s"
 
 # OAuth2-specific logout configuration
-logout_config:
+enhanced_proxy_nginx_logout_config:
   enable_id_token_logout: true
   enable_sso_logout: true
   enable_force_logout: true
@@ -245,7 +245,7 @@ rate_limiting:
   nodelay: true
 
 # Monitoring and alerting
-monitoring:
+enhanced_proxy_nginx_monitoring:
   access_log_format: "proxy_combined"
   error_log_level: "warn"
   enable_metrics: false
@@ -259,7 +259,7 @@ maintenance:
   auto_reload: true
 
 # SELinux configuration
-selinux_config:
+enhanced_proxy_nginx_selinux_config:
   auto_configure: true
   install_tools: true
   configure_booleans: true

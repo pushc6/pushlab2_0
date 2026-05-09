@@ -63,14 +63,14 @@ crowdsec_parser_whitelists:
 # =============================================================================
 
 # SSH access (host-specific)
-firewall_ssh_allowed_subnets:
+firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
   - "10.37.90.0/24" # wireguard_vlan
   - "10.37.70.21/32" # Ansible controller
   - "10.37.70.25/32" # semaphore
 
-# Using unified firewall_services structure with rich rules
-firewall_services:
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
   # Management services - internal reverse proxy accessible from management subnet
   - port: 80
     protocol: tcp
@@ -94,7 +94,7 @@ firewall_services:
 
 # Destination-based rules for OAuth2-proxy forwarding
 # These allow nginx to forward auth requests to backend OAuth2-proxy instances
-firewall_custom_rich_rules:
+firewall_hardened_custom_rich_rules:
   - rule: 'rule family="ipv4" destination address="10.37.70.5" port port="4180" protocol="tcp" accept'
     name: "OAuth2-proxy forward to docker-internal"
   - rule: 'rule family="ipv4" destination address="10.37.70.7" port port="4180" protocol="tcp" accept'

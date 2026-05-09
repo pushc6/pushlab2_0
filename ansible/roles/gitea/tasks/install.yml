@@ -11,8 +11,8 @@
     state: present
 
 # Firewall configuration removed - managed by firewall_hardened role
-# Configure firewall_services in host_vars/<hostname>.yml instead:
-#   firewall_services:
+# Configure firewall_hardened_services in host_vars/<hostname>.yml instead:
+#   firewall_hardened_services:
 #     - port: "{{ gitea_http_port }}"
 #       protocol: tcp
 #       name: "Gitea HTTP"

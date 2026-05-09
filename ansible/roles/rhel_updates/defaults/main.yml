@@ -1,6 +1,6 @@
 ---
 # Safe defaults so the role doesn't require group_vars
-rhel_packages_to_install: []
-dnf_update_cache_only: false
-dnf_exclude_packages: []
-dnf_security_updates_only: false
+rhel_updates_packages_to_install: []
+rhel_updates_dnf_update_cache_only: false
+rhel_updates_dnf_exclude_packages: []
+rhel_updates_dnf_security_updates_only: false

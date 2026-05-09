@@ -31,5 +31,5 @@
       ansible.builtin.debug:
         msg:
           - "Packer Builder VM configured successfully"
-          - "Runner: {{ gitea_runner_name }}"
-          - "Labels: {{ gitea_runner_labels | join(',') }}"
+          - "Runner: {{ packer_builder_gitea_runner_name }}"
+          - "Labels: {{ packer_builder_gitea_runner_labels | join(',') }}"

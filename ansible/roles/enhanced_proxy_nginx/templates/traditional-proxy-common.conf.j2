@@ -3,7 +3,7 @@
 # This file contains shared configuration for traditional proxy mode
 
 # Proxy cache configuration (if enabled)
-{% if traditional_proxy_config.enable_caching | default(false) %}
+{% if enhanced_proxy_nginx_traditional_proxy_config.enable_caching | default(false) %}
 proxy_cache_path /var/cache/nginx/proxy levels=1:2 keys_zone=proxy_cache_zone:10m max_size=1g inactive=60m use_temp_path=off;
 proxy_cache_key "$scheme$request_method$host$request_uri";
 proxy_cache_methods GET HEAD POST;
@@ -11,8 +11,8 @@ proxy_cache_min_uses 2;
 {% endif %}
 
 # Rate limiting configuration (if enabled)
-{% if traditional_proxy_config.enable_rate_limiting | default(false) %}
-limit_req_zone $binary_remote_addr zone=proxy_limit:10m rate={{ traditional_proxy_config.rate_limit | default('10r/s') }};
+{% if enhanced_proxy_nginx_traditional_proxy_config.enable_rate_limiting | default(false) %}
+limit_req_zone $binary_remote_addr zone=proxy_limit:10m rate={{ enhanced_proxy_nginx_traditional_proxy_config.rate_limit | default('10r/s') }};
 limit_req_status 429;
 {% endif %}
 
@@ -28,12 +28,12 @@ proxy_busy_buffers_size 32k;
 proxy_temp_file_write_size 64k;
 
 # Timeout configuration defaults
-proxy_connect_timeout {{ traditional_proxy_config.proxy_timeout | default('60s') }};
-proxy_send_timeout {{ traditional_proxy_config.proxy_timeout | default('60s') }};
-proxy_read_timeout {{ traditional_proxy_config.proxy_timeout | default('60s') }};
+proxy_connect_timeout {{ enhanced_proxy_nginx_traditional_proxy_config.proxy_timeout | default('60s') }};
+proxy_send_timeout {{ enhanced_proxy_nginx_traditional_proxy_config.proxy_timeout | default('60s') }};
+proxy_read_timeout {{ enhanced_proxy_nginx_traditional_proxy_config.proxy_timeout | default('60s') }};
 
 # Request size limits
-client_max_body_size {{ traditional_proxy_config.client_max_body_size | default('100M') }};
+client_max_body_size {{ enhanced_proxy_nginx_traditional_proxy_config.client_max_body_size | default('100M') }};
 client_body_buffer_size 128k;
 
 # Proxy headers configuration
@@ -54,7 +54,7 @@ proxy_next_upstream_tries 3;
 proxy_next_upstream_timeout 30s;
 
 # Custom error pages (optional)
-{% if traditional_proxy_config.custom_error_pages | default(false) %}
+{% if enhanced_proxy_nginx_traditional_proxy_config.custom_error_pages | default(false) %}
 error_page 404 /404.html;
 error_page 500 502 503 504 /50x.html;
 location = /404.html {
@@ -68,7 +68,7 @@ location = /50x.html {
 {% endif %}
 
 # Gzip configuration (if enabled)
-{% if traditional_proxy_config.enable_gzip | default(true) %}
+{% if enhanced_proxy_nginx_traditional_proxy_config.enable_gzip | default(true) %}
 gzip on;
 gzip_vary on;
 gzip_proxied any;

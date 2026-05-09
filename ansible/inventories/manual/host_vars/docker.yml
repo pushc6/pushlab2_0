@@ -42,14 +42,14 @@ crowdsec_bouncers:
 # =============================================================================
 
 # SSH access (host-specific override)
-firewall_ssh_allowed_subnets:
+firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
   - "10.37.90.0/24" # wireguard_vlan
   - "10.37.70.21/32" # Ansible controller
   - "10.37.70.25/32" # semaphore
 
-# Using unified firewall_services structure with rich rules
-firewall_services:
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
   # ============================================================================
   # Media Management Stack - Accessible from proxy_internal and trusted_vlan
   # ============================================================================

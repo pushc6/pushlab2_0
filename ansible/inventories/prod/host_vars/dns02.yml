@@ -2,13 +2,13 @@
 # Firewall configuration for dns02 (10.37.20.2) - Technitium DNS Server
 
 # SSH access (host-specific)
-firewall_ssh_allowed_subnets:
+firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
   - "10.37.90.0/24" # wireguard_vlan
   - "10.37.70.25/32" # semaphore
 
-# Using unified firewall_services structure with rich rules
-firewall_services:
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
   # Custom services - DNS accessible from local networks
   - port: 53
     protocol: tcp

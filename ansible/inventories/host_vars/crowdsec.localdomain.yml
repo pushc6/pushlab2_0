@@ -1,1 +1,72 @@
-../manual/host_vars/crowdsec.localdomain.yml
+---
+# Configuration for crowdsec.localdomain - CrowdSec LAPI Controller
+
+# =============================================================================
+# Tailscale Configuration
+# =============================================================================
+tailscale_enabled: true
+tailscale_hostname: "crowdsec"
+tailscale_tags:
+  - "tag:crowdsec-lapi"
+
+# =============================================================================
+# Firewall Configuration
+# =============================================================================
+
+# SSH access (host-specific)
+firewall_hardened_ssh_allowed_subnets:
+  - "10.37.20.0/24" # trusted_vlan
+  - "10.37.90.0/24" # wireguard_vlan
+  - "10.37.70.21/32" # Ansible controller
+  - "10.37.70.25/32" # semaphore
+
+# Using unified firewall_hardened_services structure with rich rules
+firewall_hardened_services:
+  # CrowdSec API accessible from internal network + Tailscale
+  - port: 8080
+    protocol: tcp
+    name: "CrowdSec API"
+    access: custom
+    sources:
+      - "10.37.0.0/16" # Internal network
+      - "100.64.0.0/10" # Tailscale CGNAT range
+
+  # Tailscale direct connection (avoid DERP relay)
+  - port: 41641
+    protocol: udp
+    name: "Tailscale WireGuard"
+    access: public
+
+  # CrowdSec Prometheus metrics (scraped by VictoriaMetrics)
+  - port: 6060
+    protocol: tcp
+    name: "CrowdSec Prometheus Metrics"
+    access: custom
+    sources:
+      - "10.37.70.25/32" # docker-internal (VictoriaMetrics)
+      - "fd00:1337:1337:70::25/128"
+
+# =============================================================================
+# CrowdSec Configuration
+# =============================================================================
+crowdsec_enabled: true
+crowdsec_mode: "lapi"
+
+# =============================================================================
+# CrowdSec Observability
+# =============================================================================
+
+# Expose Prometheus metrics for VictoriaMetrics scraping
+crowdsec_prometheus_listen_addr: "0.0.0.0"
+
+# Send alert notifications to VictoriaLogs via HTTP plugin
+crowdsec_http_notification:
+  enabled: true
+  url: "http://10.37.70.25:9428/insert/jsonline?_stream_fields=source,action,scenario"
+  method: POST
+  group_wait: 30s
+  group_threshold: 5
+  max_retry: 3
+  timeout: 10s
+  headers:
+    Content-Type: "application/stream+json"
