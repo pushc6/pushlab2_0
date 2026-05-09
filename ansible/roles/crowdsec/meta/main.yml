@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Install and configure CrowdSec for collaborative IDS / behavior detection
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions: ["12"]
+    - name: EL
+      versions: ["9", "10"]
+  galaxy_tags:
+    - crowdsec
+    - security
+    - ids
+    - monitoring
+
+dependencies: []
+
+collections:
+  - ansible.builtin

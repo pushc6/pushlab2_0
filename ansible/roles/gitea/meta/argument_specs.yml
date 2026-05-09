@@ -1,0 +1,108 @@
+---
+argument_specs:
+  main:
+    short_description: Install Gitea server and optional Docker-based Actions runner
+    description:
+      - Downloads the Gitea binary, renders a systemd unit and app.ini,
+        backs up before upgrades, and optionally registers an Actions runner.
+    options:
+      gitea_version:
+        description: Gitea version to install. Use 'latest' to auto-resolve from the API.
+        type: str
+        default: "1.24.6"
+      gitea_auto_update:
+        description: Auto-resolve and upgrade to the latest stable release.
+        type: bool
+        default: false
+      gitea_release_api_url:
+        description: GitHub releases API endpoint used for version discovery.
+        type: str
+        default: "https://api.github.com/repos/go-gitea/gitea/releases/latest"
+      gitea_binary_path:
+        description: Filesystem path of the gitea binary.
+        type: path
+        default: "/usr/local/bin/gitea"
+      gitea_backup_before_upgrade:
+        description: Tar config and data before replacing the binary.
+        type: bool
+        default: true
+      gitea_backup_dir:
+        description: Directory where backup tarballs are written.
+        type: path
+        default: "/var/backups"
+      gitea_backup_include:
+        description: Filesystem paths included in the backup tarball.
+        type: list
+        elements: path
+        default:
+          - "/etc/gitea"
+          - "/var/lib/gitea"
+      gitea_http_port:
+        description: HTTP port the Gitea service listens on.
+        type: int
+        default: 3000
+      gitea_ssh_port:
+        description: Internal SSH port for the Gitea Git server.
+        type: int
+        default: 2222
+      gitea_external_url:
+        description: Public URL used for the ROOT_URL setting.
+        type: str
+        required: false
+      gitea_domain:
+        description: FQDN used by app.ini.
+        type: str
+        required: false
+      gitea_admin_username:
+        description: Optional bootstrap admin username (vault-protected).
+        type: str
+        required: false
+      gitea_admin_password:
+        description: Optional bootstrap admin password (vault-protected).
+        type: str
+        required: false
+        no_log: true
+      gitea_admin_email:
+        description: Email for the bootstrap admin user.
+        type: str
+        default: "admin@local"
+      gitea_runner_use_docker:
+        description: Run the Actions runner as a Docker container (recommended).
+        type: bool
+        default: true
+      gitea_runner_registration_token:
+        description: Pre-issued runner registration token. If unset, an instance-level token is generated.
+        type: str
+        required: false
+        no_log: true
+      gitea_runner_image:
+        description: Container image for the Docker-based Actions runner.
+        type: str
+        default: "gitea/act_runner:latest"
+      gitea_runner_data_dir:
+        description: Data directory bind-mounted into the runner container.
+        type: path
+        default: "/opt/gitea-runner"
+      gitea_runner_name:
+        description: Display name registered with Gitea.
+        type: str
+        default: "runner-{{ inventory_hostname }}"
+      gitea_runner_labels:
+        description: Labels reported by the runner at registration.
+        type: list
+        elements: str
+        default: ["self-hosted", "linux", "x64"]
+      gitea_runner_labels_extra:
+        description: Additional labels merged with gitea_runner_labels.
+        type: list
+        elements: str
+        default: []
+      gitea_runner_pull_images:
+        description: Container images to pre-pull on the runner host.
+        type: list
+        elements: str
+        default: []
+      gitea_runner_force_reregister:
+        description: Stop the runner and remove its sentinel to force re-registration.
+        type: bool
+        default: false

@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Create and manage system users plus SSH key authorization
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions: ["12"]
+    - name: EL
+      versions: ["9", "10"]
+  galaxy_tags:
+    - users
+    - system
+    - ssh
+    - security
+
+dependencies: []
+
+collections:
+  - ansible.builtin

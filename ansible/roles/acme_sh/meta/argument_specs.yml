@@ -1,0 +1,49 @@
+---
+argument_specs:
+  main:
+    short_description: Install acme.sh and manage ACME (Let's Encrypt) certificates
+    description:
+      - Clones acme.sh, configures the Cloudflare DNS provider, and issues /
+        deploys certificates to nginx.
+    options:
+      acme_sh_install_dir:
+        description: Directory where acme.sh is cloned.
+        type: path
+        default: "/root/.acme.sh"
+      acme_sh_git_repo:
+        description: Git repository URL for acme.sh.
+        type: str
+        default: "https://github.com/acmesh-official/acme.sh.git"
+      acme_default_ca:
+        description: ACME directory URL (default Let's Encrypt v2).
+        type: str
+        default: "https://acme-v02.api.letsencrypt.org/directory"
+      acme_default_key_length:
+        description: Default key length / curve for new certificates.
+        type: str
+        choices: ["2048", "4096", "ec-256", "ec-384"]
+        default: "ec-256"
+      acme_auto_upgrade:
+        description: Auto-upgrade acme.sh on each run.
+        type: bool
+        default: true
+      acme_cert_deploy_dir:
+        description: Directory where issued certificates are deployed.
+        type: path
+        default: "/etc/nginx/ssl"
+      acme_reload_cmd:
+        description: Command run after deploy to reload the consuming service.
+        type: str
+        default: "systemctl reload nginx"
+      acme_dns_provider:
+        description: acme.sh DNS provider plugin name.
+        type: str
+        default: "dns_cf"
+      acme_generate_dhparams:
+        description: Generate dhparams.pem if missing.
+        type: bool
+        default: true
+      acme_dhparams_bits:
+        description: Bit length for dhparams generation.
+        type: int
+        default: 2048

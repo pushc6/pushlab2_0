@@ -1,6 +1,7 @@
 ---
 - name: Install Docker
   hosts: docker_hosts
-  become: yes
+  become: true
   roles:
     - docker
+  tags: [docker, apps]

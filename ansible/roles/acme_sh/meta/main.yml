@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Install acme.sh and manage ACME (Let's Encrypt) certificates
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions: ["12"]
+    - name: EL
+      versions: ["10"]
+  galaxy_tags:
+    - acme
+    - certificates
+    - letsencrypt
+    - tls
+    - security
+
+dependencies: []
+
+collections:
+  - ansible.builtin

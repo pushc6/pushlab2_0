@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Set the system hostname and refresh /etc/hosts mapping
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions: ["12"]
+    - name: EL
+      versions: ["9", "10"]
+  galaxy_tags:
+    - system
+    - hostname
+
+dependencies: []
+
+collections:
+  - ansible.builtin

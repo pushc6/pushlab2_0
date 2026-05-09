@@ -1,0 +1,4 @@
+---
+# SSH public keys for managed users — provide via group_vars.
+# push_user_public_key: ""
+# ansible_public_key: ""

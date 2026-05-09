@@ -6,3 +6,4 @@
   roles:
     - common
     - rhel_updates
+  tags: [updates, rhel]

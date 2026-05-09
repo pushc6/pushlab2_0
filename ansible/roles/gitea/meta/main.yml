@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Install Gitea server and optional Docker-based Actions runner
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["10"]
+  galaxy_tags:
+    - gitea
+    - git
+    - scm
+    - actions
+    - runner
+
+dependencies: []
+
+collections:
+  - ansible.builtin

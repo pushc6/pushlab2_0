@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Deploy Technitium DNS server as a Docker container
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["10"]
+  galaxy_tags:
+    - dns
+    - technitium
+    - docker
+
+dependencies: []
+
+collections:
+  - ansible.builtin
+  - community.docker

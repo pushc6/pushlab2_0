@@ -1,0 +1,46 @@
+---
+# Optional: Create initial admin user if credentials provided
+- name: Wait for Gitea HTTP to be reachable
+  ansible.builtin.uri:
+    url: "{{ gitea_external_url }}"
+    method: GET
+    status_code: 200,302
+    validate_certs: false
+  register: gitea_http
+  retries: 20
+  delay: 3
+  until: gitea_http is succeeded
+  when: gitea_admin_username is defined and gitea_admin_password is defined
+
+- name: Check if admin user exists
+  ansible.builtin.shell: >-
+    set -euo pipefail &&
+    sudo -u git /usr/local/bin/gitea --work-path /var/lib/gitea -c /etc/gitea/app.ini admin user list | awk '{print $2}' | grep -x {{ gitea_admin_username | quote }}
+  register: gitea_admin_exists
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when: gitea_admin_username is defined and gitea_admin_password is defined
+
+- name: Create admin user
+  ansible.builtin.shell: >-
+    set -euo pipefail &&
+    sudo -u git /usr/local/bin/gitea --work-path /var/lib/gitea -c /etc/gitea/app.ini admin user create \
+      --username {{ gitea_admin_username }} \
+      --password {{ gitea_admin_password }} \
+      --email {{ gitea_admin_email | default('admin@local') }} \
+      --admin
+  args:
+    creates: "/var/lib/gitea/data/created_admin_{{ gitea_admin_username }}"
+  register: create_admin
+  no_log: true
+  when: (gitea_admin_username is defined and gitea_admin_password is defined) and (gitea_admin_exists.rc | default(1) != 0)
+
+- name: Mark admin user creation
+  ansible.builtin.file:
+    path: "/var/lib/gitea/data/created_admin_{{ gitea_admin_username }}"
+    state: touch
+    owner: git
+    group: git
+    mode: "0600"
+  when: (gitea_admin_username is defined and gitea_admin_password is defined) and (gitea_admin_exists.rc | default(1) != 0)

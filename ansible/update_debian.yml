@@ -6,3 +6,4 @@
   roles:
     - common
     - debian_updates
+  tags: [updates, debian]

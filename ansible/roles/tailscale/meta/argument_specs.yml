@@ -1,0 +1,69 @@
+---
+argument_specs:
+  main:
+    short_description: Install and join a host to Tailscale
+    description:
+      - Installs the tailscaled daemon, generates a short-lived auth key from
+        the configured OAuth client, and brings up the interface with the
+        requested options.
+    options:
+      tailscale_enabled:
+        description: Toggle the role per host.
+        type: bool
+        default: false
+      tailscale_hostname:
+        description: Hostname registered with the tailnet.
+        type: str
+        default: "{{ inventory_hostname.split('.')[0] }}"
+      tailscale_tags:
+        description: Tags to apply (must exist in ACL tagOwners).
+        type: list
+        elements: str
+        default: []
+      tailscale_oauth_client_id:
+        description: Tailscale OAuth client ID (vault).
+        type: str
+        required: false
+        no_log: true
+      tailscale_oauth_client_secret:
+        description: Tailscale OAuth client secret (vault).
+        type: str
+        required: false
+        no_log: true
+      tailscale_tailnet:
+        description: Tailnet identifier.
+        type: str
+        default: "crane-beaver.ts.net"
+      tailscale_authkey_expiry_seconds:
+        description: Auth-key TTL in seconds.
+        type: int
+        default: 300
+      tailscale_accept_routes:
+        description: Accept subnet routes from peers.
+        type: bool
+        default: false
+      tailscale_advertise_routes:
+        description: Subnet routes to advertise.
+        type: list
+        elements: str
+        default: []
+      tailscale_ssh:
+        description: Enable Tailscale SSH.
+        type: bool
+        default: false
+      tailscale_accept_dns:
+        description: Use Tailscale MagicDNS.
+        type: bool
+        default: true
+      tailscale_extra_args:
+        description: Extra arguments passed to `tailscale up`.
+        type: str
+        default: ""
+      tailscale_force_rejoin:
+        description: Force rejoin even when already connected.
+        type: bool
+        default: false
+      tailscale_configure_firewall:
+        description: Add the tailscale0 interface to the trusted firewall zone.
+        type: bool
+        default: true

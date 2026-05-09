@@ -1,0 +1,4 @@
+---
+# Hostname to apply. Falls back to inventory_hostname when unset.
+# Set in host_vars to override (rarely needed).
+# system_hostname: ""

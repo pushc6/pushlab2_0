@@ -1,0 +1,10 @@
+---
+# Technitium container image and config directory.
+technitium_image: "technitium/dns-server:14.2"
+technitium_config_dir: /opt/technitium/config
+
+# DNS server domain advertised to clients.
+technitium_dns_domain: "dns02.localdomain"
+
+# Local addresses the web admin service listens on.
+technitium_web_service_local_addresses: "10.37.10.254"

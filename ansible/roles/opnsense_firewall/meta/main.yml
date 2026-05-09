@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Manage OPNsense aliases and firewall rules over the API
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions: ["12"]
+    - name: EL
+      versions: ["9", "10"]
+  galaxy_tags:
+    - firewall
+    - opnsense
+    - networking
+    - api
+
+dependencies: []
+
+collections:
+  - ansible.builtin
+  - ansibleguy.opnsense

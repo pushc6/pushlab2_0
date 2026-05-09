@@ -9,6 +9,9 @@
     # Use reverse-proxy public URL for ROOT_URL
     gitea_external_url: "https://git.push-lab.com"
   roles:
-    - mount_data_disk
-    - system_hostname
-    - gitea
+    - role: mount_data_disk
+      tags: [storage, mount_data_disk]
+    - role: system_hostname
+      tags: [system, hostname]
+    - role: gitea
+      tags: [gitea, apps]

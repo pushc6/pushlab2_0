@@ -1,0 +1,11 @@
+---
+# Required — set per-host or per-play:
+#   nfs_server: 10.37.70.22
+#   nfs_export_path: /mnt/tank/VMStorage
+#   nfs_mount_point: /mnt/backupstorage
+
+# Mount options used in /etc/fstab.
+nfs_client_mount_opts: "defaults,_netdev"
+
+# NFS protocol version.
+nfs_client_fstype: nfs4

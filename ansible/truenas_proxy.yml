@@ -8,3 +8,4 @@
     nfs_mount_point: /mnt/backupstorage
   roles:
     - nfs_client
+  tags: [nfs, storage]

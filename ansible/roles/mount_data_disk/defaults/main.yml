@@ -1,0 +1,10 @@
+---
+# Required: size of the secondary disk to mount, in GB.
+# Set in host_vars (e.g. host_vars/gitea/main.yml).
+# data_disk_size_gb: 100
+
+# Filesystem type used for the new partition.
+data_fs_type: ext4
+
+# Mount point for the formatted disk.
+data_mount_point: /data

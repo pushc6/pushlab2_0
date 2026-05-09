@@ -1,10 +1,11 @@
 ---
 - name: Common Setup for All Hosts
   hosts: all:!opnsense
-  become: yes
-  gather_facts: yes
+  become: true
+  gather_facts: true
 
   roles:
     - system_users
     - network_interfaces
     # firewall role removed - replaced by firewall_hardened role in site.yml
+  tags: [setup, users, networking]

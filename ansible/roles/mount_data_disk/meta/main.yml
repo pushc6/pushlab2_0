@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Identify, partition, format, and persistently mount a secondary data disk
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["9", "10"]
+  galaxy_tags:
+    - storage
+    - disk
+    - mount
+    - filesystem
+
+dependencies: []
+
+collections:
+  - ansible.builtin
+  - ansible.posix

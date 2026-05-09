@@ -1,0 +1,48 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure CrowdSec agent / LAPI / standalone
+    description:
+      - Installs CrowdSec, configures acquisitions and bouncers, and registers
+        the host against a central LAPI when running in agent mode.
+    options:
+      crowdsec_enabled:
+        description: Toggle the role on a per-host basis.
+        type: bool
+        default: false
+      crowdsec_mode:
+        description: Deployment role.
+        type: str
+        choices: ["agent", "lapi", "standalone"]
+        default: "agent"
+      crowdsec_lapi_url:
+        description: URL of the central LAPI server (agent mode).
+        type: str
+        default: "http://crowdsec.crane-beaver.ts.net:8080"
+      crowdsec_lapi_host:
+        description: Inventory hostname of the LAPI server, used for bouncer registration.
+        type: str
+        default: "crowdsec.localdomain"
+      crowdsec_machine_name:
+        description: Machine name registered with LAPI.
+        type: str
+        default: "{{ inventory_hostname.split('.')[0] }}"
+      crowdsec_wait_for_approval:
+        description: Block until the machine is approved on the LAPI side.
+        type: bool
+        default: true
+      crowdsec_collections:
+        description: CrowdSec hub collections to install.
+        type: list
+        elements: str
+        default: ["crowdsecurity/linux"]
+      crowdsec_acquis:
+        description: Acquisition source definitions (one file per entry).
+        type: list
+        elements: dict
+        default: []
+      crowdsec_bouncers:
+        description: Bouncer definitions to install.
+        type: list
+        elements: dict
+        default: []

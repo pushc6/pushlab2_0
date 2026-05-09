@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Apply OS updates on Debian/Ubuntu hosts via apt
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions: ["12"]
+    - name: Ubuntu
+      versions: ["22.04", "24.04"]
+  galaxy_tags:
+    - updates
+    - debian
+    - ubuntu
+    - apt
+
+dependencies: []
+
+collections:
+  - ansible.builtin

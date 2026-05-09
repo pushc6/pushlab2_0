@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Install Docker CE + plugins on AlmaLinux/RHEL hosts
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["9", "10"]
+  galaxy_tags:
+    - docker
+    - containers
+
+dependencies: []
+
+collections:
+  - ansible.builtin

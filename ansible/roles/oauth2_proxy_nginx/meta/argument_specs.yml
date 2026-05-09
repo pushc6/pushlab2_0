@@ -1,0 +1,57 @@
+---
+argument_specs:
+  main:
+    short_description: nginx reverse proxy fronted by OAuth2-Proxy
+    description:
+      - Renders nginx site/auth/locations templates that delegate authentication
+        to a single OAuth2-Proxy instance serving multiple domains.
+    options:
+      oauth2_proxy_host:
+        description: Hostname/IP of the OAuth2-Proxy backend.
+        type: str
+        default: "localhost"
+      oauth2_proxy_port:
+        description: Port of the OAuth2-Proxy backend.
+        type: str
+        default: "4180"
+      nginx_proxy_timeout:
+        description: Default proxy_read_timeout / proxy_send_timeout.
+        type: str
+        default: "60s"
+      nginx_client_max_body_size:
+        description: Default client_max_body_size.
+        type: str
+        default: "100M"
+      nginx_sites_available:
+        description: nginx sites-available directory.
+        type: path
+        default: "/etc/nginx/sites-available"
+      nginx_sites_enabled:
+        description: nginx sites-enabled directory.
+        type: path
+        default: "/etc/nginx/sites-enabled"
+      nginx_conf_d:
+        description: nginx conf.d directory for shared snippets.
+        type: path
+        default: "/etc/nginx/conf.d"
+      default_auth_type:
+        description: Default auth type when a service does not specify one.
+        type: str
+        default: "simple"
+      default_ssl_domain:
+        description: SSL domain used when a service does not specify one.
+        type: str
+        default: "localhost"
+      oauth2_services_filter:
+        description: Optional service-name allow-list (empty = all).
+        type: list
+        elements: str
+        default: []
+      ssl_protocols:
+        description: TLS protocol versions enabled by nginx.
+        type: str
+        default: "TLSv1.2 TLSv1.3"
+      ssl_ciphers:
+        description: TLS cipher suite list.
+        type: str
+        default: "HIGH:!aNULL:!MD5"
