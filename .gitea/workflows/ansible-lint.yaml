@@ -1,0 +1,47 @@
+name: ansible-lint
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ansible/**'
+      - '.ansible-lint'
+      - '.gitea/workflows/ansible-lint.yaml'
+  pull_request:
+    paths:
+      - 'ansible/**'
+      - '.ansible-lint'
+      - '.gitea/workflows/ansible-lint.yaml'
+
+jobs:
+  lint-and-syntax:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux-cicd:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ansible-core + ansible-lint
+        run: |
+          set -euo pipefail
+          dnf install -y python3-pip || true
+          python3 -m pip install --upgrade pip
+          # Match the EE pin in execution-environment/execution-environment.yml
+          python3 -m pip install \
+            "ansible-core>=2.18,<2.19" \
+            "ansible-lint==25.6.1"
+
+      - name: Install collections
+        run: |
+          ansible-galaxy collection install -r ansible/requirements.yml -p ~/.ansible/collections
+
+      - name: ansible-lint
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          ansible-lint ansible/
+
+      - name: Syntax check site.yml
+        run: |
+          cd "$GITHUB_WORKSPACE/ansible"
+          ansible-playbook --syntax-check -i inventories/prod/hosts.yml site.yml

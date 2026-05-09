@@ -197,6 +197,7 @@
   register: gitea_admin_exists
   changed_when: false
   failed_when: false
+  no_log: true
   when: gitea_admin_username is defined and gitea_admin_password is defined
 
 - name: Create admin user
@@ -210,6 +211,7 @@
   args:
     creates: "/var/lib/gitea/data/created_admin_{{ gitea_admin_username }}"
   register: create_admin
+  no_log: true
   when: (gitea_admin_username is defined and gitea_admin_password is defined) and (gitea_admin_exists.rc | default(1) != 0)
 
 - name: Mark admin user creation
@@ -280,6 +282,7 @@
     creates: /opt/gitea-runner/.runner
   environment:
     GITEA_INSTANCE_URL: "{{ gitea_external_url }}"
+  no_log: true
   when: (gitea_runner_registration_token | default("") | length > 0) and (not gitea_runner_use_docker)
 
 - name: Enable/start runner
@@ -413,7 +416,7 @@
         --labels {{ (gitea_runner_labels + (gitea_runner_labels_extra | default([]))) | unique | join(',') }}
   args:
     creates: "{{ gitea_runner_data_dir }}/.runner"
-  no_log: false
+  no_log: true
   when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
 
 - name: Wait for runner registration to be persisted

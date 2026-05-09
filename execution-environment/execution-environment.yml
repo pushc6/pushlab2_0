@@ -7,9 +7,9 @@ images:
 
 dependencies:
   ansible_core:
-    package_pip: ansible-core
+    package_pip: ansible-core>=2.18,<2.19
   ansible_runner:
-    package_pip: ansible-runner
+    package_pip: ansible-runner>=2.4,<3.0
   galaxy: requirements.yml
   python: requirements.txt
   system: bindep.txt

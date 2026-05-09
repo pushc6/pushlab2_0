@@ -1,0 +1,13 @@
+---
+# Encrypt this file with:
+#   ansible-vault encrypt ansible/inventories/prod/host_vars/gitea/vault.yml
+# Reference these variables from a non-vault file (e.g. main.yml) like:
+#   gitea_admin_username: "{{ vault_gitea_admin_username }}"
+#   gitea_admin_password: "{{ vault_gitea_admin_password }}"
+# Semaphore: pass the vault password via the project's Key Store
+# (Type: "Login With Password" → password field) and reference it on
+# the template's "Vault Key" field.
+
+vault_gitea_admin_username: "changeme"
+vault_gitea_admin_password: "changeme"
+vault_gitea_admin_email: "admin@push-lab.com"

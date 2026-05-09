@@ -17,10 +17,12 @@ repos:
       # - id: terraform_docs
       #   args: ['--args=--lockfile=false']
 
-  # - repo: https://github.com/ansible/ansible-lint
-  #   rev: v24.2.0
-  #   hooks:
-  #     - id: ansible-lint
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v25.6.1
+    hooks:
+      - id: ansible-lint
+        files: ^ansible/
+        args: ["--profile=production"]
 
   # Local hooks
   - repo: local

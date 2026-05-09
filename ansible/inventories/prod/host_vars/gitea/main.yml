@@ -1,0 +1,6 @@
+---
+# Non-secret host vars for gitea. Secrets live in vault.yml (encrypted).
+# Uncomment after creating an encrypted vault.yml from vault.yml.example.
+# gitea_admin_username: "{{ vault_gitea_admin_username }}"
+# gitea_admin_password: "{{ vault_gitea_admin_password }}"
+# gitea_admin_email: "{{ vault_gitea_admin_email }}"

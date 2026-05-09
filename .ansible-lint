@@ -1,0 +1,73 @@
+---
+# Day-1 lint gate. Profile is `production`, but the skip_list below
+# disables rules currently violated en masse. Wave 2 of the cleanup
+# (role metadata, handlers, tagging, defaults) trims this list back.
+# Goal: lint passes today, then we tighten the screws over time.
+profile: production
+
+exclude_paths:
+  - .cache/
+  - .git/
+  - collections/
+  - ansible/group_vars/vault.yml.example
+  - ansible/inventories/prod/host_vars/gitea/vault.yml.example
+  - ansible/tasks/proxy_post_deployment.yml.backup.20250926_221845
+  - ansible/roles/oauth2_proxy_nginx/templates/nginx-site.conf.j2.backup.20250706_000103
+  - ansible/roles/oauth2_proxy_nginx/templates/nginx-site.conf.j2.logfix.20250706_000411
+  # Survey-driven playbook — Semaphore supplies target_host at runtime;
+  # ansible-lint can't statically resolve it.
+  - ansible/add_ansible_user_prompt_debian.yml
+  # Sub-directory playbook can't find roles/ via the default roles_path;
+  # revisit during Wave 2 by either moving it or extending ansible.cfg.
+  - ansible/playbooks/firewall_test.yml
+
+skip_list:
+
+  # Wave 2A — meta sweep
+  - meta-no-info
+  - role-name
+  - schema[meta]
+  - schema[vars]              # group_vars/all/hosts_registry.yml uses reserved key `hosts:`
+  - var-naming[no-reserved]   # same — fix when refactoring hosts_registry
+
+  # Wave 2 — naming + var prefixes
+  - var-naming[no-role-prefix]
+  - name[casing]
+  - name[missing]
+  - name[play]
+  - name[template]
+
+  # Wave 2 — module hygiene (FQCN, free-form, etc.)
+  - fqcn[action]
+  - fqcn[action-core]
+  - fqcn[canonical]
+  - command-instead-of-module
+  - command-instead-of-shell
+  - no-free-form
+  - literal-compare
+  - key-order[task]
+  - package-latest
+
+  # Wave 2 — handlers + idempotency
+  - no-handler
+  - no-changed-when
+  - risky-file-permissions
+  - risky-shell-pipe
+  - ignore-errors
+
+  # Cosmetic — fix in a dedicated formatting PR
+  - yaml[line-length]
+  - yaml[trailing-spaces]
+  - yaml[truthy]
+  - yaml[indentation]
+  - yaml[octal-values]
+  - yaml[empty-lines]
+  - yaml[new-line-at-end-of-file]
+  - jinja[spacing]
+
+warn_list:
+  # Surface signal without failing the gate.
+  - command-instead-of-shell
+  - no-changed-when
+  - risky-shell-pipe
+  - ignore-errors

@@ -1,6 +1,0 @@
----
-collections:
-  - name: ansible.posix
-  - name: ansible.utils
-  - name: community.general
-  - name: ansibleguy.opnsense

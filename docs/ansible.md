@@ -27,18 +27,45 @@ The `ansible/roles/gitea` role installs and configures Gitea, and can optionally
 
 ### Secrets
 
-Store in `host_vars/<hostname>/secrets.yml`:
+Sensitive values must be stored in an `ansible-vault`-encrypted file alongside
+the host_vars. Pattern:
 
-```yaml
-gitea_admin_username: "admin"
-gitea_admin_password: "secure-password"
-gitea_admin_email: "admin@example.com"
+1. Copy the example into a real file:
+   ```sh
+   cp ansible/inventories/prod/host_vars/gitea/vault.yml.example \
+      ansible/inventories/prod/host_vars/gitea/vault.yml
+   ansible-vault encrypt ansible/inventories/prod/host_vars/gitea/vault.yml
+   ```
+2. Reference the vault vars from a non-vault file (e.g. `host_vars/gitea/main.yml`):
+   ```yaml
+   gitea_admin_username: "{{ vault_gitea_admin_username }}"
+   gitea_admin_password: "{{ vault_gitea_admin_password }}"
+   gitea_admin_email:    "{{ vault_gitea_admin_email }}"
+   # Optional: register a Gitea Actions runner
+   gitea_runner_registration_token: "{{ vault_gitea_runner_registration_token }}"
+   ```
+3. In Semaphore, register the vault password under the project Key Store
+   (Type: *Login With Password*) and select it as the *Vault Key* on the
+   playbook template.
 
-# Optional: register a Gitea Actions runner
-gitea_runner_registration_token: "token-from-gitea-ui"
-```
+The role's create-admin and runner-registration tasks have `no_log: true` so
+the password and token are not echoed to logs even after decryption.
 
 See [Secrets Setup](setup-secrets.md) for more details.
+
+## Linting and syntax checks
+
+`ansible-lint` is wired into pre-commit and a dedicated CI workflow
+(`.gitea/workflows/ansible-lint.yaml`). Run locally with:
+
+```sh
+ansible-lint ansible/
+ansible-playbook --syntax-check -i ansible/inventories/prod/hosts.yml ansible/site.yml
+```
+
+Configuration lives in `.ansible-lint` at the repo root. The skip_list is
+seeded with rules currently violated en masse — trim it as roles get
+refactored, do not grow it.
 
 ## Running Locally
 

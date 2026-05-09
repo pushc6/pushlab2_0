@@ -1,0 +1,6 @@
+---
+# Users to add to the docker group. Override in host_vars / group_vars
+# if a host needs a different membership list.
+docker_users:
+  - push
+  - ansible

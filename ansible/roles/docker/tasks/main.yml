@@ -1,16 +1,16 @@
 ---
 - name: Install dnf-plugins-core
-  dnf:
+  ansible.builtin.dnf:
     name: dnf-plugins-core
     state: present
 
 - name: Add Docker CE repository
-  command: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  ansible.builtin.command: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
   args:
     creates: /etc/yum.repos.d/docker-ce.repo
 
 - name: Install Docker CE and plugins
-  dnf:
+  ansible.builtin.dnf:
     name:
       - docker-ce
       - docker-ce-cli
@@ -20,17 +20,14 @@
     state: present
 
 - name: Start and enable Docker service
-  service:
+  ansible.builtin.service:
     name: docker
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Add users to docker group
-  user:
+  ansible.builtin.user:
     name: "{{ item }}"
     groups: docker
-    append: yes
-  loop:
-    - push
-    - ansible
-  ignore_errors: yes
+    append: true
+  loop: "{{ docker_users }}"
