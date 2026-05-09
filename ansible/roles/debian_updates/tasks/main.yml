@@ -28,4 +28,21 @@
     post_reboot_delay: "{{ post_reboot_delay }}"
   when:
     - enable_reboot | bool
+    - not schedule_reboot | bool
+    - reboot_required_file.stat.exists
+
+- name: Schedule deferred reboot
+  ansible.builtin.command:
+    cmd: shutdown -r +{{ reboot_delay_minutes }} "Scheduled reboot after package updates"
+  when:
+    - enable_reboot | bool
+    - schedule_reboot | bool
+    - reboot_required_file.stat.exists
+
+- name: Notify scheduled reboot
+  ansible.builtin.debug:
+    msg: "Reboot scheduled in {{ reboot_delay_minutes }} minutes on {{ inventory_hostname }}"
+  when:
+    - enable_reboot | bool
+    - schedule_reboot | bool
     - reboot_required_file.stat.exists

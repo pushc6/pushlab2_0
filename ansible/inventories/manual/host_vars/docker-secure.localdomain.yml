@@ -1,6 +1,10 @@
 ---
 # Firewall configuration for docker-secure.localdomain (10.37.20.2)
 
+# Defer reboot so Semaphore can finish the Ansible run before the host restarts
+schedule_reboot: true
+reboot_delay_minutes: 15
+
 # SSH access (host-specific)
 firewall_ssh_allowed_subnets:
   - "10.37.20.0/24"   # trusted_vlan
