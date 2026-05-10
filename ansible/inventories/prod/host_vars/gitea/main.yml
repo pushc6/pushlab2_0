@@ -4,3 +4,9 @@
 # gitea_admin_username: "{{ vault_gitea_admin_username }}"
 # gitea_admin_password: "{{ vault_gitea_admin_password }}"
 # gitea_admin_email: "{{ vault_gitea_admin_email }}"
+
+# Actions runner labels. Every CI workflow targets
+# `runs-on: [self-hosted, linux, x64, alma]`, so the runner registered
+# on this host must advertise the `alma` label.
+gitea_runner_labels_extra:
+  - alma
