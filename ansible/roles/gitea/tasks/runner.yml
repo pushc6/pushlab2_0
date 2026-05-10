@@ -181,6 +181,30 @@
     creates: "{{ gitea_runner_data_dir }}/config.yaml"
   when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
 
+# act_runner's config.yaml `labels:` block overrides anything passed to
+# `act_runner register --labels ...`. The default generated config ships
+# with `linux:docker://node:22-alpine` and `host:host`, which don't match
+# the workflow `runs-on: [...]` we use. This task rewrites the labels
+# block to match `gitea_runner_labels + gitea_runner_labels_extra`,
+# executing every label on the host (workflows that need a container
+# specify it via the `container:` keyword).
+- name: Build gitea-runner labels block
+  ansible.builtin.set_fact:
+    gitea_runner_labels_block: |
+      {{ '  labels:' }}
+      {% for label in (gitea_runner_labels + (gitea_runner_labels_extra | default([]))) | unique %}
+      {{ '    - "' + label + ':host"' }}
+      {% endfor %}
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
+- name: Set gitea-runner advertised labels in config.yaml
+  ansible.builtin.replace:
+    path: "{{ gitea_runner_data_dir }}/config.yaml"
+    regexp: '(?ms)^  labels:\n(?:    - .+\n)+'
+    replace: "{{ gitea_runner_labels_block }}"
+  notify: gitea_runner_restart
+  when: (gitea_runner_use_docker) and (gitea_runner_registration_token | default("") | length > 0)
+
 - name: Register Docker-based runner (one-time)
   ansible.builtin.shell: >-
     set -euo pipefail &&

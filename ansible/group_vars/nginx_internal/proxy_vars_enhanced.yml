@@ -214,6 +214,19 @@ oauth2_services:
       - "10.37.0.0/16"
       - "192.168.0.0/16"
 
+  - name: "prusabawt"
+    domain: "prusabawt.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "8083"
+    auth_type: "none" # Backend handles its own auth
+    proxy_mode: "traditional" # Traditional proxy mode
+    ssl_domain: "push-lab.com"
+    description: "Prusabawt Discord bot"
+    category: "discord bot"
+    health_check: "/"
+    allowed_ips: [] # Empty = allow all
+    allow_http: false # Force HTTPS
+
 # Nginx proxy settings (applies to both modes)
 enhanced_proxy_nginx_config:
   proxy_timeout: "60s"

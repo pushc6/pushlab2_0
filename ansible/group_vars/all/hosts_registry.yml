@@ -259,6 +259,8 @@ public_dns_records:
         ip: "{{ host_registry.nginx_internal.ip }}"
       - name: lidarr.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"
+      - name: prusabawt.push-lab.com
+        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: radarr.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"
       - name: readarr.push-lab.com
