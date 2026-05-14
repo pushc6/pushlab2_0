@@ -1,6 +1,17 @@
 ---
-- name: Update all systems
-  hosts: all:!opnsense
+# Update the CrowdSec LAPI host first so its API is back online before
+# agent hosts upgrade — the crowdsec deb's post-install restarts the
+# service, and agents fail dpkg (rc=100) if they can't reach LAPI during
+# their own restart window. Missing crowdsec_controller group is a no-op.
+- name: Update CrowdSec LAPI host first
+  hosts: crowdsec_controller
+  become: true
+  roles:
+    - system_updates
+  tags: [updates]
+
+- name: Update all other systems
+  hosts: all:!opnsense:!crowdsec_controller
   become: true
   roles:
     - system_updates
