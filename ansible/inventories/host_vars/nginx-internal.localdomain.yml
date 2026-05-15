@@ -1,5 +1,12 @@
 ---
 # Configuration for nginx-internal.localdomain (10.37.70.24) - Internal Nginx Reverse Proxy
+# OS: RHEL 9.7 (legacy host; rebuild on AlmaLinux 10 later).
+# nginx is installed from upstream nginx.org `stable` (not the RHEL AppStream
+# package — this host lost its RHEL subscription so AppStream wasn't shipping
+# updates anyway). The .repo file at /etc/yum.repos.d/nginx.repo is hand-written.
+host_os_family: rhel
+host_os_version: "9.7"
+nginx_source: upstream-nginx-org-stable
 
 # =============================================================================
 # CrowdSec Configuration
