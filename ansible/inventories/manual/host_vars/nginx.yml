@@ -1,5 +1,12 @@
 ---
 # Configuration for nginx (10.37.70.5) - Nginx DMZ Reverse Proxy
+# OS: RHEL 9.7 (legacy host — predates the AlmaLinux 10 migration; rebuild later).
+# nginx is installed from upstream nginx.org `stable` (not the RHEL AppStream
+# module — the nginx:1.22 module stream was retired by Red Hat and stranded
+# the package). The .repo file at /etc/yum.repos.d/nginx.repo is hand-written.
+host_os_family: rhel
+host_os_version: "9.7"
+nginx_source: upstream-nginx-org-stable
 
 # =============================================================================
 # CrowdSec Configuration
