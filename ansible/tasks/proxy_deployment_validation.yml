@@ -19,8 +19,8 @@
     that:
       - oauth2_services is defined
       - oauth2_services | length > 0
-      - oauth2_proxy_host is defined
-      - oauth2_proxy_port is defined
+      - enhanced_proxy_nginx_oauth2_proxy_host is defined
+      - enhanced_proxy_nginx_oauth2_proxy_port is defined
       - ssl_certificates is defined
     fail_msg: "Required OAuth2 variables are not properly defined. Check group_vars configuration."
 

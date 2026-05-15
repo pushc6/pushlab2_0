@@ -10,9 +10,9 @@ Deployment Method: {{ deployment_method | default('Semaphore') }}
 
 OAuth2-Proxy Configuration:
 ---------------------------
-Host: {{ oauth2_proxy_host | default('unset') }}
-Port: {{ oauth2_proxy_port | default('unset') }}
-Endpoint: {% if oauth2_proxy_host is defined and oauth2_proxy_port is defined %}http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}{% else %}UNSET{% endif %}
+Host: {{ enhanced_proxy_nginx_oauth2_proxy_host | default('unset') }}
+Port: {{ enhanced_proxy_nginx_oauth2_proxy_port | default('unset') }}
+Endpoint: {% if enhanced_proxy_nginx_oauth2_proxy_host is defined and enhanced_proxy_nginx_oauth2_proxy_port is defined %}http://{{ enhanced_proxy_nginx_oauth2_proxy_host }}:{{ enhanced_proxy_nginx_oauth2_proxy_port }}{% else %}UNSET{% endif %}
 
 Services Deployed:
 ------------------

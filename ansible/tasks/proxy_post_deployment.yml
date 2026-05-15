@@ -86,22 +86,22 @@
 # FIXED OAuth2-proxy connectivity test
 - name: Test OAuth2-proxy connectivity
   ansible.builtin.uri:
-    url: "http://{{ oauth2_proxy_host }}:{{ oauth2_proxy_port }}/ping"
+    url: "http://{{ enhanced_proxy_nginx_oauth2_proxy_host }}:{{ enhanced_proxy_nginx_oauth2_proxy_port }}/ping"
     method: GET
     timeout: 10
   register: oauth2_ping
   failed_when: false
   ignore_errors: true
   when:
-    - oauth2_proxy_host is defined
-    - oauth2_proxy_port is defined
+    - enhanced_proxy_nginx_oauth2_proxy_host is defined
+    - enhanced_proxy_nginx_oauth2_proxy_port is defined
 
 # Calculate OAuth2 status safely
 - name: Determine OAuth2-proxy status
   ansible.builtin.set_fact:
     oauth2_status_code: "{{ oauth2_ping.get('status', 0) if oauth2_ping is defined else 0 }}"
     oauth2_status_msg: >-
-      {%- if oauth2_proxy_host is not defined or oauth2_proxy_port is not defined -%}
+      {%- if enhanced_proxy_nginx_oauth2_proxy_host is not defined or enhanced_proxy_nginx_oauth2_proxy_port is not defined -%}
         NOT CONFIGURED
       {%- elif oauth2_ping is not defined -%}
         NOT TESTED
