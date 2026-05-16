@@ -49,6 +49,24 @@ Workflows: `.gitea/workflows/`
 - Manual VM redeployment workflow
 - Destroys and recreates specific VMs
 
+## Adding a Workflow That Runs `packer build`
+
+Any new workflow that invokes `packer build` against vSphere **must** use this runner pattern:
+
+```yaml
+runs-on: [self-hosted, linux, x64, packer-vm]   # bare-metal on packer_builder VM
+# do NOT set `container:` for this job
+env:
+  PACKER_HTTP_ADDR: "10.37.80.5"                # packer_builder's VLAN 80 IP
+```
+
+Why: Packer hosts the kickstart over HTTP, and the vSphere VM being built must reach
+that listener. Container runners get a Docker-bridge IP (e.g. `172.18.0.2`) which is
+not routable from the VLAN; the install hangs at the kickstart fetch.
+
+Reference implementations: `orchestrate-push.yaml`, `orchestrate-dispatch.yaml`,
+`rebuild-packer-images.yaml` (all use the same pattern).
+
 ## Secrets Required
 
 | Secret | Purpose |

@@ -79,10 +79,12 @@ locals {
     ["      dhcp4: false"],
     ["      addresses:"],
     ["        - ${var.ipv4_address}/${var.ipv4_netmask}"],
-    # Use modern routes syntax instead of deprecated gateway4
+    # Use modern routes syntax instead of deprecated gateway4.
+    # Use `to: 0.0.0.0/0` not `to: default` — cloud-init's v2→v1 converter
+    # treats the string "default" as an IP literal and fails parsing.
     length(local.effective_primary_gateway) > 0 ? [
       "      routes:",
-      "        - to: default",
+      "        - to: 0.0.0.0/0",
       "          via: ${local.effective_primary_gateway}"
     ] : [],
     length(var.dns_server_list) > 0 ? concat(
@@ -99,10 +101,11 @@ locals {
         ["      dhcp4: false"],
         ["      addresses:"],
         ["        - ${iface.ipv4_address}/${iface.ipv4_netmask}"],
-        # Use modern routes syntax for gateway on additional interfaces
+        # Use modern routes syntax for gateway on additional interfaces.
+        # See note above on `to: 0.0.0.0/0` vs `to: default`.
         iface.ipv4_gateway != "" && iface.ipv4_gateway != null ? [
           "      routes:",
-          "        - to: default",
+          "        - to: 0.0.0.0/0",
           "          via: ${iface.ipv4_gateway}"
         ] : []
       )

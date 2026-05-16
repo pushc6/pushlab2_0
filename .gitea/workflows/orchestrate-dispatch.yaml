@@ -41,8 +41,12 @@ jobs:
           terraform -chdir=terraform/envs/prod validate
 
   packer-build:
-    runs-on: [self-hosted, linux, x64, alma]
-    container: almalinux-cicd:latest
+    # Packer's HTTP kickstart server must be reachable from the VM being built.
+    # Run bare-metal on the packer-vm runner (packer_builder VM, 10.37.80.5) and
+    # pin PACKER_HTTP_ADDR to that IP. Container runners get a Docker-bridge IP
+    # (e.g. 172.18.0.2) which the vSphere VM cannot route to — install hangs.
+    # Any new workflow that runs `packer build` must follow this same pattern.
+    runs-on: [self-hosted, linux, x64, packer-vm]
     needs: [validate]
     steps:
       - name: Checkout
@@ -73,6 +77,7 @@ jobs:
           VSPHERE_USER: ${{ secrets.VSPHERE_USER }}
           VSPHERE_PASSWORD: ${{ secrets.VSPHERE_PASSWORD }}
           SSH_PUBLIC_KEY: ${{ env.SSH_PUBLIC_KEY }}
+          PACKER_HTTP_ADDR: "10.37.80.5"
         run: |
           if [ -z "${VCENTER_SERVER:-}" ] || [ -z "${VSPHERE_USER:-}" ] || [ -z "${VSPHERE_PASSWORD:-}" ]; then
             echo "Missing required Packer inputs: VCENTER_SERVER, VSPHERE_USER, or VSPHERE_PASSWORD not set (check Gitea secrets/variables)." >&2
