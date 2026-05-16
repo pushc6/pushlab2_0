@@ -39,7 +39,7 @@
 
 - name: Run Gitea Configuration
   import_playbook: gitea.yml
-  when: "'gitea' in groups"
+  when: "'gitea' in hostvars"
   tags: ["gitea", "apps"]
 
 - name: Run Manual Host Onboarding
@@ -49,5 +49,5 @@
 
 - name: Deploy Technitium
   import_playbook: technitium.yml
-  when: "'dns02' in groups"
+  when: "'dns02' in hostvars"
   tags: ["technitium", "apps"]
