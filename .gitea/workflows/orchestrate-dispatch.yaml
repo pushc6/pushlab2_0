@@ -155,10 +155,11 @@ jobs:
         env:
           TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
           TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
-          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          TF_VAR_ssh_private_key: ${{ secrets.TF_SSH_PRIVATE_KEY || secrets.SSH_PRIVATE_KEY }}
           # Inject pubkey into cloud-init so fresh clones are reachable
           # before Ansible's system_users role has run (emergency access).
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          # Pubkey is non-sensitive — prefer vars.TF_SSH_PUBLIC_KEY for auditability.
+          TF_VAR_ssh_public_key: ${{ vars.TF_SSH_PUBLIC_KEY || secrets.TF_SSH_PUBLIC_KEY || secrets.SSH_PUBLIC_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
