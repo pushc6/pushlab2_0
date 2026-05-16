@@ -10,3 +10,10 @@
 # on this host must advertise the `alma` label.
 gitea_runner_labels_extra:
   - alma
+
+# Secondary disk for repositories and app data. Must match the Terraform
+# `data_disk_size_gb`, `data_mount_point`, and `data_fs_type` values in
+# terraform/envs/prod/prod.tfvars so the role can identify and mount it.
+data_disk_size_gb: 50
+mount_data_disk_mount_point: /var/lib/gitea
+mount_data_disk_fs_type: xfs

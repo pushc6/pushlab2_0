@@ -5,6 +5,11 @@
     state: directory
     mode: "0755"
 
+- name: Enable EPEL (required for python3-docker on AlmaLinux/RHEL)
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
 - name: Install Python Docker SDK
   ansible.builtin.dnf:
     name: python3-docker
