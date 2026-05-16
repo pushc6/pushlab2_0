@@ -1,7 +1,7 @@
 ---
 - name: Ensure Technitium config directory exists
   ansible.builtin.file:
-    path: /opt/technitium/config
+    path: "{{ technitium_config_dir }}"
     state: directory
     mode: "0755"
 
@@ -13,12 +13,12 @@
 - name: Deploy Technitium DNS Server
   community.docker.docker_container:
     name: dns-server
-    image: technitium/dns-server:14.2
+    image: "{{ technitium_image }}"
     state: started
     restart_policy: unless-stopped
     network_mode: host
     volumes:
-      - /opt/technitium/config:/etc/dns
+      - "{{ technitium_config_dir }}:/etc/dns"
     env:
-      DNS_SERVER_DOMAIN: "dns02.localdomain"
-      DNS_SERVER_WEB_SERVICE_LOCAL_ADDRESSES: "10.37.10.254"
+      DNS_SERVER_DOMAIN: "{{ technitium_dns_domain }}"
+      DNS_SERVER_WEB_SERVICE_LOCAL_ADDRESSES: "{{ technitium_web_service_local_addresses }}"

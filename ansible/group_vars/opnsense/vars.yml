@@ -106,10 +106,10 @@ opnsense_firewall_terraform_rules:
     port: 22
     interface: dmz_vlan # Use friendly name - will be mapped to opt7
 
-  - name: "SSH from Ansible to DNS02 (cross-site)"
+  - name: "SSH from Ansible to DNS02 (cross-VLAN)"
     description: "Allow Ansible SSH to DNS02"
     source: "semaphore" # 10.37.70.x (DMZ)
-    destination: "dns02" # 10.37.10.x (Different network)
+    destination: "dns02" # 10.37.80.254 (multi-homed; App VLAN IP used for cross-VLAN reach)
     protocol: tcp
     port: 22
     interface: dmz_vlan # Use friendly name - will be mapped to opt1
@@ -156,9 +156,9 @@ opnsense_firewall_terraform_rules:
     interface: dmz_vlan
 
   - name: "SSH from Semaphore to DNS02 (cross-VLAN)"
-    description: "Allow Semaphore SSH to DNS02 in Trusted VLAN"
+    description: "Allow Semaphore SSH to DNS02 (multi-homed; reached via App VLAN)"
     source: "semaphore" # 10.37.70.25 (DMZ)
-    destination: "dns02" # 10.37.20.2 (Trusted VLAN)
+    destination: "dns02" # 10.37.80.254 (App VLAN)
     protocol: tcp
     port: 22
     interface: dmz_vlan

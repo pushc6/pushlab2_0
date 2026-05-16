@@ -1,5 +1,8 @@
 ---
-# Firewall configuration for dns02 (10.37.20.2) - Technitium DNS Server
+# Firewall configuration for dns02 - Technitium DNS Server.
+# Multi-homed across all VLANs (10.37.X.254 on each); Ansible reaches it via
+# the App VLAN interface 10.37.80.254. Technitium :5380 admin binds on the
+# Trusted (10.37.20.254) and App (10.37.80.254) VLANs; DNS :53 listens on all.
 
 # SSH access (host-specific)
 firewall_hardened_ssh_allowed_subnets:
@@ -24,7 +27,16 @@ firewall_hardened_services:
     sources:
       - "10.37.0.0/16"
 
+  # Technitium web admin UI from a workstation in the Trusted VLAN.
   - port: 5380
     protocol: tcp
     name: "Technitium Web Console"
     access: trusted_vlan
+
+  # Technitium API for Semaphore-driven automation (technitium_dns_sync role).
+  - port: 5380
+    protocol: tcp
+    name: "Technitium API (Semaphore)"
+    access: custom
+    sources:
+      - "10.37.70.25/32" # semaphore
