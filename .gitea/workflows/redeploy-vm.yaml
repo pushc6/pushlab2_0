@@ -15,7 +15,7 @@ on:
 
 jobs:
   redeploy:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, x64, alma]
     container:
       image: almalinux-cicd:latest
     
