@@ -1,5 +1,5 @@
 ---
-- name: Reload firewalld
+- name: reload firewalld
   ansible.builtin.service:
     name: firewalld
     state: reloaded
