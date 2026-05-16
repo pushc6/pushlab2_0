@@ -5,15 +5,18 @@
     state: directory
     mode: "0755"
 
-- name: Enable EPEL (required for python3-docker on AlmaLinux/RHEL)
+- name: Ensure pip is installed
   ansible.builtin.dnf:
-    name: epel-release
+    name: python3-pip
     state: present
 
-- name: Install Python Docker SDK
-  ansible.builtin.dnf:
-    name: python3-docker
+- name: Install Python Docker SDK via pip
+  # EPEL 10 does not yet package python3-docker; pip is the portable path.
+  # --break-system-packages is required on EL10 (PEP 668 externally-managed env).
+  ansible.builtin.pip:
+    name: docker
     state: present
+    extra_args: --break-system-packages
 
 - name: Deploy Technitium DNS Server
   community.docker.docker_container:
