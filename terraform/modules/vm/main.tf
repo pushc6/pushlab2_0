@@ -59,6 +59,11 @@ locals {
   effective_primary_gateway = local.additional_has_gateway ? "" : var.ipv4_gateway
 
   metadata_yaml = var.use_cloud_init && length(var.ipv4_address) > 0 ? join("\n", concat(
+    # Unique per-VM instance-id forces cloud-init to detect a new instance on
+    # clone and run per-instance modules (network config, SSH key injection).
+    # Without this, a cached instance-id from the template can cause cloud-init
+    # to skip those modules and the VM falls back to DHCP.
+    ["instance-id: ${var.vm_name}"],
     ["local-hostname: ${var.vm_name}"],
     ["network:"],
     ["  version: 2"],

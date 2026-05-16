@@ -6,6 +6,13 @@ echo "=== Starting template cleanup ==="
 # Clean package cache
 dnf clean all
 
+# Clear cloud-init state so cloned VMs boot as a fresh instance.
+# Without this, the cached instance-id from the Packer build boot persists in
+# /var/lib/cloud/, and on clone cloud-init thinks it's already-applied and
+# skips per-instance modules — i.e. static network config and SSH key
+# injection are dropped, falling back to DHCP and template SSH keys only.
+cloud-init clean --logs --seed || true
+
 # Remove machine-specific configuration
 # Ensure a fresh machine-id on first boot: zero out /etc/machine-id and remove DBus copy
 rm -f /var/lib/dbus/machine-id
