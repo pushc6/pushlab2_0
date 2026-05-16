@@ -10,7 +10,9 @@ firewall_hardened_ssh_allowed_subnets:
 
 # Public services (no source restrictions)
 firewall_hardened_public_services:
-  - mdns # mDNS/Avahi multicast service discovery (required for printer auto-discovery)
+  - port: 5353
+    protocol: udp
+    name: "mDNS (Avahi) - printer auto-discovery"
 
 # Using unified firewall_hardened_services structure with rich rules
 firewall_hardened_services:
