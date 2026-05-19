@@ -1,0 +1,62 @@
+{
+  "response": {
+    "zone": {
+      "name": "patreons7.club",
+      "type": "Forwarder",
+      "lastModified": "2025-06-06T12:43:47.259Z",
+      "disabled": false,
+      "soaSerial": 2,
+      "catalog": null,
+      "notifyFailed": false,
+      "notifyFailedFor": []
+    },
+    "records": [
+      {
+        "name": "patreons7.club",
+        "type": "SOA",
+        "ttl": 0,
+        "ttlString": "0s",
+        "disabled": false,
+        "rData": {
+          "primaryNameServer": "dns01.push-lab.com",
+          "responsiblePerson": "invalid",
+          "serial": 2,
+          "refresh": 900,
+          "retry": 300,
+          "expire": 604800,
+          "minimum": 900,
+          "refreshString": "15m",
+          "retryString": "5m",
+          "expireString": "1w",
+          "minimumString": "15m",
+          "useSerialDateScheme": false
+        },
+        "dnssecStatus": "Unknown",
+        "lastUsedOn": "0001-01-01T00:00:00",
+        "lastModified": "2025-06-06T12:43:37.341Z",
+        "expiryTtl": 0,
+        "expiryTtlString": "0s"
+      },
+      {
+        "name": "patreons7.club",
+        "type": "FWD",
+        "ttl": 0,
+        "ttlString": "0s",
+        "disabled": false,
+        "rData": {
+          "protocol": "Udp",
+          "forwarder": "this-server",
+          "priority": 0,
+          "dnssecValidation": true,
+          "proxyType": "DefaultProxy"
+        },
+        "dnssecStatus": "Unknown",
+        "lastUsedOn": "2026-05-17T16:43:04.7015061Z",
+        "lastModified": "2025-06-06T12:43:47.259Z",
+        "expiryTtl": 0,
+        "expiryTtlString": "0s"
+      }
+    ]
+  },
+  "status": "ok"
+}

@@ -1,0 +1,205 @@
+{
+  "response": {
+    "zones": [
+      {
+        "name": "0.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2026-05-15T15:26:19.4374628Z",
+        "disabled": false,
+        "soaSerial": 1,
+        "internal": true,
+        "catalog": null,
+        "dnssecStatus": "Unsigned"
+      },
+      {
+        "name": "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+        "type": "Primary",
+        "lastModified": "2026-05-15T15:26:19.441854Z",
+        "disabled": false,
+        "soaSerial": 1,
+        "internal": true,
+        "catalog": null,
+        "dnssecStatus": "Unsigned"
+      },
+      {
+        "name": "10.37.10.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2026-05-18T20:35:31.2844433Z",
+        "disabled": false,
+        "soaSerial": 6886,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "127.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2026-05-15T15:26:19.4394057Z",
+        "disabled": false,
+        "soaSerial": 1,
+        "internal": true,
+        "catalog": null,
+        "dnssecStatus": "Unsigned"
+      },
+      {
+        "name": "20.37.10.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2026-05-18T23:45:03.0751374Z",
+        "disabled": false,
+        "soaSerial": 122876,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "255.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2026-05-15T15:26:19.43778Z",
+        "disabled": false,
+        "soaSerial": 1,
+        "internal": true,
+        "catalog": null,
+        "dnssecStatus": "Unsigned"
+      },
+      {
+        "name": "30.37.10.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2025-06-06T00:21:51.041Z",
+        "disabled": false,
+        "soaSerial": 8,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "40.37.10.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2025-08-02T01:15:59.701Z",
+        "disabled": false,
+        "soaSerial": 3,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "50.37.10.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2026-05-18T23:51:44.5057703Z",
+        "disabled": false,
+        "soaSerial": 75291,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "60.37.10.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2025-12-11T14:25:48.962Z",
+        "disabled": false,
+        "soaSerial": 23,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "70.37.10.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2026-05-18T22:09:29.0688006Z",
+        "disabled": false,
+        "soaSerial": 10445,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "80.37.10.in-addr.arpa",
+        "type": "Primary",
+        "lastModified": "2025-11-13T21:41:01.258Z",
+        "disabled": false,
+        "soaSerial": 40,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "localdomain",
+        "type": "Primary",
+        "lastModified": "2026-05-18T23:51:44.5057201Z",
+        "disabled": false,
+        "soaSerial": 215525,
+        "internal": false,
+        "catalog": null,
+        "dnssecStatus": "Unsigned",
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "localhost",
+        "type": "Primary",
+        "lastModified": "2026-05-15T15:26:19.4374601Z",
+        "disabled": false,
+        "soaSerial": 1,
+        "internal": true,
+        "catalog": null,
+        "dnssecStatus": "Unsigned"
+      },
+      {
+        "name": "patreons7.club",
+        "type": "Forwarder",
+        "lastModified": "2025-06-06T12:43:47.259Z",
+        "disabled": false,
+        "soaSerial": 2,
+        "catalog": null,
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "push-lab.com",
+        "type": "Forwarder",
+        "lastModified": "2026-03-07T20:51:12.743Z",
+        "disabled": false,
+        "soaSerial": 18,
+        "catalog": null,
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "rangernet.dev",
+        "type": "Forwarder",
+        "lastModified": "2026-01-28T16:25:45.564Z",
+        "disabled": false,
+        "soaSerial": 6,
+        "catalog": null,
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      },
+      {
+        "name": "ryanpampush.com",
+        "type": "Forwarder",
+        "lastModified": "2025-06-06T12:42:48.724Z",
+        "disabled": false,
+        "soaSerial": 4,
+        "catalog": null,
+        "notifyFailed": false,
+        "notifyFailedFor": []
+      }
+    ]
+  },
+  "status": "ok"
+}

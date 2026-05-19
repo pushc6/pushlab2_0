@@ -1,0 +1,50 @@
+---
+# Enforce DHCP `offerDelayTime` on every existing scope via the Technitium API.
+# Used on a hot-standby instance so it waits N ms before answering DHCPDISCOVER,
+# letting the primary win the race when both are up.
+# Scopes themselves are not created here -- only the offer-delay field is set
+# on whatever scopes already exist.
+
+- name: Fetch DHCP scopes from Technitium API
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/dhcp/scopes/list"
+    method: GET
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+    return_content: true
+    status_code: 200
+  register: technitium_dhcp_scopes_list
+  no_log: true
+
+- name: Read each scope's current settings
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/dhcp/scopes/get"
+    method: GET
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      name: "{{ item.name }}"
+    return_content: true
+    status_code: 200
+  loop: "{{ technitium_dhcp_scopes_list.json.response.scopes | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: technitium_dhcp_scope_state
+  no_log: true
+
+- name: Enforce DHCP offer delay on scopes with drift
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/dhcp/scopes/set"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      name: "{{ item.json.response.name }}"
+      offerDelayTime: "{{ technitium_dhcp_offer_delay_ms }}"
+    status_code: 200
+  loop: "{{ technitium_dhcp_scope_state.results }}"
+  loop_control:
+    label: "{{ item.json.response.name }} ({{ item.json.response.offerDelayTime | default(0) }} -> {{ technitium_dhcp_offer_delay_ms }})"
+  when: (item.json.response.offerDelayTime | default(0)) != technitium_dhcp_offer_delay_ms
+  no_log: false

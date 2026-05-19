@@ -1,0 +1,129 @@
+{
+  "response": {
+    "name": "VLAN70 (DMZ)",
+    "startingAddress": "10.37.70.1",
+    "endingAddress": "10.37.70.254",
+    "subnetMask": "255.255.255.0",
+    "leaseTimeDays": 1,
+    "leaseTimeHours": 0,
+    "leaseTimeMinutes": 0,
+    "offerDelayTime": 0,
+    "pingCheckEnabled": true,
+    "pingCheckTimeout": 1000,
+    "pingCheckRetries": 2,
+    "domainName": "localdomain",
+    "dnsUpdates": true,
+    "dnsTtl": 900,
+    "routerAddress": "10.37.70.1",
+    "useThisDnsServer": true,
+    "dnsServers": [
+      "10.37.70.2"
+    ],
+    "exclusions": [
+      {
+        "startingAddress": "10.37.70.1",
+        "endingAddress": "10.37.70.40"
+      },
+      {
+        "startingAddress": "10.37.70.250",
+        "endingAddress": "10.37.70.254"
+      }
+    ],
+    "reservedLeases": [
+      {
+        "hostName": "nginx",
+        "hardwareAddress": "00-50-56-BC-A7-9F",
+        "address": "10.37.70.5",
+        "comments": "nginx"
+      },
+      {
+        "hostName": "docker",
+        "hardwareAddress": "00-0C-29-8F-C2-71",
+        "address": "10.37.70.7",
+        "comments": "Docker VM"
+      },
+      {
+        "hostName": "linuxgameserver",
+        "hardwareAddress": "00-50-56-BC-2C-2A",
+        "address": "10.37.70.19",
+        "comments": "amp game server"
+      },
+      {
+        "hostName": "homeassistant",
+        "hardwareAddress": "00-50-56-BC-96-88",
+        "address": "10.37.70.20",
+        "comments": "home assistant"
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "00-50-56-BC-88-3E",
+        "address": "10.37.70.21",
+        "comments": null
+      },
+      {
+        "hostName": "freenas",
+        "hardwareAddress": "90-E2-BA-49-37-F8",
+        "address": "10.37.70.22",
+        "comments": "freenas"
+      },
+      {
+        "hostName": "nginx-internal",
+        "hardwareAddress": "00-50-56-BC-9F-2A",
+        "address": "10.37.70.24",
+        "comments": "nginx-internal"
+      },
+      {
+        "hostName": "docker-internal",
+        "hardwareAddress": "00-50-56-BC-07-EF",
+        "address": "10.37.70.25",
+        "comments": "docker-internal"
+      },
+      {
+        "hostName": "crowdsec",
+        "hardwareAddress": "00-50-56-BC-03-C7",
+        "address": "10.37.70.26",
+        "comments": "crowdsec"
+      },
+      {
+        "hostName": "ansible",
+        "hardwareAddress": "00-0C-29-F0-50-DD",
+        "address": "10.37.70.27",
+        "comments": "ansible automation platform"
+      },
+      {
+        "hostName": "prusa3dbawkz",
+        "hardwareAddress": "00-50-56-BC-1E-AB",
+        "address": "10.37.70.28",
+        "comments": "prusa 3d nc"
+      },
+      {
+        "hostName": "slimboi iscsi pg1",
+        "hardwareAddress": "00-50-56-66-9A-3B",
+        "address": "10.37.70.29",
+        "comments": null
+      },
+      {
+        "hostName": "slimboi iscsi pg2",
+        "hardwareAddress": "00-50-56-64-AD-57",
+        "address": "10.37.70.30",
+        "comments": null
+      },
+      {
+        "hostName": "chonkyboi iscsi pg1",
+        "hardwareAddress": "00-50-56-66-DA-36",
+        "address": "10.37.70.31",
+        "comments": null
+      },
+      {
+        "hostName": "chonkyboi iscsi pg2",
+        "hardwareAddress": "00-50-56-62-6B-03",
+        "address": "10.37.70.32",
+        "comments": null
+      }
+    ],
+    "allowOnlyReservedLeases": false,
+    "blockLocallyAdministeredMacAddresses": false,
+    "ignoreClientIdentifierOption": true
+  },
+  "status": "ok"
+}

@@ -17,3 +17,13 @@ vault_komodo_passkey: "changeme"
 vault_komodo_webhook_secret: "changeme"
 vault_komodo_jwt_secret: "changeme"
 vault_komodo_admin_password: "changeme"
+
+# Technitium DNS API tokens.
+# Primary path is Semaphore environment variables:
+#   TECHNITIUM_API_TOKEN_DNS01
+#   TECHNITIUM_API_TOKEN_DNS02
+# These vault entries are the local-run fallback (`default(vault_..., true)`
+# in host_vars/dns02.yml). Generate tokens in each Technitium web UI under
+# Administration -> Users -> non-expiring token.
+vault_technitium_api_token_dns01: "changeme"
+vault_technitium_api_token_dns02: "changeme"

@@ -1,0 +1,23 @@
+{
+  "response": {
+    "name": "80.37.10.in-addr.arpa",
+    "type": "Primary",
+    "internal": false,
+    "dnssecStatus": "Unsigned",
+    "notifyFailed": false,
+    "notifyFailedFor": [],
+    "disabled": false,
+    "catalog": null,
+    "queryAccess": "Allow",
+    "queryAccessNetworkACL": [],
+    "zoneTransfer": "AllowOnlyZoneNameServers",
+    "zoneTransferNetworkACL": [],
+    "zoneTransferTsigKeyNames": [],
+    "notify": "ZoneNameServers",
+    "notifyNameServers": [],
+    "update": "Deny",
+    "updateNetworkACL": [],
+    "updateSecurityPolicies": []
+  },
+  "status": "ok"
+}

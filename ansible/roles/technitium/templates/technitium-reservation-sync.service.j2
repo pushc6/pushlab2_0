@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Mirror DHCP reservations from {{ technitium_reservation_sync_primary_host }} to local Technitium
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/technitium-reservation-sync/config.env
+ExecStart=/usr/local/bin/technitium_reservation_sync.py

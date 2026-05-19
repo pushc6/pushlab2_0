@@ -1,0 +1,14 @@
+{
+  "response": {
+    "displayName": "automation",
+    "username": "automation",
+    "disabled": false,
+    "previousSessionLoggedOn": "2026-01-27T02:55:02.891Z",
+    "previousSessionRemoteAddress": "10.37.20.41",
+    "recentSessionLoggedOn": "2026-01-27T02:55:19.08Z",
+    "recentSessionRemoteAddress": "10.37.20.41",
+    "sessionTimeoutSeconds": 1800,
+    "memberOfGroups": []
+  },
+  "status": "ok"
+}

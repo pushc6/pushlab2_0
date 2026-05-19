@@ -1,0 +1,19 @@
+{
+  "response": {
+    "groups": [
+      {
+        "name": "Administrators",
+        "description": "Super administrators"
+      },
+      {
+        "name": "DHCP Administrators",
+        "description": "DHCP service administrators"
+      },
+      {
+        "name": "DNS Administrators",
+        "description": "DNS service administrators"
+      }
+    ]
+  },
+  "status": "ok"
+}

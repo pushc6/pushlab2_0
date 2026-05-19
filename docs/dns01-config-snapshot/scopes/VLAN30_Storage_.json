@@ -1,0 +1,38 @@
+{
+  "response": {
+    "name": "VLAN30 (Storage)",
+    "startingAddress": "10.37.30.1",
+    "endingAddress": "10.37.30.254",
+    "subnetMask": "255.255.255.0",
+    "leaseTimeDays": 1,
+    "leaseTimeHours": 0,
+    "leaseTimeMinutes": 0,
+    "offerDelayTime": 0,
+    "pingCheckEnabled": true,
+    "pingCheckTimeout": 1000,
+    "pingCheckRetries": 2,
+    "domainName": "localdomain",
+    "dnsUpdates": true,
+    "dnsTtl": 900,
+    "routerAddress": "10.37.30.1",
+    "useThisDnsServer": true,
+    "dnsServers": [
+      "10.37.30.2"
+    ],
+    "exclusions": [
+      {
+        "startingAddress": "10.37.30.1",
+        "endingAddress": "10.37.30.40"
+      },
+      {
+        "startingAddress": "10.37.30.250",
+        "endingAddress": "10.37.30.254"
+      }
+    ],
+    "reservedLeases": [],
+    "allowOnlyReservedLeases": false,
+    "blockLocallyAdministeredMacAddresses": false,
+    "ignoreClientIdentifierOption": true
+  },
+  "status": "ok"
+}

@@ -1,0 +1,99 @@
+{
+  "response": {
+    "name": "VLAN10 (Management)",
+    "startingAddress": "10.37.10.1",
+    "endingAddress": "10.37.10.254",
+    "subnetMask": "255.255.255.0",
+    "leaseTimeDays": 1,
+    "leaseTimeHours": 0,
+    "leaseTimeMinutes": 0,
+    "offerDelayTime": 0,
+    "pingCheckEnabled": true,
+    "pingCheckTimeout": 1000,
+    "pingCheckRetries": 2,
+    "domainName": "localdomain",
+    "dnsUpdates": true,
+    "dnsTtl": 900,
+    "routerAddress": "10.37.10.1",
+    "useThisDnsServer": true,
+    "dnsServers": [
+      "10.37.10.2"
+    ],
+    "exclusions": [
+      {
+        "startingAddress": "10.37.10.1",
+        "endingAddress": "10.37.10.40"
+      },
+      {
+        "startingAddress": "10.37.10.250",
+        "endingAddress": "10.37.10.254"
+      }
+    ],
+    "reservedLeases": [
+      {
+        "hostName": null,
+        "hardwareAddress": "00-50-56-BC-D3-86",
+        "address": "10.37.10.3",
+        "comments": null
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "78-2B-CB-63-26-8F",
+        "address": "10.37.10.9",
+        "comments": "r510 idrac"
+      },
+      {
+        "hostName": "gxt5-2000",
+        "hardwareAddress": "00-09-F5-2E-AA-0F",
+        "address": "10.37.10.12",
+        "comments": "Vertiv UPS"
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "74-E6-E2-FD-F9-26",
+        "address": "10.37.10.13",
+        "comments": "r630 idrac"
+      },
+      {
+        "hostName": "ruckusapoffice",
+        "hardwareAddress": "28-B3-71-37-51-D0",
+        "address": "10.37.10.14",
+        "comments": "ruckus ap office"
+      },
+      {
+        "hostName": "ruckusapbasement",
+        "hardwareAddress": "28-B3-71-36-BD-F0",
+        "address": "10.37.10.15",
+        "comments": "ruck ap basement"
+      },
+      {
+        "hostName": "idrac-589ZWK2",
+        "hardwareAddress": "D0-94-66-04-94-66",
+        "address": "10.37.10.20",
+        "comments": "r740xd idrac"
+      },
+      {
+        "hostName": "idrac-DCRKN22",
+        "hardwareAddress": "B0-83-FE-C4-15-69",
+        "address": "10.37.10.21",
+        "comments": "r320 idrac"
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "F4-1E-57-70-D0-FE",
+        "address": "10.37.10.22",
+        "comments": null
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "00-0C-29-60-09-A3",
+        "address": "10.37.10.35",
+        "comments": "vsphere"
+      }
+    ],
+    "allowOnlyReservedLeases": false,
+    "blockLocallyAdministeredMacAddresses": false,
+    "ignoreClientIdentifierOption": true
+  },
+  "status": "ok"
+}

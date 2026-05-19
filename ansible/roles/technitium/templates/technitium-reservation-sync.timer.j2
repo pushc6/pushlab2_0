@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Run Technitium reservation sync every {{ technitium_reservation_sync_interval }}
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec={{ technitium_reservation_sync_interval }}
+RandomizedDelaySec={{ technitium_reservation_sync_randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

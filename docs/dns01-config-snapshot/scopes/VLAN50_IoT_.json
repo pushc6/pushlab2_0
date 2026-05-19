@@ -1,0 +1,225 @@
+{
+  "response": {
+    "name": "VLAN50 (IoT)",
+    "startingAddress": "10.37.50.1",
+    "endingAddress": "10.37.50.254",
+    "subnetMask": "255.255.255.0",
+    "leaseTimeDays": 1,
+    "leaseTimeHours": 0,
+    "leaseTimeMinutes": 0,
+    "offerDelayTime": 0,
+    "pingCheckEnabled": true,
+    "pingCheckTimeout": 1000,
+    "pingCheckRetries": 2,
+    "domainName": "localdomain",
+    "dnsUpdates": true,
+    "dnsTtl": 900,
+    "routerAddress": "10.37.50.1",
+    "useThisDnsServer": true,
+    "dnsServers": [
+      "10.37.50.2"
+    ],
+    "exclusions": [
+      {
+        "startingAddress": "10.37.50.1",
+        "endingAddress": "10.37.50.40"
+      },
+      {
+        "startingAddress": "10.37.50.250",
+        "endingAddress": "10.37.50.254"
+      }
+    ],
+    "reservedLeases": [
+      {
+        "hostName": null,
+        "hardwareAddress": "E4-5F-01-3D-A6-49",
+        "address": "10.37.50.3",
+        "comments": "baby t teslausb"
+      },
+      {
+        "hostName": "tvups",
+        "hardwareAddress": "B8-27-EB-74-C7-1F",
+        "address": "10.37.50.4",
+        "comments": "tv ups"
+      },
+      {
+        "hostName": "orcadummy",
+        "hardwareAddress": "DC-A6-32-04-75-D9",
+        "address": "10.37.50.5",
+        "comments": "orca"
+      },
+      {
+        "hostName": "BRNB4220008BCD3",
+        "hardwareAddress": "B4-22-00-08-BC-D3",
+        "address": "10.37.50.6",
+        "comments": "brother printer"
+      },
+      {
+        "hostName": "mainsailos",
+        "hardwareAddress": "DC-A6-32-04-75-D8",
+        "address": "10.37.50.7",
+        "comments": "voron 1214"
+      },
+      {
+        "hostName": "StreamBox",
+        "hardwareAddress": "64-00-6A-8D-DD-56",
+        "address": "10.37.50.8",
+        "comments": "streambox"
+      },
+      {
+        "hostName": "cupsserver",
+        "hardwareAddress": "D8-3A-DD-AA-58-06",
+        "address": "10.37.50.9",
+        "comments": "CUPS print server"
+      },
+      {
+        "hostName": "teslausb-snoopy",
+        "hardwareAddress": "E4-5F-01-50-CB-0C",
+        "address": "10.37.50.10",
+        "comments": "teslausb snoopy"
+      },
+      {
+        "hostName": "Tesla_Model_S",
+        "hardwareAddress": "4C-FC-AA-55-41-CB",
+        "address": "10.37.50.11",
+        "comments": "snoopy"
+      },
+      {
+        "hostName": "raspberrypi-ha",
+        "hardwareAddress": "DC-A6-32-04-B4-CA",
+        "address": "10.37.50.12",
+        "comments": "pi-ha"
+      },
+      {
+        "hostName": "speedierboi",
+        "hardwareAddress": "DC-A6-32-D5-C4-8B",
+        "address": "10.37.50.13",
+        "comments": "speedierboi"
+      },
+      {
+        "hostName": "AWAIR-ELEM-1A080D",
+        "hardwareAddress": "70-88-6B-1A-08-0D",
+        "address": "10.37.50.14",
+        "comments": "awair elem"
+      },
+      {
+        "hostName": "AWAIR-ELEM-148C82",
+        "hardwareAddress": "70-88-6B-14-8C-82",
+        "address": "10.37.50.15",
+        "comments": "awair elem"
+      },
+      {
+        "hostName": "EzierBoi",
+        "hardwareAddress": "50-41-1C-88-E8-8C",
+        "address": "10.37.50.16",
+        "comments": "bambu x1c"
+      },
+      {
+        "hostName": "EntertamentRoom",
+        "hardwareAddress": "C8-D0-83-BB-DC-D5",
+        "address": "10.37.50.17",
+        "comments": "apple tv entertainment room"
+      },
+      {
+        "hostName": "Living-Room",
+        "hardwareAddress": "9C-3E-53-12-05-A7",
+        "address": "10.37.50.18",
+        "comments": "apple tv living room"
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "CC-88-26-18-BF-1D",
+        "address": "10.37.50.20",
+        "comments": "baby t 2.0"
+      },
+      {
+        "hostName": "scrypted",
+        "hardwareAddress": "BC-24-11-B5-D7-8A",
+        "address": "10.37.50.23",
+        "comments": "scrypted"
+      },
+      {
+        "hostName": "00178849c1cf",
+        "hardwareAddress": "00-17-88-49-C1-CF",
+        "address": "10.37.50.24",
+        "comments": "philips hue"
+      },
+      {
+        "hostName": "roborock-vacuum-a144",
+        "hardwareAddress": "B0-4A-39-DD-74-90",
+        "address": "10.37.50.25",
+        "comments": "roborock vacuum"
+      },
+      {
+        "hostName": "apollo-msr-1-cb91b0",
+        "hardwareAddress": "DC-DA-0C-CB-91-B0",
+        "address": "10.37.50.26",
+        "comments": "apollo presence sensor"
+      },
+      {
+        "hostName": "C110_18CBDA",
+        "hardwareAddress": "5C-E9-31-18-CB-DA",
+        "address": "10.37.50.27",
+        "comments": null
+      },
+      {
+        "hostName": "esp32-bluetooth-proxy-50e614",
+        "hardwareAddress": "CC-DB-A7-50-E6-14",
+        "address": "10.37.50.28",
+        "comments": null
+      },
+      {
+        "hostName": "esp32-bluetooth-proxy-c9bc9c",
+        "hardwareAddress": "D4-8A-FC-C9-BC-9C",
+        "address": "10.37.50.29",
+        "comments": null
+      },
+      {
+        "hostName": "VeeamProxmoxWorker",
+        "hardwareAddress": "BC-24-11-4E-EE-CD",
+        "address": "10.37.50.30",
+        "comments": "veeam proxy worker"
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "98-88-E0-90-8E-88",
+        "address": "10.37.50.31",
+        "comments": "espresence family room"
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "98-A3-16-12-5E-64",
+        "address": "10.37.50.32",
+        "comments": "espresence bedroom"
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "98-A3-16-12-63-4C",
+        "address": "10.37.50.33",
+        "comments": "espresence rec room"
+      },
+      {
+        "hostName": null,
+        "hardwareAddress": "C0-E4-34-A7-A8-65",
+        "address": "10.37.50.34",
+        "comments": "hunter fan master bed"
+      },
+      {
+        "hostName": "apollo-msr-1-cb91b0",
+        "hardwareAddress": "A8-46-74-39-E9-9C",
+        "address": "10.37.50.35",
+        "comments": "apollo air-1"
+      },
+      {
+        "hostName": "Tempest_HB-00208487.localdomain",
+        "hardwareAddress": "6C-2A-DF-E2-B7-04",
+        "address": "10.37.50.36",
+        "comments": "tempest weather hub"
+      }
+    ],
+    "allowOnlyReservedLeases": false,
+    "blockLocallyAdministeredMacAddresses": false,
+    "ignoreClientIdentifierOption": true
+  },
+  "status": "ok"
+}

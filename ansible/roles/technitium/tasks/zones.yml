@@ -1,0 +1,40 @@
+---
+# Declare Secondary zones on this Technitium instance via the HTTP API.
+# Idempotent: checks `/api/zones/list` first and only POSTs `/api/zones/create`
+# when the zone is absent.
+
+- name: Fetch existing zones from Technitium API
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/zones/list"
+    method: GET
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+    return_content: true
+    status_code: 200
+  register: technitium_zones_list
+  no_log: true
+
+- name: Create missing Secondary zones
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/zones/create"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      zone: "{{ item.name }}"
+      type: "Secondary"
+      primaryNameServerAddresses: "{{ item.primary_addresses | join(',') }}"
+      zoneTransferProtocol: "{{ item.transfer_protocol | default('Tcp') }}"
+    status_code: 200
+  loop: "{{ technitium_secondary_zones }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: >-
+    item.name not in (
+      technitium_zones_list.json.response.zones
+      | default([])
+      | map(attribute='name')
+      | list
+    )
+  no_log: false

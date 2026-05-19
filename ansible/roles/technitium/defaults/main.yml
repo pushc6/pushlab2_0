@@ -13,3 +13,35 @@ technitium_dns_domain: "dns02.localdomain"
 # - 10.37.20.254: Trusted VLAN (workstation access)
 # - 10.37.80.254: App VLAN (Semaphore/Ansible API automation, e.g. technitium_dns_sync)
 technitium_web_service_local_addresses: "10.37.20.254,10.37.80.254"
+
+# API token for this host's Technitium instance.
+# Set from a vaulted variable in host_vars (e.g. {{ vault_technitium_api_token_dns02 }}).
+technitium_api_token: ""
+
+# Address Ansible uses to reach this host's Technitium API.
+# Default keeps the call on the App VLAN where :5380 is bound.
+technitium_api_host: "{{ ansible_host }}"
+technitium_api_port: 5380
+technitium_api_scheme: "http"
+
+# Secondary zones to declare on this host. Each entry:
+#   - name: "<zone>"
+#     primary_addresses: ["<primary_ip>", ...]
+# Pulled via AXFR/IXFR; NOTIFY-driven refresh requires the primary to be
+# configured manually to allow transfers and notify this host.
+technitium_secondary_zones: []
+
+# DHCP offer-delay enforced on every existing scope (milliseconds).
+# 0 (default) leaves scopes alone. Set to 5000 on a hot-standby/secondary so
+# the primary always wins the DHCPDISCOVER race when both are up.
+technitium_dhcp_offer_delay_ms: 0
+
+# DHCP reservation sync (sidecar systemd timer that mirrors reservations
+# from a primary Technitium instance into this host's DHCP scopes).
+technitium_reservation_sync_enabled: false
+technitium_reservation_sync_interval: "5min"
+technitium_reservation_sync_randomized_delay: "30s"
+technitium_reservation_sync_primary_host: ""   # e.g. "10.37.20.253" or "dns01.localdomain"
+technitium_reservation_sync_primary_port: 5380
+technitium_reservation_sync_primary_scheme: "http"
+technitium_reservation_sync_primary_token: ""  # vaulted

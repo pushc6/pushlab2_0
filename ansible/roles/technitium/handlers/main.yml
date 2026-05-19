@@ -1,0 +1,8 @@
+---
+# Technitium role handlers.
+
+- name: Restart reservation sync timer
+  ansible.builtin.systemd:
+    name: technitium-reservation-sync.timer
+    state: restarted
+    daemon_reload: true

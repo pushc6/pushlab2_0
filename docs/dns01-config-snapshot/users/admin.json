@@ -1,0 +1,16 @@
+{
+  "response": {
+    "displayName": "Administrator",
+    "username": "admin",
+    "disabled": false,
+    "previousSessionLoggedOn": "2026-05-18T23:52:18.5778839Z",
+    "previousSessionRemoteAddress": "10.37.20.30",
+    "recentSessionLoggedOn": "2026-05-18T23:52:33.5263558Z",
+    "recentSessionRemoteAddress": "10.37.20.30",
+    "sessionTimeoutSeconds": 1800,
+    "memberOfGroups": [
+      "Administrators"
+    ]
+  },
+  "status": "ok"
+}

@@ -1,0 +1,248 @@
+{
+  "response": {
+    "permissions": [
+      {
+        "section": "Dashboard",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      },
+      {
+        "section": "Zones",
+        "userPermissions": [
+          {
+            "username": "automation",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          }
+        ],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "DNS Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      },
+      {
+        "section": "Cache",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "DNS Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      },
+      {
+        "section": "Allowed",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "DNS Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      },
+      {
+        "section": "Blocked",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "DNS Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      },
+      {
+        "section": "Apps",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "DNS Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      },
+      {
+        "section": "DnsClient",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "DNS Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      },
+      {
+        "section": "Settings",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "DNS Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          }
+        ]
+      },
+      {
+        "section": "DhcpServer",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "DHCP Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      },
+      {
+        "section": "Administration",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          }
+        ]
+      },
+      {
+        "section": "Logs",
+        "userPermissions": [],
+        "groupPermissions": [
+          {
+            "name": "Administrators",
+            "canView": true,
+            "canModify": true,
+            "canDelete": true
+          },
+          {
+            "name": "Everyone",
+            "canView": true,
+            "canModify": false,
+            "canDelete": false
+          }
+        ]
+      }
+    ]
+  },
+  "status": "ok"
+}

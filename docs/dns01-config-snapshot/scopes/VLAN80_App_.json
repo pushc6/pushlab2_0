@@ -1,0 +1,41 @@
+{
+  "response": {
+    "name": "VLAN80 (App)",
+    "startingAddress": "10.37.80.1",
+    "endingAddress": "10.37.80.254",
+    "subnetMask": "255.255.255.0",
+    "leaseTimeDays": 1,
+    "leaseTimeHours": 0,
+    "leaseTimeMinutes": 0,
+    "offerDelayTime": 0,
+    "pingCheckEnabled": true,
+    "pingCheckTimeout": 1000,
+    "pingCheckRetries": 2,
+    "domainName": "localdomain",
+    "dnsUpdates": true,
+    "dnsTtl": 900,
+    "routerAddress": "10.37.80.1",
+    "useThisDnsServer": true,
+    "dnsServers": [
+      "10.37.80.2"
+    ],
+    "exclusions": [
+      {
+        "startingAddress": "10.37.80.1",
+        "endingAddress": "10.37.80.40"
+      }
+    ],
+    "reservedLeases": [
+      {
+        "hostName": null,
+        "hardwareAddress": "00-50-56-BC-07-0B",
+        "address": "10.37.80.3",
+        "comments": "Tailscale Exit Node"
+      }
+    ],
+    "allowOnlyReservedLeases": false,
+    "blockLocallyAdministeredMacAddresses": false,
+    "ignoreClientIdentifierOption": true
+  },
+  "status": "ok"
+}

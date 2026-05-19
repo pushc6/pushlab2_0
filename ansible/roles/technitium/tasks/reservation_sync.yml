@@ -1,0 +1,73 @@
+---
+# DHCP reservation sync (sidecar systemd timer on this host).
+# Reads reservations from a primary Technitium instance and mirrors them into
+# the local instance's scopes. Scopes must already exist locally.
+
+- name: Ensure reservation sync primary host is configured
+  ansible.builtin.assert:
+    that:
+      - technitium_reservation_sync_primary_host | length > 0
+      - technitium_reservation_sync_primary_token | length > 0
+      - technitium_api_token | length > 0
+    fail_msg: >-
+      technitium_reservation_sync_enabled is true but one of
+      technitium_reservation_sync_primary_host,
+      technitium_reservation_sync_primary_token, or technitium_api_token
+      is empty.
+
+- name: Install python3-requests (used by the sync script)
+  ansible.builtin.dnf:
+    name: python3-requests
+    state: present
+
+- name: Deploy reservation sync script
+  ansible.builtin.copy:
+    src: technitium_reservation_sync.py
+    dest: /usr/local/bin/technitium_reservation_sync.py
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart reservation sync timer
+
+- name: Ensure reservation sync config directory exists
+  ansible.builtin.file:
+    path: /etc/technitium-reservation-sync
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Template reservation sync environment file
+  ansible.builtin.template:
+    src: reservation-sync.env.j2
+    dest: /etc/technitium-reservation-sync/config.env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart reservation sync timer
+
+- name: Deploy reservation sync systemd service
+  ansible.builtin.template:
+    src: technitium-reservation-sync.service.j2
+    dest: /etc/systemd/system/technitium-reservation-sync.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart reservation sync timer
+
+- name: Deploy reservation sync systemd timer
+  ansible.builtin.template:
+    src: technitium-reservation-sync.timer.j2
+    dest: /etc/systemd/system/technitium-reservation-sync.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart reservation sync timer
+
+- name: Enable and start reservation sync timer
+  ansible.builtin.systemd:
+    name: technitium-reservation-sync.timer
+    enabled: true
+    state: started
+    daemon_reload: true

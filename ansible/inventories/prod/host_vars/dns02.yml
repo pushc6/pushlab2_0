@@ -40,3 +40,34 @@ firewall_hardened_services:
     access: custom
     sources:
       - "10.37.70.25/32" # semaphore
+
+  # DHCP server (active/active with dns01 via per-scope offer delay).
+  - port: 67
+    protocol: udp
+    name: "DHCP Server"
+    access: custom
+    sources:
+      - "10.37.0.0/16"
+
+# Technitium API + replication settings.
+# Tokens come from Semaphore env vars (TECHNITIUM_API_TOKEN_DNS0X). The
+# `default(vault_..., true)` fallback lets a local run with an ansible-vault
+# file work too -- matches the acme.yml pattern.
+technitium_dns_domain: "dns02.push-lab.com"
+technitium_api_token: >-
+  {{ lookup('env', 'TECHNITIUM_API_TOKEN_DNS02')
+     | default(vault_technitium_api_token_dns02, true) }}
+
+technitium_secondary_zones:
+  - name: "localdomain"
+    primary_addresses: ["10.37.80.2"] # dns01
+
+# Hot-standby: wait 5 s before answering DHCPDISCOVER so dns01 wins the race.
+# Applied to every scope present on this host.
+technitium_dhcp_offer_delay_ms: 5000
+
+technitium_reservation_sync_enabled: true
+technitium_reservation_sync_primary_host: "10.37.80.2" # dns01
+technitium_reservation_sync_primary_token: >-
+  {{ lookup('env', 'TECHNITIUM_API_TOKEN_DNS01')
+     | default(vault_technitium_api_token_dns01, true) }}

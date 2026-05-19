@@ -30,3 +30,25 @@
     env:
       DNS_SERVER_DOMAIN: "{{ technitium_dns_domain }}"
       DNS_SERVER_WEB_SERVICE_LOCAL_ADDRESSES: "{{ technitium_web_service_local_addresses }}"
+
+- name: Wait for Technitium API to become reachable
+  ansible.builtin.wait_for:
+    host: "{{ technitium_api_host }}"
+    port: "{{ technitium_api_port }}"
+    timeout: 60
+  when: >-
+    technitium_secondary_zones | length > 0
+    or technitium_reservation_sync_enabled
+    or technitium_dhcp_offer_delay_ms | int > 0
+
+- name: Configure Secondary zones
+  ansible.builtin.include_tasks: zones.yml
+  when: technitium_secondary_zones | length > 0
+
+- name: Enforce DHCP offer delay on existing scopes
+  ansible.builtin.include_tasks: dhcp_offer_delay.yml
+  when: technitium_dhcp_offer_delay_ms | int > 0
+
+- name: Configure DHCP reservation sync
+  ansible.builtin.include_tasks: reservation_sync.yml
+  when: technitium_reservation_sync_enabled
