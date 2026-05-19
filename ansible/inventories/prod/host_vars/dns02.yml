@@ -62,6 +62,24 @@ technitium_secondary_zones:
   - name: "localdomain"
     primary_addresses: ["10.37.80.2"] # dns01
 
+# DNS Apps mirrored from dns01.
+technitium_dns_apps:
+  - name: "Log Exporter"
+    url: "https://download.technitium.com/dns/apps/LogExporterApp-v1.0.2.zip"
+    config:
+      maxQueueSize: 10000
+      file:
+        enabled: false
+        path: ""
+      http:
+        enabled: false
+        endpoint: ""
+      syslog:
+        enabled: true
+        address: "10.37.70.25" # semaphore host (syslog receiver)
+        port: 1514
+        protocol: "udp"
+
 # Hot-standby: wait 5 s before answering DHCPDISCOVER so dns01 wins the race.
 # Applied to every scope present on this host.
 technitium_dhcp_offer_delay_ms: 5000

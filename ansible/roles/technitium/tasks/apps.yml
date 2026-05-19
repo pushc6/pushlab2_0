@@ -1,0 +1,75 @@
+---
+# Install Technitium DNS Apps from the official store and enforce per-app
+# config via the HTTP API. Each entry in technitium_dns_apps:
+#   - name: "<display name>"        # must match Technitium's app name
+#     url:  "<zip download URL>"    # from the Technitium app store
+#     config: { ... }               # dict; serialized to JSON when applied
+#
+# Idempotency:
+#   - Install only when the app name is not present in /api/apps/list.
+#   - Config update only when the live config (parsed from JSON) differs
+#     from the desired dict.
+
+- name: Fetch installed DNS apps
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/apps/list"
+    method: GET
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+    return_content: true
+    status_code: 200
+  register: technitium_apps_installed
+  no_log: true
+
+- name: Install missing DNS apps
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/apps/downloadAndInstall"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      name: "{{ item.name }}"
+      url: "{{ item.url }}"
+    status_code: 200
+  loop: "{{ technitium_dns_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: >-
+    item.name not in (
+      technitium_apps_installed.json.response.apps
+      | default([])
+      | map(attribute='name')
+      | list
+    )
+
+- name: Read each DNS app's current config
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/apps/config/get"
+    method: GET
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      name: "{{ item.name }}"
+    return_content: true
+    status_code: 200
+  loop: "{{ technitium_dns_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: technitium_app_config_state
+  no_log: true
+
+- name: Enforce DNS app config when drifted
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/apps/config/set"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      name: "{{ item.item.name }}"
+      config: "{{ item.item.config | to_json }}"
+    status_code: 200
+  loop: "{{ technitium_app_config_state.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: (item.json.response.config | default('{}') | from_json) != item.item.config

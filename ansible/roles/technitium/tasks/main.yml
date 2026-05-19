@@ -40,6 +40,11 @@
     technitium_secondary_zones | length > 0
     or technitium_reservation_sync_enabled
     or technitium_dhcp_offer_delay_ms | int > 0
+    or technitium_dns_apps | length > 0
+
+- name: Install and configure DNS Apps
+  ansible.builtin.include_tasks: apps.yml
+  when: technitium_dns_apps | length > 0
 
 - name: Configure Secondary zones
   ansible.builtin.include_tasks: zones.yml

@@ -1,0 +1,6 @@
+{
+  "response": {
+    "config": " {\n       \"maxQueueSize\": 10000,\n       \"file\": {\n         \"enabled\": false,\n         \"path\": \"\"\n       },\n       \"http\": {\n         \"enabled\": false,\n         \"endpoint\": \"\"\n       },\n       \"syslog\": {\n         \"enabled\": true,\n         \"address\": \"10.37.70.25\",\n         \"port\": 1514,\n         \"protocol\": \"udp\"\n       }\n     }"
+  },
+  "status": "ok"
+}

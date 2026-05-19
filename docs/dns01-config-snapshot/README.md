@@ -16,6 +16,7 @@ Captured 2026-05-18 from `http://10.37.80.2:5380` (Technitium DNS Server). Read-
 | `users/<user>.json` | `/api/admin/users/get` per user (sessions removed) |
 | `groups-list.json` | `/api/admin/groups/list` |
 | `permissions-list.json` | `/api/admin/permissions/list` |
+| `log-exporter-config.json` | `/api/apps/config/get?name=Log Exporter` |
 
 ## Headline findings
 
@@ -26,6 +27,7 @@ Captured 2026-05-18 from `http://10.37.80.2:5380` (Technitium DNS Server). Read-
 - **Blocking type**: `NxDomain`. No blocklist URLs, no allowed/blocked zones configured.
 - **DNSSEC validation**: not set (null) — defaults apply.
 - **TSIG keys**: none. (No signed zone transfers in use; AXFR will rely on IP-based ACL.)
+- **Query logging**: built-in `logQueries=false` (off). All query log streaming goes through the **Log Exporter** DNS App (v1.0.2) → syslog UDP `10.37.70.25:1514`. Local file logs only carry resolver/system events with `maxLogFileDays=30`.
 
 ### Zones
 9 user-managed Primary zones (the ones we need to replicate to dns02 as Secondary) + 4 Forwarder zones (must be recreated on dns02 as Forwarder type — they don't replicate via AXFR).

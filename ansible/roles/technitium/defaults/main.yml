@@ -36,6 +36,13 @@ technitium_secondary_zones: []
 # the primary always wins the DHCPDISCOVER race when both are up.
 technitium_dhcp_offer_delay_ms: 0
 
+# DNS Apps to install + configure via the Technitium app store.
+# Each entry:
+#   - name: "<display name>"     # must match Technitium's app name
+#     url:  "<zip download URL>" # from https://download.technitium.com/dns/apps/...
+#     config: { ... }            # dict; serialized to JSON and applied
+technitium_dns_apps: []
+
 # DHCP reservation sync (sidecar systemd timer that mirrors reservations
 # from a primary Technitium instance into this host's DHCP scopes).
 technitium_reservation_sync_enabled: false
