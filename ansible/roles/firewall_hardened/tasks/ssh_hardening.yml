@@ -90,7 +90,7 @@
         state: enabled
       loop: "{{ firewall_hardened_ssh_allowed_subnets }}"
       register: firewall_hardened_ssh_rich_rules_ipv4
-      notify: reload firewalld
+      notify: Reload firewalld
 
     - name: Add rich rules for SSH from allowed subnets (IPv6)
       ansible.posix.firewalld:
@@ -105,7 +105,7 @@
       loop: "{{ firewall_hardened_ssh_allowed_subnets_ipv6 }}"
       register: firewall_hardened_ssh_rich_rules_ipv6
       when: firewall_hardened_enable_ipv6 | default(true)
-      notify: reload firewalld
+      notify: Reload firewalld
 
     # ========================================================================
     # PHASE 3: Verify permanent configuration BEFORE removing SSH service
@@ -164,7 +164,7 @@
         state: disabled
       register: firewall_hardened_ssh_service_removed
       when: firewall_hardened_permanent_rich_rules.rc == 0
-      notify: reload firewalld
+      notify: Reload firewalld
 
     # ========================================================================
     # PHASE 5: Final verification of permanent configuration

@@ -282,7 +282,7 @@
   loop: "{{ firewall_hardened_stale_rules }}"
   loop_control:
     label: "{{ item | truncate(80) }}"
-  notify: reload firewalld
+  notify: Reload firewalld
   when: firewall_hardened_stale_rules | length > 0
 
 - name: Display purge summary

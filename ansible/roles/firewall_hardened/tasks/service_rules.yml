@@ -69,7 +69,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'public') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 # ============================================================================
 # APPLY MANAGEMENT VLAN SERVICES (rich rules)
@@ -88,7 +88,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'management_vlan') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Apply rich rules for management VLAN services (IPv6)
   ansible.posix.firewalld:
@@ -103,7 +103,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'management_vlan') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }}) [IPv6]"
-  notify: reload firewalld
+  notify: Reload firewalld
   when: firewall_hardened_enable_ipv6 | default(true)
 
 # ============================================================================
@@ -123,7 +123,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'trusted_vlan') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Apply rich rules for trusted VLAN services (IPv6)
   ansible.posix.firewalld:
@@ -138,7 +138,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'trusted_vlan') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }}) [IPv6]"
-  notify: reload firewalld
+  notify: Reload firewalld
   when: firewall_hardened_enable_ipv6 | default(true)
 
 # ============================================================================
@@ -158,7 +158,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'dmz_vlan') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Apply rich rules for DMZ VLAN services (IPv6)
   ansible.posix.firewalld:
@@ -173,7 +173,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'dmz_vlan') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }}) [IPv6]"
-  notify: reload firewalld
+  notify: Reload firewalld
   when: firewall_hardened_enable_ipv6 | default(true)
 
 # ============================================================================
@@ -193,7 +193,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'wireguard_vlan') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }})"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Apply rich rules for WireGuard VLAN services (IPv6)
   ansible.posix.firewalld:
@@ -208,7 +208,7 @@
   loop: "{{ firewall_hardened_normalized_services | default([]) | selectattr('access', 'equalto', 'wireguard_vlan') | list }}"
   loop_control:
     label: "{{ item.name }} ({{ item.port }}/{{ item.protocol }}) [IPv6]"
-  notify: reload firewalld
+  notify: Reload firewalld
   when: firewall_hardened_enable_ipv6 | default(true)
 
 # ============================================================================
@@ -235,7 +235,7 @@
        | product(firewall_hardened_proxy_sources) | list }}
   loop_control:
     label: "{{ item.0.name }} from {{ item.1 }}"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 # ============================================================================
 # APPLY CUSTOM ACCESS SERVICES (user-defined sources)
@@ -255,7 +255,7 @@
   loop_control:
     label: "{{ item.0.name }} from {{ item.1 }}"
   when: "':' not in item.1"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Apply rich rules for custom access services (IPv6)
   ansible.posix.firewalld:
@@ -273,7 +273,7 @@
   when:
     - "':' in item.1"
     - firewall_hardened_enable_ipv6 | default(true)
-  notify: reload firewalld
+  notify: Reload firewalld
 
 # ============================================================================
 # APPLY CUSTOM RICH RULES (legacy support)
@@ -288,7 +288,7 @@
   loop: "{{ firewall_hardened_custom_rich_rules | default([]) }}"
   loop_control:
     label: "{{ item.rule | truncate(80) }}"
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Display services configuration summary
   ansible.builtin.debug:

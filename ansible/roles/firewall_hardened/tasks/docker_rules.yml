@@ -18,7 +18,7 @@
     immediate: true
     state: enabled
   when: firewall_hardened_docker_installed.rc == 0
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Enable masquerading for Docker NAT
   ansible.posix.firewalld:
@@ -28,7 +28,7 @@
     immediate: true
     state: enabled
   when: firewall_hardened_docker_installed.rc == 0
-  notify: reload firewalld
+  notify: Reload firewalld
 
 - name: Display Docker firewall configuration
   ansible.builtin.debug:
