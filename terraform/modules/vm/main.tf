@@ -99,14 +99,36 @@ locals {
         ["      match:"],
         ["        macaddress: \"${local.additional_macs[idx]}\""],
         ["      dhcp4: false"],
+        # accept-ra controls IPv6 SLAAC. Set true on the uplink interface
+        # (the kernel learns the GUA /64 prefix from RAs); set false on the
+        # others to suppress spurious GUA assignment when multiple VLANs
+        # advertise RAs. Use with ipv6_gateway to explicitly set the IPv6
+        # default route (RAs may not always include one).
+        iface.accept_ra != null ? ["      accept-ra: ${iface.accept_ra}"] : [],
         ["      addresses:"],
         ["        - ${iface.ipv4_address}/${iface.ipv4_netmask}"],
+        # IPv6 explicit address (e.g. ULA /64) -- separate from any GUA the
+        # interface picks up via SLAAC.
+        iface.ipv6_address != "" && iface.ipv6_address != null ? [
+          "        - ${iface.ipv6_address}"
+        ] : [],
         # Use modern routes syntax for gateway on additional interfaces.
         # See note above on `to: 0.0.0.0/0` vs `to: default`.
+        # IPv4 and IPv6 default routes share the same `routes:` block.
+        (iface.ipv4_gateway != "" && iface.ipv4_gateway != null) || (iface.ipv6_gateway != "" && iface.ipv6_gateway != null) ? [
+          "      routes:"
+        ] : [],
         iface.ipv4_gateway != "" && iface.ipv4_gateway != null ? [
-          "      routes:",
           "        - to: 0.0.0.0/0",
           "          via: ${iface.ipv4_gateway}"
+        ] : [],
+        # IPv6 default route. on-link: true is required when the next-hop is
+        # a link-local address (fe80::/10), which is the typical case for an
+        # upstream router that hasn't been assigned a stable GUA.
+        iface.ipv6_gateway != "" && iface.ipv6_gateway != null ? [
+          "        - to: \"::/0\"",
+          "          via: \"${iface.ipv6_gateway}\"",
+          "          on-link: true"
         ] : []
       )
     ])

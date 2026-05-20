@@ -31,6 +31,11 @@ technitium_api_scheme: "http"
 # configured manually to allow transfers and notify this host.
 technitium_secondary_zones: []
 
+# DHCP scopes to declare on this Technitium instance.
+# See tasks/dhcp_scopes.yml for the full schema. Each scope is created or
+# updated via /api/dhcp/scopes/set and enabled/disabled accordingly.
+technitium_dhcp_scopes: []
+
 # DHCP offer-delay enforced on every existing scope (milliseconds).
 # 0 (default) leaves scopes alone. Set to 5000 on a hot-standby/secondary so
 # the primary always wins the DHCPDISCOVER race when both are up.

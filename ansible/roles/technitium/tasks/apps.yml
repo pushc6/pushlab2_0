@@ -9,6 +9,11 @@
 #   - Install only when the app name is not present in /api/apps/list.
 #   - Config update only when the live config (parsed from JSON) differs
 #     from the desired dict.
+#
+# Note: /api/apps/downloadAndInstall fetches the zip from `url` server-side.
+# Technitium needs working internet egress + DNS resolution to reach
+# `download.technitium.com`. If installs time out, that's a network egress
+# issue on this host, not a role problem.
 
 - name: Fetch installed DNS apps
   ansible.builtin.uri:
@@ -20,6 +25,7 @@
     return_content: true
     status_code: 200
   register: technitium_apps_installed
+  failed_when: technitium_apps_installed.json.status != "ok"
   no_log: true
 
 - name: Install missing DNS apps
@@ -31,7 +37,9 @@
       token: "{{ technitium_api_token }}"
       name: "{{ item.name }}"
       url: "{{ item.url }}"
+    return_content: true
     status_code: 200
+    timeout: 120
   loop: "{{ technitium_dns_apps }}"
   loop_control:
     label: "{{ item.name }}"
@@ -42,6 +50,10 @@
       | map(attribute='name')
       | list
     )
+  register: technitium_apps_install
+  failed_when:
+    - technitium_apps_install.json is defined
+    - technitium_apps_install.json.status != "ok"
 
 - name: Read each DNS app's current config
   ansible.builtin.uri:
@@ -57,6 +69,7 @@
   loop_control:
     label: "{{ item.name }}"
   register: technitium_app_config_state
+  failed_when: false
   no_log: true
 
 - name: Enforce DNS app config when drifted
@@ -68,8 +81,16 @@
       token: "{{ technitium_api_token }}"
       name: "{{ item.item.name }}"
       config: "{{ item.item.config | to_json }}"
+    return_content: true
     status_code: 200
   loop: "{{ technitium_app_config_state.results }}"
   loop_control:
     label: "{{ item.item.name }}"
-  when: (item.json.response.config | default('{}') | from_json) != item.item.config
+  when:
+    - item.json is defined
+    - item.json.status == "ok"
+    - (item.json.response.config | default('{}') | from_json) != item.item.config
+  register: technitium_app_config_apply
+  failed_when:
+    - technitium_app_config_apply.json is defined
+    - technitium_app_config_apply.json.status != "ok"

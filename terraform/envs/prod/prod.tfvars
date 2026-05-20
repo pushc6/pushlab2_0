@@ -56,14 +56,20 @@ vms = {
 
     # Cloud-init will configure all additional interfaces with static IPs
     # Default gateway is set on App VLAN which has WAN access
+    # IPv6 config mirrors dns01 (docker-secure)'s netplan:
+    #   - stable ULA fd00:1337:1337:00X0::54/64 on every VLAN (parity with dns01's ::53)
+    #   - accept_ra=true and ipv6_gateway only on App VLAN (uplink)
+    #   - accept_ra=false elsewhere to prevent spurious GUAs from RAs
+    # The IPv6 default route is critical: without it, the Technitium container
+    # prefers AAAA records, tries IPv6, and hangs until install timeout.
     additional_interfaces = [
-      { network_name = "VLAN 20 - Trusted", ipv4_address = "10.37.20.254", ipv4_netmask = 24 },
-      { network_name = "VLAN 30 - Storage", ipv4_address = "10.37.30.254", ipv4_netmask = 24 },
-      { network_name = "VLAN 40 - LAN Only (No WAN)", ipv4_address = "10.37.40.254", ipv4_netmask = 24 },
-      { network_name = "VLAN 50 - IoT", ipv4_address = "10.37.50.254", ipv4_netmask = 24 },
-      { network_name = "VLAN 60 - Guest", ipv4_address = "10.37.60.254", ipv4_netmask = 24 },
-      { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24, ipv4_gateway = "10.37.80.1" },
-      { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24 }
+      { network_name = "VLAN 20 - Trusted", ipv4_address = "10.37.20.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0020::54/64", accept_ra = false },
+      { network_name = "VLAN 30 - Storage", ipv4_address = "10.37.30.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0030::54/64", accept_ra = false },
+      { network_name = "VLAN 40 - LAN Only (No WAN)", ipv4_address = "10.37.40.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0040::54/64", accept_ra = false },
+      { network_name = "VLAN 50 - IoT", ipv4_address = "10.37.50.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0050::54/64", accept_ra = false },
+      { network_name = "VLAN 60 - Guest", ipv4_address = "10.37.60.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0060::54/64", accept_ra = false },
+      { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24, ipv4_gateway = "10.37.80.1", ipv6_address = "fd00:1337:1337:0080::54/64", ipv6_gateway = "fe80::250:56ff:febc:bf", accept_ra = true },
+      { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0100::54/64", accept_ra = false }
     ]
   }
 

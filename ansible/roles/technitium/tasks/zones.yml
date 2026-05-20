@@ -2,6 +2,14 @@
 # Declare Secondary zones on this Technitium instance via the HTTP API.
 # Idempotent: checks `/api/zones/list` first and only POSTs `/api/zones/create`
 # when the zone is absent.
+#
+# Note on ignoreSoaFailure=true: when Technitium creates a Secondary zone, it
+# does a pre-flight SOA query against the listed primary. Under `network_mode:
+# host` with Technitium itself bound to :53, that pre-flight can loop back
+# through the local resolver and silently fail. Setting ignoreSoaFailure=true
+# skips the pre-flight; the zone is created and AXFR retries in the background.
+# AXFR will still fail if the primary's zone-transfer ACL doesn't permit this
+# host (look for `isExpired=true` in the zone state).
 
 - name: Fetch existing zones from Technitium API
   ansible.builtin.uri:
@@ -13,6 +21,7 @@
     return_content: true
     status_code: 200
   register: technitium_zones_list
+  failed_when: technitium_zones_list.json.status != "ok"
   no_log: true
 
 - name: Create missing Secondary zones
@@ -26,6 +35,8 @@
       type: "Secondary"
       primaryNameServerAddresses: "{{ item.primary_addresses | join(',') }}"
       zoneTransferProtocol: "{{ item.transfer_protocol | default('Tcp') }}"
+      ignoreSoaFailure: "true"
+    return_content: true
     status_code: 200
   loop: "{{ technitium_secondary_zones }}"
   loop_control:
@@ -37,4 +48,7 @@
       | map(attribute='name')
       | list
     )
-  no_log: false
+  register: technitium_zones_create
+  failed_when:
+    - technitium_zones_create.json is defined
+    - technitium_zones_create.json.status != "ok"

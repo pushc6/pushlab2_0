@@ -97,8 +97,19 @@ variable "additional_interfaces" {
     ipv4_address = string
     ipv4_netmask = number
     ipv4_gateway = optional(string, "")
+    # IPv6 fields (all optional). Set ipv6_gateway on the same interface as
+    # ipv4_gateway when you want a default IPv6 route through the same router.
+    # Use the router's link-local (fe80::) address; on-link is implied.
+    # accept_ra=true lets the kernel learn the GUA prefix from Router
+    # Advertisements (typical for ISP-delegated /64s).
+    ipv6_address = optional(string, "")
+    ipv6_gateway = optional(string, "")
+    # Nullable. When unset, no `accept-ra:` line is emitted (kernel default
+    # applies). Set true on the uplink, false on the others to explicitly
+    # suppress unwanted GUA assignment from non-default-router VLANs.
+    accept_ra = optional(bool)
   }))
-  description = "List of additional network interfaces. Set ipv4_gateway on ONE interface for default route (use routes syntax, not gateway4)."
+  description = "List of additional network interfaces. Set ipv4_gateway (and optionally ipv6_gateway) on ONE interface for default route (use routes syntax, not gateway4)."
   default     = []
 
   validation {
@@ -107,5 +118,13 @@ variable "additional_interfaces" {
       if iface.ipv4_gateway != "" && iface.ipv4_gateway != null
     ]) <= 1
     error_message = "Only one additional interface can have ipv4_gateway set. Multiple default gateways cause routing conflicts."
+  }
+
+  validation {
+    condition = length([
+      for iface in var.additional_interfaces : iface.ipv6_gateway
+      if iface.ipv6_gateway != "" && iface.ipv6_gateway != null
+    ]) <= 1
+    error_message = "Only one additional interface can have ipv6_gateway set."
   }
 }

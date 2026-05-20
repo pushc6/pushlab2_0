@@ -10,6 +10,19 @@ A production-safe order of operations for bringing `dns02` into service alongsid
 
 ---
 
+## Network gotcha: dns02 needed IPv6 default route
+
+dns02 originally couldn't install Technitium DNS Apps (Log Exporter) because the container's resolver prefers AAAA records and dns02 had no IPv6 default route. dns01 has one via netplan; dns02's cloud-init didn't include it.
+
+Fixed in `terraform/envs/prod/prod.tfvars` and the VM module's cloud-init rendering — dns02's App VLAN entry now has `ipv6_gateway = "fe80::250:56ff:febc:bf"` (OPNsense link-local) and `accept_ra = true`. Other VLANs got stable ULAs (`fd00:1337:1337:00X0::54/64`) and `accept_ra = false` to mirror dns01's pattern. **Requires `terraform apply` + VM redeploy** to take effect; the change only lands via cloud-init on a fresh boot.
+
+After redeploy, verify:
+```bash
+ssh 10.37.20.254 'ip -6 route show default; curl -sS --max-time 10 --ipv6 -o /dev/null -w "v6:%{http_code} %{time_total}s\n" https://download.technitium.com/'
+# expect: default via fe80::250:56ff:febc:bf dev eth7 ...
+# expect: v6:200 ~1s
+```
+
 ## Phase 0 — Prerequisites
 
 - [ ] dns02 VM exists, is reachable from Ansible (Semaphore can SSH into it).
@@ -233,35 +246,35 @@ UI → clear forwarders / set recursion to `Deny`. For the app: dns02 web UI →
 
 ---
 
-## Phase 5 — Pre-stage DHCP scopes on dns02 (disabled)
+## Phase 5 — DHCP scopes on dns02 (disabled)
 
-**Goal**: dns02 has every scope dns01 has, with identical pool/options, but **disabled** so it can't serve any clients yet. The role then automatically enforces `offerDelayTime=5000` on them via API.
+**Goal**: dns02 has every scope dns01 has, with identical pool/options, but **disabled** so it can't serve any clients yet. The role enforces `offerDelayTime=5000` on each via API.
 
-**What changes**: scope definitions on dns02. **Nothing serves DHCP from dns02 yet.**
+**What changes**: scope definitions on dns02 (all 7 mirrored from dns01). **Nothing serves DHCP from dns02 yet because every scope starts `enabled: false`.**
 
-### Steps (manual, dns02 web UI, repeat per scope)
+### Steps (Ansible — fully automated)
 
-For each of the **6 enabled** scopes on dns01 (VLAN10/20/30/50/60/70/80; see snapshot table):
+The `technitium_dhcp_scopes` block in `host_vars/dns02.yml` already declares all 7 scopes mirroring dns01 (VLAN10/20/30/50/60/70/80). Each has:
 
-1. dns02 web UI → DHCP → Scopes → **Add Scope**.
-2. Name: identical to dns01 (e.g. `VLAN20 (Trusted)`).
-3. **Identical** subnet, starting/ending address, lease time, router address as dns01. Reference `docs/dns01-config-snapshot/scopes/<scope>.json`.
-4. **`Dynamic DNS Updates` = OFF** (`dnsUpdates=false`). dns02's `localdomain` is a Secondary zone (read-only); dynamic update attempts would fail.
-5. `useThisDnsServer` = **off**; `dnsServers` = `[<vlan>.2, <vlan>.254]` (e.g. for VLAN20: `10.37.20.2, 10.37.20.254`). Order matters; dns01 first.
-6. Leave `Offer Delay Time` at `0` — the Ansible role overrides it on every run.
-7. **Save with the scope DISABLED.** Toggle the Enabled checkbox off before saving (or save then immediately disable).
+- Identical subnet/pool/lease time/router as dns01 (sourced from `docs/dns01-config-snapshot/scopes/*.json`).
+- `use_this_dns_server: false` and `dns_servers: [<vlan>.2, <vlan>.254]` — clients learn both servers.
+- `dns_updates: false` — dns02's `localdomain` is read-only (Secondary), so DHCP dynamic updates would fail.
+- `enabled: false` — safe default; flip to `true` per scope in Phase 8.
 
-Repeat for all 6 scopes.
+The role's `dhcp_scopes.yml` task creates each scope (or updates it if drifted) via `/api/dhcp/scopes/set`, then enables/disables based on the `enabled` flag. The `dhcp_offer_delay.yml` task then PATCHes `offerDelayTime=5000` on every scope.
 
-### Steps (Ansible)
+Just re-run the Semaphore template — no host_vars changes needed.
 
-Uncomment in `host_vars/dns02.yml`:
+### Optional: clean up the factory placeholder scope
 
-```yaml
-technitium_dhcp_offer_delay_ms: 5000
+Fresh Technitium ships with a "Default" scope (network `192.168.1.0/24`, disabled). The role doesn't touch it. If you want to delete it:
+
+```bash
+TOKEN=$TECHNITIUM_API_TOKEN_DNS02
+curl -sS --get --data-urlencode "token=$TOKEN" \
+  --data-urlencode "name=Default" \
+  "http://10.37.20.254:5380/api/dhcp/scopes/delete"
 ```
-
-Commit and re-run Semaphore template. The role's `dhcp_offer_delay.yml` task iterates every existing scope on dns02 and PATCHes `offerDelayTime=5000`.
 
 ### Verify
 
@@ -403,9 +416,9 @@ sudo nmap --script broadcast-dhcp-discover -e <iface>
 # look at the response IP — should be 10.37.<vlan>.2 (dns01)
 ```
 
-### Steps (manual, dns02 web UI)
+### Steps
 
-For each scope you pre-staged in Phase 5: click the scope, **enable** it. Save.
+Edit `host_vars/dns02.yml`: flip `enabled: false` → `enabled: true` for each scope in `technitium_dhcp_scopes`. Commit and re-run the Semaphore template — the role POSTs `/api/dhcp/scopes/enable` per scope. To gate carefully, flip one at a time and run between each.
 
 Then on dns02: DHCP → top-level → ensure the DHCP service is enabled (this is usually on by default once scopes exist, but confirm).
 
