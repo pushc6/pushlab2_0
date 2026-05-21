@@ -17,16 +17,17 @@
   connection: local # ansibleguy.opnsense modules use API, not SSH
 
   pre_tasks:
-    # ansibleguy.opnsense modules import httpx at module load time.
-    # When Semaphore runs this without the EE, the worker is missing it.
-    # Use ansible_playbook_python so install lands in the SAME interpreter the
-    # collection's modules execute under; --break-system-packages handles PEP 668.
+    # ansibleguy.opnsense modules import httpx at module load time. When
+    # Semaphore runs this without the EE, the worker is missing it. Force the
+    # install to run even when the template is invoked with --check.
     - name: Ensure httpx is installed on the controller
-      ansible.builtin.command:
-        cmd: "{{ ansible_playbook_python }} -m pip install --upgrade --break-system-packages httpx"
-      register: opnsense_httpx_install
-      changed_when: "'Successfully installed' in opnsense_httpx_install.stdout or 'Requirement already satisfied' not in opnsense_httpx_install.stdout"
-      run_once: true
+      ansible.builtin.pip:
+        name: httpx
+        state: present
+        extra_args: "--break-system-packages"
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      check_mode: false
 
   roles:
     - opnsense_firewall
