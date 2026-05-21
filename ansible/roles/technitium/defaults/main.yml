@@ -48,6 +48,12 @@ technitium_forwarders: []
 # Quic. Only applies when technitium_forwarders is non-empty.
 technitium_forwarder_protocol: "Udp"
 
+# DNSSEC validation toggle. null (default) leaves Technitium's current
+# value untouched. Set true to enable, false to disable -- e.g. set false
+# on a host that forwards to a validating resolver (ControlD does DNSSEC
+# upstream, so we don't need to double-validate locally).
+technitium_enable_dnssec_validation: null
+
 # DHCP scopes to declare on this Technitium instance.
 # See tasks/dhcp_scopes.yml for the full schema. Each scope is created or
 # updated via /api/dhcp/scopes/set and enabled/disabled accordingly.

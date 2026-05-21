@@ -59,3 +59,24 @@
   failed_when:
     - technitium_settings_forwarders_apply.json is defined
     - technitium_settings_forwarders_apply.json.status != "ok"
+
+- name: Enforce DNSSEC validation
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/settings/set"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      enableDnssecValidation: "{{ technitium_enable_dnssec_validation | string | lower }}"
+    return_content: true
+    status_code: 200
+  when:
+    - technitium_enable_dnssec_validation is not none
+    # String-cast comparison so None/null/True/False compare cleanly without
+    # the `bool` filter conflating null with false.
+    - (technitium_settings_current.json.response.enableDnssecValidation | string)
+      != (technitium_enable_dnssec_validation | string)
+  register: technitium_settings_dnssec_apply
+  failed_when:
+    - technitium_settings_dnssec_apply.json is defined
+    - technitium_settings_dnssec_apply.json.status != "ok"
