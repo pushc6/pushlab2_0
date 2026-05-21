@@ -54,8 +54,10 @@ firewall_hardened_services:
 # 0.0.0.0:53 (IPv4 wildcard) and IPv6 DNS queries to dns02's ULAs/GUA
 # wouldn't be answered. Keep in sync with `additional_interfaces` below.
 technitium_dns_local_endpoints:
+  # IPv4 loopback only -- parallels dns01. IPv6 loopback `[::1]:53` is
+  # intentionally omitted (no use case on dns02; resolv.conf points at dns01,
+  # so local processes resolve upstream, not via lo).
   - "127.0.0.1:53"
-  - "[::1]:53"
   # VLAN 10 - Management (primary)
   - "10.37.10.254:53"
   - "[fd00:1337:1337:10::254]:53"
