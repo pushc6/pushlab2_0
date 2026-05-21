@@ -16,5 +16,15 @@
   gather_facts: false
   connection: local # ansibleguy.opnsense modules use API, not SSH
 
+  pre_tasks:
+    # ansibleguy.opnsense modules import httpx at module load time.
+    # When Semaphore runs this without the EE, the worker is missing it.
+    - name: Ensure httpx is installed on the controller
+      ansible.builtin.pip:
+        name: httpx
+        state: present
+        extra_args: --upgrade
+      run_once: true
+
   roles:
     - opnsense_firewall
