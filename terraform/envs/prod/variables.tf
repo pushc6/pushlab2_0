@@ -41,11 +41,17 @@ variable "vms" {
     ipv4_gateway = string
     dns_servers  = list(string)
     domain       = string
+    # Object type must mirror the module's additional_interfaces schema --
+    # Terraform silently drops fields not declared here when parsing tfvars,
+    # so any new field added to the module must also be added here.
     additional_interfaces = optional(list(object({
       network_name = string
       ipv4_address = string
       ipv4_netmask = number
       ipv4_gateway = optional(string, "")
+      ipv6_address = optional(string, "")
+      ipv6_gateway = optional(string, "")
+      accept_ra    = optional(bool)
     })), [])
   }))
   default = {}

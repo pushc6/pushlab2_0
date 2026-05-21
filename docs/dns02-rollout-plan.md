@@ -87,7 +87,8 @@ Skip if `automation` user already has a token labeled e.g. `dns02-sync`.
 2. Settings → **Change Password** → set a strong password. Store in your password manager (rarely used after this).
 3. Administration → Users → **Create User** → username `automation`, set a password (won't be used by anything since we'll use a token).
 4. Groups → add `automation` to `DHCP Administrators` **and** `DNS Administrators`. (Needs both: write reservations + create/manage Secondary zones.)
-5. Session Tokens → Create Token → name `ansible-managed` → no expiry → copy the value.
+5. Administration → **Permissions** → scroll to the **Apps** section → **Add User Permissions** → user `automation`, check `canView` + `canModify` (+ `canDelete` if you want). Save. Without this, the role's `tasks/apps.yml` fails with `Access was denied` when installing Log Exporter — neither `DHCP Administrators` nor `DNS Administrators` covers the `Apps` section. (Alternative: add `automation` to the `Administrators` group instead — simpler, broader.)
+6. Session Tokens → Create Token → name `ansible-managed` → no expiry → copy the value.
 
 ### Add tokens to Semaphore
 
