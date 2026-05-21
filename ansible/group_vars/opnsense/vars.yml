@@ -138,6 +138,18 @@ opnsense_firewall_terraform_rules:
     port: 443
     interface: app_vlan
 
+  # dns02 syslog → Alloy on docker-internal. dns02 has no DMZ interface
+  # (unlike dns01 which is multi-homed across every VLAN), so its Log
+  # Exporter syslog packets must traverse App→DMZ via OPNsense. Without
+  # this rule, DNS query logs from dns02 are silently dropped.
+  - name: "DNS02 syslog to Alloy (cross-VLAN)"
+    description: "Allow dns02 Log Exporter to ship DNS query logs to Alloy on docker-internal"
+    source: "dns02" # 10.37.80.254 (App VLAN)
+    destination: "semaphore" # 10.37.70.25 (DMZ; docker-internal runs Alloy)
+    protocol: udp
+    port: 1514
+    interface: app_vlan
+
   # Semaphore cross-VLAN SSH access
   - name: "SSH from Semaphore to Gitea (cross-VLAN)"
     description: "Allow Semaphore SSH to Gitea in App VLAN"
