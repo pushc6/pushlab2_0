@@ -53,6 +53,14 @@ firewall_hardened_services:
 # and IPv6 ULA explicitly bound. Without this, Technitium binds only to
 # 0.0.0.0:53 (IPv4 wildcard) and IPv6 DNS queries to dns02's ULAs/GUA
 # wouldn't be answered. Keep in sync with `additional_interfaces` below.
+# Upstream DNS forwarders -- mirrors dns01's ControlD configuration.
+# Technitium forwards external queries to these instead of doing native
+# recursion. UDP/53 is the default protocol.
+technitium_forwarders:
+  - "76.76.2.198"
+  - "76.76.10.198"
+technitium_forwarder_protocol: "Udp"
+
 technitium_dns_local_endpoints:
   # Loopback v4 + v6. dns01 only binds the v4 loopback; we bind both on
   # dns02 so anything explicitly targeting ::1 (manual `dig @::1`, future

@@ -39,6 +39,15 @@ technitium_secondary_zones: []
 # queries.
 technitium_dns_local_endpoints: []
 
+# Upstream DNS forwarders. Empty list leaves Technitium's current setting
+# alone (typically null/no forwarders = native recursion). Set to ControlD,
+# Quad9, Cloudflare, etc. to forward instead of recursing.
+technitium_forwarders: []
+
+# Protocol for forwarder queries. One of: Udp, Tcp, Tls, Https, HttpsJson,
+# Quic. Only applies when technitium_forwarders is non-empty.
+technitium_forwarder_protocol: "Udp"
+
 # DHCP scopes to declare on this Technitium instance.
 # See tasks/dhcp_scopes.yml for the full schema. Each scope is created or
 # updated via /api/dhcp/scopes/set and enabled/disabled accordingly.

@@ -31,10 +31,31 @@
       dnsServerLocalEndPoints: "{{ technitium_dns_local_endpoints | join(',') }}"
     return_content: true
     status_code: 200
-  when: >-
-    (technitium_settings_current.json.response.dnsServerLocalEndPoints | default([]) | sort)
-    != (technitium_dns_local_endpoints | sort)
-  register: technitium_settings_apply
+  when:
+    - technitium_dns_local_endpoints | length > 0
+    - (technitium_settings_current.json.response.dnsServerLocalEndPoints | default([]) | sort)
+      != (technitium_dns_local_endpoints | sort)
+  register: technitium_settings_endpoints_apply
   failed_when:
-    - technitium_settings_apply.json is defined
-    - technitium_settings_apply.json.status != "ok"
+    - technitium_settings_endpoints_apply.json is defined
+    - technitium_settings_endpoints_apply.json.status != "ok"
+
+- name: Enforce DNS forwarders + protocol
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/settings/set"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      forwarders: "{{ technitium_forwarders | join(',') }}"
+      forwarderProtocol: "{{ technitium_forwarder_protocol }}"
+    return_content: true
+    status_code: 200
+  when:
+    - technitium_forwarders | length > 0
+    - (technitium_settings_current.json.response.forwarders | default([]) | sort) != (technitium_forwarders | sort)
+      or (technitium_settings_current.json.response.forwarderProtocol | default('')) != technitium_forwarder_protocol
+  register: technitium_settings_forwarders_apply
+  failed_when:
+    - technitium_settings_forwarders_apply.json is defined
+    - technitium_settings_forwarders_apply.json.status != "ok"
