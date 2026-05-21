@@ -59,6 +59,27 @@ variable "ipv4_gateway" {
   default     = ""
 }
 
+# Primary-interface IPv6 settings (mirror the fields available on
+# additional_interfaces). All optional. accept_ra=null leaves the
+# netplan/NM default in place.
+variable "ipv6_address" {
+  type        = string
+  description = "Static IPv6 address (e.g. fd00:...::254/64) for the primary NIC. Empty = none."
+  default     = ""
+}
+
+variable "ipv6_gateway" {
+  type        = string
+  description = "IPv6 default gateway (typically a router link-local fe80::) on the primary NIC. Empty = none."
+  default     = ""
+}
+
+variable "accept_ra" {
+  type        = bool
+  description = "Per-interface RA acceptance on the primary. true on the uplink; false to suppress unwanted RAs. null leaves it unset."
+  default     = null
+}
+
 variable "dns_server_list" {
   type        = list(string)
   description = "List of DNS server IPs for guest customization."

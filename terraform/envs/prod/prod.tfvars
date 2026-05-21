@@ -51,25 +51,34 @@ vms = {
     ipv4_gateway = "" # No gateway - Management VLAN has no WAN access
     dns_servers  = ["10.37.10.2"]
 
+    # Primary interface IPv6: static ULA, no RA acceptance (VLAN 10 has no
+    # upstream router we want to learn from). Suppresses the rogue default
+    # route that OPNsense's RA on this VLAN would otherwise install.
+    ipv6_address = "fd00:1337:1337:0010::254/64"
+    accept_ra    = false
+
     # Use App VLAN IP for Ansible since Management VLAN isn't reachable from CI runner
     ansible_host = "10.37.80.254"
 
     # Cloud-init will configure all additional interfaces with static IPs
     # Default gateway is set on App VLAN which has WAN access
     # IPv6 config mirrors dns01 (docker-secure)'s netplan:
-    #   - stable ULA fd00:1337:1337:00X0::54/64 on every VLAN (parity with dns01's ::53)
+    #   - stable ULA fd00:1337:1337:00X0::254/64 on every VLAN (parity with the .254 v4 convention)
     #   - accept_ra=true and ipv6_gateway only on App VLAN (uplink)
     #   - accept_ra=false elsewhere to prevent spurious GUAs from RAs
     # The IPv6 default route is critical: without it, the Technitium container
     # prefers AAAA records, tries IPv6, and hangs until install timeout.
+    # The cloud-init runcmd fixup flips NM's ipv6.method=manual to "auto" on
+    # the uplink so SLAAC runs alongside the static ULA -- otherwise NM under
+    # method=manual suppresses RA acceptance and eth7 never gets a GUA.
     additional_interfaces = [
-      { network_name = "VLAN 20 - Trusted", ipv4_address = "10.37.20.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0020::54/64", accept_ra = false },
-      { network_name = "VLAN 30 - Storage", ipv4_address = "10.37.30.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0030::54/64", accept_ra = false },
-      { network_name = "VLAN 40 - LAN Only (No WAN)", ipv4_address = "10.37.40.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0040::54/64", accept_ra = false },
-      { network_name = "VLAN 50 - IoT", ipv4_address = "10.37.50.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0050::54/64", accept_ra = false },
-      { network_name = "VLAN 60 - Guest", ipv4_address = "10.37.60.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0060::54/64", accept_ra = false },
-      { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24, ipv4_gateway = "10.37.80.1", ipv6_address = "fd00:1337:1337:0080::54/64", ipv6_gateway = "fe80::250:56ff:febc:bf", accept_ra = true },
-      { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0100::54/64", accept_ra = false }
+      { network_name = "VLAN 20 - Trusted", ipv4_address = "10.37.20.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0020::254/64", accept_ra = false },
+      { network_name = "VLAN 30 - Storage", ipv4_address = "10.37.30.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0030::254/64", accept_ra = false },
+      { network_name = "VLAN 40 - LAN Only (No WAN)", ipv4_address = "10.37.40.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0040::254/64", accept_ra = false },
+      { network_name = "VLAN 50 - IoT", ipv4_address = "10.37.50.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0050::254/64", accept_ra = false },
+      { network_name = "VLAN 60 - Guest", ipv4_address = "10.37.60.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0060::254/64", accept_ra = false },
+      { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24, ipv4_gateway = "10.37.80.1", ipv6_address = "fd00:1337:1337:0080::254/64", ipv6_gateway = "fe80::250:56ff:febc:bf", accept_ra = true },
+      { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0100::254/64", accept_ra = false }
     ]
   }
 
