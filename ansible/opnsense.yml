@@ -20,15 +20,15 @@
     # ansibleguy.opnsense modules import httpx at module load time. When
     # Semaphore runs this without the EE, the worker is missing it.
     # Install must hit the same interpreter the modules execute under
-    # (/usr/bin/python3 per inventories/opnsense/hosts.yml) AND land in
-    # system site-packages — Ansiballz runs modules with `-s`, hiding
-    # ~/.local. Hence become: true + --break-system-packages for PEP 668.
+    # (/usr/bin/python3 per inventories/opnsense/hosts.yml). The Semaphore
+    # container has no sudo, so install with --user into ~/.local — the
+    # module's /usr/bin/python3 picks it up via the user-site path.
+    # --break-system-packages handles PEP 668 on AlmaLinux 10.
     - name: Ensure httpx is installed on the controller
       ansible.builtin.pip:
         name: httpx
         state: present
-        extra_args: "--break-system-packages"
-      become: true
+        extra_args: "--user --break-system-packages"
       check_mode: false
 
   roles:
