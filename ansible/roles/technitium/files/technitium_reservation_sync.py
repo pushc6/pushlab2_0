@@ -168,11 +168,7 @@ def sync_scope(
 ) -> bool:
     """Returns True if any change was applied."""
     src_res = get_reservations(session, src, timeout, scope)
-    try:
-        dst_res = get_reservations(session, dst, timeout, scope)
-    except ApiError as e:
-        LOG.warning("scope %r missing on destination, skipping: %s", scope, e)
-        return False
+    dst_res = get_reservations(session, dst, timeout, scope)
 
     if reservations_equal(src_res, dst_res):
         LOG.debug("scope %r: %d reservations, in sync", scope, len(src_res))
@@ -204,14 +200,26 @@ def main() -> int:
     session = _make_session(verify_tls)
 
     LOG.info("syncing reservations from %s -> %s", src.host, dst.host)
-    scopes = list_scopes(session, src, timeout)
-    if not scopes:
+    src_scopes = list_scopes(session, src, timeout)
+    if not src_scopes:
         LOG.info("no scopes on source; nothing to do")
         return 0
 
+    # Intersect with destination scopes -- source scopes that don't exist on
+    # dest are skipped. This avoids "DHCP scope was not found" errors in the
+    # destination's web service log every sync cycle for scopes (e.g.
+    # "VLAN100 (Unused)") that intentionally exist on the primary but not
+    # on the secondary.
+    dst_scopes = set(list_scopes(session, dst, timeout))
+    syncable = [s for s in src_scopes if s in dst_scopes]
+    skipped = [s for s in src_scopes if s not in dst_scopes]
+    if skipped:
+        LOG.info("skipping %d scope(s) absent on destination: %s",
+                 len(skipped), ", ".join(skipped))
+
     changed = 0
     failed = 0
-    for scope in scopes:
+    for scope in syncable:
         try:
             if sync_scope(session, src, dst, timeout, scope):
                 changed += 1
@@ -220,8 +228,9 @@ def main() -> int:
             LOG.error("scope %r: sync failed: %s", scope, e)
 
     LOG.info(
-        "done: %d scopes total, %d changed, %d failed",
-        len(scopes),
+        "done: %d source / %d syncable / %d changed / %d failed",
+        len(src_scopes),
+        len(syncable),
         changed,
         failed,
     )
