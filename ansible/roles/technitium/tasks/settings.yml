@@ -33,7 +33,7 @@
     status_code: 200
   when:
     - technitium_dns_local_endpoints | length > 0
-    - (technitium_settings_current.json.response.dnsServerLocalEndPoints | default([]) | sort)
+    - (technitium_settings_current.json.response.dnsServerLocalEndPoints | default([], true) | sort)
       != (technitium_dns_local_endpoints | sort)
   register: technitium_settings_endpoints_apply
   failed_when:
@@ -53,8 +53,8 @@
     status_code: 200
   when:
     - technitium_forwarders | length > 0
-    - (technitium_settings_current.json.response.forwarders | default([]) | sort) != (technitium_forwarders | sort)
-      or (technitium_settings_current.json.response.forwarderProtocol | default('')) != technitium_forwarder_protocol
+    - (technitium_settings_current.json.response.forwarders | default([], true) | sort) != (technitium_forwarders | sort)
+      or (technitium_settings_current.json.response.forwarderProtocol | default('', true)) != technitium_forwarder_protocol
   register: technitium_settings_forwarders_apply
   failed_when:
     - technitium_settings_forwarders_apply.json is defined
