@@ -19,11 +19,13 @@
   pre_tasks:
     # ansibleguy.opnsense modules import httpx at module load time.
     # When Semaphore runs this without the EE, the worker is missing it.
+    # Use ansible_playbook_python so install lands in the SAME interpreter the
+    # collection's modules execute under; --break-system-packages handles PEP 668.
     - name: Ensure httpx is installed on the controller
-      ansible.builtin.pip:
-        name: httpx
-        state: present
-        extra_args: --upgrade
+      ansible.builtin.command:
+        cmd: "{{ ansible_playbook_python }} -m pip install --upgrade --break-system-packages httpx"
+      register: opnsense_httpx_install
+      changed_when: "'Successfully installed' in opnsense_httpx_install.stdout or 'Requirement already satisfied' not in opnsense_httpx_install.stdout"
       run_once: true
 
   roles:
