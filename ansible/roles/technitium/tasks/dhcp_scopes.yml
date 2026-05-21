@@ -35,6 +35,25 @@
   failed_when: technitium_dhcp_scopes_existing.json.status != "ok"
   no_log: true
 
+- name: Delete unwanted DHCP scopes (e.g. Technitium's factory "Default")
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/dhcp/scopes/delete"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      name: "{{ item }}"
+    return_content: true
+    status_code: 200
+  loop: "{{ technitium_dhcp_scopes_remove }}"
+  loop_control:
+    label: "{{ item }}"
+  when: item in (technitium_dhcp_scopes_existing.json.response.scopes | default([]) | map(attribute='name') | list)
+  register: technitium_dhcp_scope_delete
+  failed_when:
+    - technitium_dhcp_scope_delete.json is defined
+    - technitium_dhcp_scope_delete.json.status != "ok"
+
 - name: Read current state of each desired scope
   ansible.builtin.uri:
     url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/dhcp/scopes/get"

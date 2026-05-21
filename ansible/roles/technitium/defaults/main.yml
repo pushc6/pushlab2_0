@@ -36,6 +36,12 @@ technitium_secondary_zones: []
 # updated via /api/dhcp/scopes/set and enabled/disabled accordingly.
 technitium_dhcp_scopes: []
 
+# DHCP scopes to delete if present. Technitium ships with a "Default"
+# placeholder scope (192.168.1.0/24, disabled) on first run; strip it on
+# managed hosts so the UI/API only shows the scopes we declare.
+technitium_dhcp_scopes_remove:
+  - "Default"
+
 # DHCP offer-delay enforced on every existing scope (milliseconds).
 # 0 (default) leaves scopes alone. Set to 5000 on a hot-standby/secondary so
 # the primary always wins the DHCPDISCOVER race when both are up.
