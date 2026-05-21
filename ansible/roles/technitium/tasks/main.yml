@@ -31,34 +31,54 @@
       DNS_SERVER_DOMAIN: "{{ technitium_dns_domain }}"
       DNS_SERVER_WEB_SERVICE_LOCAL_ADDRESSES: "{{ technitium_web_service_local_addresses }}"
 
+- name: Skip API configuration when token is unset (first-deploy bootstrap)
+  ansible.builtin.debug:
+    msg: >-
+      technitium_api_token is empty -- skipping API config (apps, zones,
+      DHCP scopes, offer delay, reservation sync). Generate a token in the
+      web UI, set it as TECHNITIUM_API_TOKEN_DNS02 in Semaphore, then re-run.
+  when: technitium_api_token | length == 0
+
 - name: Wait for Technitium API to become reachable
   ansible.builtin.wait_for:
     host: "{{ technitium_api_host }}"
     port: "{{ technitium_api_port }}"
     timeout: 60
-  when: >-
-    technitium_secondary_zones | length > 0
-    or technitium_reservation_sync_enabled
-    or technitium_dhcp_offer_delay_ms | int > 0
-    or technitium_dns_apps | length > 0
-    or technitium_dhcp_scopes | length > 0
+  when:
+    - technitium_api_token | length > 0
+    - >-
+      technitium_secondary_zones | length > 0
+      or technitium_reservation_sync_enabled
+      or technitium_dhcp_offer_delay_ms | int > 0
+      or technitium_dns_apps | length > 0
+      or technitium_dhcp_scopes | length > 0
 
 - name: Install and configure DNS Apps
   ansible.builtin.include_tasks: apps.yml
-  when: technitium_dns_apps | length > 0
+  when:
+    - technitium_api_token | length > 0
+    - technitium_dns_apps | length > 0
 
 - name: Configure Secondary zones
   ansible.builtin.include_tasks: zones.yml
-  when: technitium_secondary_zones | length > 0
+  when:
+    - technitium_api_token | length > 0
+    - technitium_secondary_zones | length > 0
 
 - name: Create or update DHCP scopes
   ansible.builtin.include_tasks: dhcp_scopes.yml
-  when: technitium_dhcp_scopes | length > 0
+  when:
+    - technitium_api_token | length > 0
+    - technitium_dhcp_scopes | length > 0
 
 - name: Enforce DHCP offer delay on existing scopes
   ansible.builtin.include_tasks: dhcp_offer_delay.yml
-  when: technitium_dhcp_offer_delay_ms | int > 0
+  when:
+    - technitium_api_token | length > 0
+    - technitium_dhcp_offer_delay_ms | int > 0
 
 - name: Configure DHCP reservation sync
   ansible.builtin.include_tasks: reservation_sync.yml
-  when: technitium_reservation_sync_enabled
+  when:
+    - technitium_api_token | length > 0
+    - technitium_reservation_sync_enabled

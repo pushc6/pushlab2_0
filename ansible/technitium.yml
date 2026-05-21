@@ -1,4 +1,11 @@
 ---
+# Self-bootstrap Docker on the target before running the technitium role,
+# so this playbook works whether it's invoked from site.yml (where docker.yml
+# runs first) or directly from a Semaphore template targeting just dns02.
+- name: Install Docker prerequisite
+  ansible.builtin.import_playbook: docker.yml
+  tags: [docker, technitium, dns, apps]
+
 - name: Deploy Technitium DNS
   hosts: dns02
   become: true

@@ -43,22 +43,12 @@ ssh 10.37.20.254 'ip -6 route show default; curl -sS --max-time 10 --ipv6 -o /de
 
 ### Steps
 
-1. Edit `ansible/inventories/prod/host_vars/dns02.yml` and **temporarily comment out the replication blocks** so the first run only deploys the container:
+Run the Semaphore template **without setting `TECHNITIUM_API_TOKEN_DNS02` in the Environment yet**. With no token present, the role auto-skips all API configuration (zones, scopes, offer-delay, reservation sync, apps) and only:
 
-   ```yaml
-   # Leave these set; they're needed by the container
-   technitium_dns_domain: "dns02.push-lab.com"
+- Installs Docker (`technitium.yml` imports `docker.yml` so this runs even when site.yml isn't invoked).
+- Pulls the Technitium image and starts the container.
 
-   # COMMENT OUT for Phase 1 — re-enable in later phases
-   # technitium_api_token: ...
-   # technitium_secondary_zones: ...
-   # technitium_dhcp_offer_delay_ms: 5000
-   # technitium_reservation_sync_enabled: true
-   # technitium_reservation_sync_primary_host: ...
-   # technitium_reservation_sync_primary_token: ...
-   ```
-
-2. Commit and push. Run the Semaphore template that applies the `technitium` role to `dns02`.
+No host_vars edits needed. The role looks at `technitium_api_token`; if it resolves to empty (env var unset and no vault), the API phase is skipped with a diagnostic message in the play output.
 
 ### Verify
 

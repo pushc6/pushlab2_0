@@ -51,12 +51,14 @@ firewall_hardened_services:
 
 # Technitium API + replication settings.
 # Tokens come from Semaphore env vars (TECHNITIUM_API_TOKEN_DNS0X). The
-# `default(vault_..., true)` fallback lets a local run with an ansible-vault
-# file work too -- matches the acme.yml pattern.
+# `vault_... | default('')` fallback lets a local run with an ansible-vault
+# file work too -- matches the acme.yml pattern. Resolves to empty string
+# when neither source is set so the role can skip API tasks on first deploy
+# (chicken-and-egg: container has to exist before you can create a token).
 technitium_dns_domain: "dns02.push-lab.com"
 technitium_api_token: >-
-  {{ lookup('env', 'TECHNITIUM_API_TOKEN_DNS02')
-     | default(vault_technitium_api_token_dns02, true) }}
+  {{ lookup('env', 'TECHNITIUM_API_TOKEN_DNS02') | default('', true)
+     or (vault_technitium_api_token_dns02 | default('')) }}
 
 technitium_secondary_zones:
   - name: "localdomain"
@@ -171,5 +173,5 @@ technitium_dhcp_offer_delay_ms: 5000
 technitium_reservation_sync_enabled: true
 technitium_reservation_sync_primary_host: "10.37.80.2" # dns01
 technitium_reservation_sync_primary_token: >-
-  {{ lookup('env', 'TECHNITIUM_API_TOKEN_DNS01')
-     | default(vault_technitium_api_token_dns01, true) }}
+  {{ lookup('env', 'TECHNITIUM_API_TOKEN_DNS01') | default('', true)
+     or (vault_technitium_api_token_dns01 | default('')) }}
