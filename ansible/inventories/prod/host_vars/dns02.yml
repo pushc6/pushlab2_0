@@ -49,6 +49,38 @@ firewall_hardened_services:
     sources:
       - "10.37.0.0/16"
 
+# DNS server listen endpoints. Mirrors dns01's pattern -- each VLAN's IPv4
+# and IPv6 ULA explicitly bound. Without this, Technitium binds only to
+# 0.0.0.0:53 (IPv4 wildcard) and IPv6 DNS queries to dns02's ULAs/GUA
+# wouldn't be answered. Keep in sync with `additional_interfaces` below.
+technitium_dns_local_endpoints:
+  - "127.0.0.1:53"
+  - "[::1]:53"
+  # VLAN 10 - Management (primary)
+  - "10.37.10.254:53"
+  - "[fd00:1337:1337:10::254]:53"
+  # VLAN 20 - Trusted
+  - "10.37.20.254:53"
+  - "[fd00:1337:1337:20::254]:53"
+  # VLAN 30 - Storage
+  - "10.37.30.254:53"
+  - "[fd00:1337:1337:30::254]:53"
+  # VLAN 40 - LAN-only
+  - "10.37.40.254:53"
+  - "[fd00:1337:1337:40::254]:53"
+  # VLAN 50 - IoT
+  - "10.37.50.254:53"
+  - "[fd00:1337:1337:50::254]:53"
+  # VLAN 60 - Guest
+  - "10.37.60.254:53"
+  - "[fd00:1337:1337:60::254]:53"
+  # VLAN 80 - App (uplink)
+  - "10.37.80.254:53"
+  - "[fd00:1337:1337:80::254]:53"
+  # VLAN 100 - Test
+  - "10.37.100.254:53"
+  - "[fd00:1337:1337:100::254]:53"
+
 # Technitium API + replication settings.
 # Tokens come from Semaphore env vars (TECHNITIUM_API_TOKEN_DNS0X). The
 # `vault_... | default('')` fallback lets a local run with an ansible-vault

@@ -52,6 +52,13 @@
       or technitium_dhcp_offer_delay_ms | int > 0
       or technitium_dns_apps | length > 0
       or technitium_dhcp_scopes | length > 0
+      or technitium_dns_local_endpoints | length > 0
+
+- name: Apply server-level Technitium settings
+  ansible.builtin.include_tasks: settings.yml
+  when:
+    - technitium_api_token | length > 0
+    - technitium_dns_local_endpoints | length > 0
 
 - name: Install and configure DNS Apps
   ansible.builtin.include_tasks: apps.yml

@@ -31,6 +31,14 @@ technitium_api_scheme: "http"
 # configured manually to allow transfers and notify this host.
 technitium_secondary_zones: []
 
+# DNS server local listen endpoints, as a list of `IP:PORT` strings.
+# Example: ["10.37.10.254:53", "[fd00:1337:1337:10::254]:53", "127.0.0.1:53"]
+# Empty list leaves Technitium's default (0.0.0.0:53) alone. Set this on
+# multi-homed hosts (especially with IPv6) so DNS is served on every
+# expected address -- the default IPv4 wildcard alone won't accept IPv6
+# queries.
+technitium_dns_local_endpoints: []
+
 # DHCP scopes to declare on this Technitium instance.
 # See tasks/dhcp_scopes.yml for the full schema. Each scope is created or
 # updated via /api/dhcp/scopes/set and enabled/disabled accordingly.

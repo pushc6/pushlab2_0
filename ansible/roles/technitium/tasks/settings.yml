@@ -1,0 +1,40 @@
+---
+# Apply server-level Technitium settings via /api/settings/set.
+# Currently only dnsServerLocalEndPoints is managed. Other settings (recursion
+# ACL, forwarders, blocking type, etc.) are still configured manually in the
+# web UI; add them here as needed.
+#
+# Technitium's /api/settings/set is a PATCH: fields not specified retain their
+# current value. We GET current state first and only POST when a managed field
+# is out of sync.
+
+- name: Fetch current Technitium server settings
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/settings/get"
+    method: GET
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+    return_content: true
+    status_code: 200
+  register: technitium_settings_current
+  failed_when: technitium_settings_current.json.status != "ok"
+  no_log: true
+
+- name: Enforce DNS server local endpoints
+  ansible.builtin.uri:
+    url: "{{ technitium_api_scheme }}://{{ technitium_api_host }}:{{ technitium_api_port }}/api/settings/set"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      token: "{{ technitium_api_token }}"
+      dnsServerLocalEndPoints: "{{ technitium_dns_local_endpoints | join(',') }}"
+    return_content: true
+    status_code: 200
+  when: >-
+    (technitium_settings_current.json.response.dnsServerLocalEndPoints | default([]) | sort)
+    != (technitium_dns_local_endpoints | sort)
+  register: technitium_settings_apply
+  failed_when:
+    - technitium_settings_apply.json is defined
+    - technitium_settings_apply.json.status != "ok"
