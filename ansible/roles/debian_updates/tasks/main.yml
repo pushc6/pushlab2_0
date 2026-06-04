@@ -10,8 +10,15 @@
     upgrade: "{{ debian_updates_apt_upgrade_type }}"
     autoclean: "{{ debian_updates_apt_autoclean | bool }}"
     autoremove: "{{ debian_updates_apt_autoremove | bool }}"
+    lock_timeout: 300
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+    NEEDRESTART_MODE: a
+    NEEDRESTART_SUSPEND: "1"
   register: debian_updates_apt_result
   when: not debian_updates_apt_update_cache_only | bool
+  async: 1800
+  poll: 15
 
 - name: Check if reboot is required
   ansible.builtin.stat:
