@@ -42,10 +42,16 @@
 - name: Reboot RHEL server if needed
   ansible.builtin.reboot:
     msg: "Rebooting due to package updates"
-    connect_timeout: 5
+    connect_timeout: 30
     reboot_timeout: "{{ reboot_timeout }}"
     pre_reboot_delay: 0
     post_reboot_delay: "{{ post_reboot_delay }}"
+  vars:
+    # Per Ansible docs: disable ControlMaster on reboot tasks so the post-reboot
+    # reconnect doesn't try to reuse the cached SSH master socket pointing at
+    # the dead pre-reboot sshd PID. Keepalives are kept so the connection still
+    # survives firewall idle timeouts during the boot-up window.
+    ansible_ssh_args: "-o ControlMaster=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes"
   when:
     - enable_reboot | bool
     - rhel_updates_needs_restarting_cmd.rc == 0
