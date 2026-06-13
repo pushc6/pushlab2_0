@@ -92,6 +92,7 @@
     src: "{{ oauth2_proxy_nginx_sites_available }}/{{ item.domain }}.conf"
     dest: "{{ oauth2_proxy_nginx_sites_enabled }}/{{ item.domain }}.conf"
     state: link
+    force: true
   loop: "{{ oauth2_proxy_nginx_filtered_services }}"
   notify: reload nginx
 

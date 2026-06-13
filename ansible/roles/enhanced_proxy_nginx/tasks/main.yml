@@ -157,6 +157,7 @@
     src: "{{ enhanced_proxy_nginx_sites_available | default('/etc/nginx/sites-available') }}/{{ item.domain }}.conf"
     dest: "{{ enhanced_proxy_nginx_sites_enabled | default('/etc/nginx/sites-enabled') }}/{{ item.domain }}.conf"
     state: link
+    force: true
   loop: "{{ enhanced_proxy_nginx_filtered_services }}"
   notify: reload nginx
 
