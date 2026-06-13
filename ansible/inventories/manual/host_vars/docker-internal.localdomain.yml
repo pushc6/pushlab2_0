@@ -37,6 +37,14 @@ firewall_hardened_services:
       - "fd00:1337:1337:70::24/128" # nginx-internal (IPv6)
       - "fd00:1337:1337:20::/64" # trusted_vlan (IPv6)
 
+  - port: 9120
+    protocol: tcp
+    name: "Komodo Core - GitOps webhook listener"
+    container: komodo-core
+    access: custom
+    sources:
+      - "10.37.80.4/32" # gitea host - delivers Renovate-merge webhooks to redeploy stacks
+
   # ============================================================================
   # Authentication Services
   # ============================================================================
