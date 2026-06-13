@@ -90,9 +90,18 @@
   ansible.builtin.set_fact:
     gitea_effective_download_url: "https://dl.gitea.com/gitea/{{ gitea_effective_version }}/gitea-{{ gitea_effective_version }}-linux-amd64"
 
+# Only upgrade when we KNOW the installed version and it differs (or the binary
+# is absent). A failed/empty version probe (e.g. a full disk preventing module
+# staging) must NOT be treated as "needs upgrade" -- doing so previously stopped
+# Gitea and then failed mid-backup, causing an outage.
 - name: Decide if Gitea update is needed
   ansible.builtin.set_fact:
-    gitea_update_needed: "{{ (not gitea_bin_stat.stat.exists) or (gitea_installed_version | default('') != gitea_effective_version) }}"
+    gitea_update_needed: >-
+      {{ (not gitea_bin_stat.stat.exists)
+         or (
+              (gitea_installed_version | default('') | length > 0)
+              and (gitea_installed_version != gitea_effective_version)
+            ) }}
 
 - name: Ensure backup directory exists (when backup enabled)
   ansible.builtin.file:
@@ -103,11 +112,32 @@
     mode: "0755"
   when: (gitea_backup_before_upgrade | bool) and (gitea_update_needed | bool)
 
-- name: Stop Gitea service before upgrade
-  ansible.builtin.systemd:
-    name: gitea
-    state: stopped
-  when: gitea_update_needed | bool
+# Pre-flight the backup BEFORE stopping Gitea, so an out-of-space condition aborts
+# the run while Gitea is still serving -- never leaving it stopped on a failed backup.
+- name: Measure backup source size (bytes)
+  ansible.builtin.shell: "set -o pipefail; du -sbc {{ gitea_backup_include | join(' ') }} | tail -1 | cut -f1"
+  args:
+    executable: /bin/bash
+  register: gitea_backup_src_bytes
+  changed_when: false
+  when: (gitea_backup_before_upgrade | bool) and (gitea_update_needed | bool)
+
+- name: Measure free space on backup filesystem (bytes)
+  ansible.builtin.shell: "df -PB1 {{ gitea_backup_dir }} | awk 'NR==2 {print $4}'"
+  register: gitea_backup_free_bytes
+  changed_when: false
+  when: (gitea_backup_before_upgrade | bool) and (gitea_update_needed | bool)
+
+- name: Abort upgrade if insufficient space for backup (Gitea still running)
+  ansible.builtin.assert:
+    that:
+      - (gitea_backup_free_bytes.stdout | int) > (gitea_backup_src_bytes.stdout | int)
+    fail_msg: >-
+      Refusing to upgrade: {{ gitea_backup_dir }} has
+      {{ gitea_backup_free_bytes.stdout | int }} bytes free but the backup source
+      is {{ gitea_backup_src_bytes.stdout | int }} bytes. Free space (or point
+      gitea_backup_dir at a larger filesystem) and re-run. Gitea was NOT stopped.
+  when: (gitea_backup_before_upgrade | bool) and (gitea_update_needed | bool)
 
 - name: Backup Gitea config and data (tar.gz)
   ansible.builtin.shell: >-
@@ -123,6 +153,12 @@
     remote_src: true
     mode: "0755"
   when: gitea_bin_stat.stat.exists and (gitea_update_needed | bool)
+
+- name: Stop Gitea service before upgrade
+  ansible.builtin.systemd:
+    name: gitea
+    state: stopped
+  when: gitea_update_needed | bool
 
 - name: Download Gitea binary (effective)
   ansible.builtin.get_url:
@@ -144,6 +180,70 @@
   notify:
     - gitea_reload_systemd
     - gitea_restart
+
+# Gitea generates INTERNAL_TOKEN and the oauth2 JWT_SECRET at install time and
+# stores them in app.ini. The template does not own them, so we must preserve the
+# existing values (or generate them on a fresh install) before re-rendering --
+# otherwise re-rendering strips them, invalidating OAuth2/LFS/runner tokens.
+- name: Check for existing Gitea config
+  ansible.builtin.stat:
+    path: /etc/gitea/app.ini
+  register: gitea_appini_stat
+
+- name: Slurp existing Gitea config to preserve generated secrets
+  ansible.builtin.slurp:
+    src: /etc/gitea/app.ini
+  register: gitea_appini_existing
+  when: gitea_appini_stat.stat.exists
+
+- name: Preserve generated secrets from existing config
+  ansible.builtin.set_fact:
+    gitea_internal_token: "{{ ((_c | regex_findall('(?m)^INTERNAL_TOKEN\\s*=\\s*(.+?)\\s*$')) + ['']) | first }}"
+    gitea_oauth2_jwt_secret: "{{ ((_c | regex_findall('(?m)^JWT_SECRET\\s*=\\s*(.+?)\\s*$')) + ['']) | first }}"
+    gitea_lfs_jwt_secret: "{{ ((_c | regex_findall('(?m)^LFS_JWT_SECRET\\s*=\\s*(.+?)\\s*$')) + ['']) | first }}"
+  vars:
+    _c: "{{ gitea_appini_existing.content | b64decode }}"
+  when: gitea_appini_stat.stat.exists
+  no_log: true
+
+- name: Generate INTERNAL_TOKEN on fresh install
+  ansible.builtin.command: "{{ gitea_binary_path }} generate secret INTERNAL_TOKEN"
+  register: gitea_gen_internal_token
+  changed_when: false
+  no_log: true
+  when: gitea_internal_token | length == 0
+
+- name: Generate oauth2 JWT_SECRET on fresh install
+  ansible.builtin.command: "{{ gitea_binary_path }} generate secret JWT_SECRET"
+  register: gitea_gen_jwt_secret
+  changed_when: false
+  no_log: true
+  when: gitea_oauth2_jwt_secret | length == 0
+
+- name: Generate LFS JWT_SECRET on fresh install
+  ansible.builtin.command: "{{ gitea_binary_path }} generate secret JWT_SECRET"
+  register: gitea_gen_lfs_secret
+  changed_when: false
+  no_log: true
+  when: gitea_lfs_jwt_secret | length == 0
+
+- name: Record freshly generated INTERNAL_TOKEN
+  ansible.builtin.set_fact:
+    gitea_internal_token: "{{ gitea_gen_internal_token.stdout | trim }}"
+  when: gitea_gen_internal_token is not skipped
+  no_log: true
+
+- name: Record freshly generated oauth2 JWT_SECRET
+  ansible.builtin.set_fact:
+    gitea_oauth2_jwt_secret: "{{ gitea_gen_jwt_secret.stdout | trim }}"
+  when: gitea_gen_jwt_secret is not skipped
+  no_log: true
+
+- name: Record freshly generated LFS JWT_SECRET
+  ansible.builtin.set_fact:
+    gitea_lfs_jwt_secret: "{{ gitea_gen_lfs_secret.stdout | trim }}"
+  when: gitea_gen_lfs_secret is not skipped
+  no_log: true
 
 - name: Render Gitea config
   ansible.builtin.template:

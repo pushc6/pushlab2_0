@@ -52,6 +52,14 @@ argument_specs:
         description: FQDN used by app.ini.
         type: str
         required: false
+      gitea_webhook_allowed_host_list:
+        description: >-
+          Value for [webhook] ALLOWED_HOST_LIST. Gitea blocks webhooks to
+          private/loopback hosts by default; set this to the specific internal
+          receiver IP/CIDR(s) (e.g. a Komodo host) to permit them. Empty leaves
+          Gitea's default (external only).
+        type: str
+        default: ""
       gitea_admin_username:
         description: Optional bootstrap admin username (vault-protected).
         type: str

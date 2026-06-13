@@ -51,3 +51,8 @@
   import_playbook: technitium.yml
   when: "'dns02' in hostvars"
   tags: ["technitium", "apps"]
+
+- name: Deploy Komodo Periphery
+  import_playbook: komodo-periphery.yml
+  when: "'dockerhost' in groups or 'docker_internal' in groups or 'docker_secure' in groups"
+  tags: ["komodo", "gitops", "apps"]

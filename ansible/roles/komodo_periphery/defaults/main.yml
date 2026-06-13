@@ -1,0 +1,20 @@
+---
+# Komodo Periphery agent. Runs as a Docker container on each managed Docker host
+# and lets Komodo Core deploy/redeploy compose Stacks here. See docker-stacks repo
+# for Core + the docker-stacks GitOps source of truth.
+komodo_periphery_image: "ghcr.io/moghtech/komodo-periphery:1.19.5"
+
+# Shared secret that must match KOMODO_PASSKEY on Komodo Core. Set from a vaulted
+# variable (e.g. {{ vault_komodo_passkey }}) in group_vars. Empty = role no-ops
+# (safe to leave wired into site.yml before Komodo Core exists).
+komodo_periphery_passkey: ""
+
+# Port the agent listens on for Core (https).
+komodo_periphery_port: 8120
+
+# Where Periphery clones repos and stores stack/deploy state on the host.
+komodo_periphery_root_dir: "/etc/komodo"
+
+# Only allow connections from Komodo Core's address (defense in depth; the
+# passkey is the real auth). Empty list = allow any source.
+komodo_periphery_allowed_ips: []

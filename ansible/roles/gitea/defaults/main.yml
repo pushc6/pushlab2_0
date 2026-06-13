@@ -11,6 +11,23 @@ gitea_auto_update: false
 # Release API endpoint to discover the latest version (no auth required)
 gitea_release_api_url: "https://api.github.com/repos/go-gitea/gitea/releases/latest"
 
+# [webhook] ALLOWED_HOST_LIST. Gitea blocks webhooks to private/loopback hosts
+# by default (SSRF protection). Set to a specific internal receiver IP/CIDR
+# (e.g. the Komodo host) to permit them. Empty keeps Gitea's default.
+gitea_webhook_allowed_host_list: ""
+
+# Gitea-generated secrets that must persist across role runs. These are populated
+# automatically by install.yml: preserved from an existing /etc/gitea/app.ini, or
+# generated on a fresh install. Do NOT set by hand. Leaving them empty just means
+# the section is omitted (Gitea would regenerate, invalidating tokens) -- the role
+# fills them so re-rendering app.ini never strips them.
+gitea_internal_token: ""
+gitea_oauth2_jwt_secret: ""
+gitea_lfs_jwt_secret: ""
+
+# Gitea working directory (top-level WORK_PATH). Must match the live install.
+gitea_work_path: "/var/lib/gitea"
+
 # Path to install the gitea binary
 gitea_binary_path: "/usr/local/bin/gitea"
 

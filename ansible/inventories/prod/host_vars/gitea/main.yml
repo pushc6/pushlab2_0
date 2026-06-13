@@ -11,6 +11,12 @@
 gitea_runner_labels_extra:
   - alma
 
+# Allow Gitea to deliver Renovate-merge webhooks to Komodo. The target is
+# komodo.push-lab.com, which resolves to nginx-internal (10.37.70.24) -- gitea
+# (VLAN80) can reach the proxy on :443 but not komodo:9120 directly (OPNsense).
+# Gitea blocks private-IP webhook targets by default (SSRF protection).
+gitea_webhook_allowed_host_list: "10.37.70.24"
+
 # Secondary disk for repositories and app data. Must match the Terraform
 # `data_disk_size_gb`, `data_mount_point`, and `data_fs_type` values in
 # terraform/envs/prod/prod.tfvars so the role can identify and mount it.

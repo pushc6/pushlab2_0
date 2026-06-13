@@ -162,6 +162,23 @@ oauth2_services:
     health_check: "/api/ping"
     enable_caching: false
 
+  # Fronts Komodo so Gitea (VLAN80) can deliver Renovate-merge webhooks to it:
+  # gitea -> nginx-internal:443 is permitted cross-VLAN, but gitea -> komodo:9120
+  # direct is blocked by OPNsense. Traditional mode (no OAuth2) is required so the
+  # /listener webhook endpoint is reachable; Komodo has its own auth + HMAC.
+  - name: "komodo"
+    domain: "komodo.push-lab.com"
+    backend_host: "10.37.70.25"
+    backend_port: "9120"
+    auth_type: "none"
+    proxy_mode: "traditional"
+    ssl_domain: "push-lab.com"
+    description: "Komodo GitOps deploy engine"
+    category: "automation"
+    health_check: "/"
+    enable_caching: false
+    client_max_body_size: "25M" # webhook payloads
+
   - name: "tracearr"
     domain: "tracearr.push-lab.com"
     backend_host: "10.37.70.25"

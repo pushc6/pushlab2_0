@@ -1,5 +1,6 @@
 # Gitea main configuration
 # Reference: https://docs.gitea.com/next/administration/config-cheat-sheet
+WORK_PATH = {{ gitea_work_path }}
 
 [server]
 DOMAIN = {{ gitea_domain | default(ansible_host) }}
@@ -12,6 +13,9 @@ SSH_DOMAIN = {{ gitea_domain | default(ansible_host) }}
 SSH_LISTEN_HOST = 0.0.0.0
 SSH_LISTEN_PORT = {{ gitea_ssh_port }}
 LFS_START_SERVER = true
+{% if gitea_lfs_jwt_secret %}
+LFS_JWT_SECRET = {{ gitea_lfs_jwt_secret }}
+{% endif %}
 
 [database]
 DB_TYPE  = sqlite3
@@ -28,6 +32,9 @@ ROOT_PATH = /var/log/gitea
 
 [security]
 INSTALL_LOCK = true
+{% if gitea_internal_token %}
+INTERNAL_TOKEN = {{ gitea_internal_token }}
+{% endif %}
 
 [service]
 REGISTER_EMAIL_CONFIRM = false
@@ -39,4 +46,15 @@ ENABLED = true
 
 [packages]
 ENABLED = true
+{% if gitea_oauth2_jwt_secret %}
+
+[oauth2]
+JWT_SECRET = {{ gitea_oauth2_jwt_secret }}
+{% endif %}
+{% if gitea_webhook_allowed_host_list %}
+
+[webhook]
+# Permit webhooks to these internal hosts (Gitea blocks private/loopback by default).
+ALLOWED_HOST_LIST = {{ gitea_webhook_allowed_host_list }}
+{% endif %}
 

@@ -1,0 +1,10 @@
+---
+# Install the Komodo Periphery agent on the on-premise Docker hosts so Komodo
+# Core (on docker-internal) can deploy compose Stacks from the docker-stacks repo.
+# No-ops on any host until komodo_periphery_passkey is set (vaulted).
+- name: Deploy Komodo Periphery
+  hosts: dockerhost:docker_internal:docker_secure
+  become: true
+  roles:
+    - komodo_periphery
+  tags: [komodo, gitops, apps]

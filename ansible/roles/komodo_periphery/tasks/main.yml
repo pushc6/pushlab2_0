@@ -1,0 +1,41 @@
+---
+- name: Skip Periphery deploy when passkey is unset (pre-Komodo bootstrap)
+  ansible.builtin.debug:
+    msg: >-
+      komodo_periphery_passkey is empty -- skipping Komodo Periphery deploy.
+      Set it (vaulted, matching KOMODO_PASSKEY on Komodo Core) and re-run.
+  when: komodo_periphery_passkey | length == 0
+
+- name: Configure Komodo Periphery
+  when: komodo_periphery_passkey | length > 0
+  block:
+    - name: Ensure Python Docker SDK is present
+      # Matches the technitium role: EPEL 10 lacks python3-docker, pip is portable.
+      # --break-system-packages required on EL10 (PEP 668). Harmless on Debian hosts.
+      ansible.builtin.pip:
+        name: docker
+        state: present
+        extra_args: --break-system-packages
+
+    - name: Ensure Komodo root directory exists
+      ansible.builtin.file:
+        path: "{{ komodo_periphery_root_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Deploy Komodo Periphery agent
+      community.docker.docker_container:
+        name: komodo-periphery
+        image: "{{ komodo_periphery_image }}"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "{{ komodo_periphery_port }}:8120"
+        env:
+          PERIPHERY_PASSKEYS: "{{ komodo_periphery_passkey }}"
+          PERIPHERY_ROOT_DIRECTORY: "/etc/komodo"
+          PERIPHERY_ALLOWED_IPS: "{{ komodo_periphery_allowed_ips | join(',') }}"
+        volumes:
+          - "/var/run/docker.sock:/var/run/docker.sock"
+          - "{{ komodo_periphery_root_dir }}:/etc/komodo"
+          - "/proc:/proc"

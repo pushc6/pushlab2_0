@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Deploy the Komodo Periphery agent as a Docker container
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["10"]
+  galaxy_tags:
+    - komodo
+    - gitops
+    - docker
+
+dependencies: []
+collections:
+  - ansible.builtin
+  - community.docker
