@@ -24,13 +24,17 @@
         )
       }}
 
+# Only ensure the mount point exists. Do NOT force ownership/mode by default:
+# the path may already be an NFS export root whose ownership is managed on the NAS,
+# and chown/chgrp over an NFS mount with root_squash fails. Ownership is applied
+# only if a mount explicitly sets owner/group/mode (e.g. a fresh local dir).
 - name: Create mount point directories
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
-    owner: "{{ item.owner | default('root') }}"
-    group: "{{ item.group | default('root') }}"
-    mode: "{{ item.mode | default('0755') }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode: "{{ item.mode | default(omit) }}"
   loop: "{{ nfs_client_effective_mounts }}"
   loop_control:
     label: "{{ item.path }}"
