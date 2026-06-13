@@ -12,6 +12,16 @@
   when: "'docker_hosts' in groups"
   tags: ["docker", "apps"]
 
+# Mount the tiered NFS storage (/srv/docker/san) on docker hosts. No-op on a host
+# that does not define nfs_client_mounts. Add docker_secure / dockerhost here as
+# they are migrated to the /srv/docker layout (docs/host-storage-migration.md).
+- name: Mount NFS storage tiers on Docker hosts
+  hosts: docker_internal
+  become: true
+  roles:
+    - nfs_client
+  tags: ["nfs", "storage"]
+
 - name: Deploy Firewall Hardening
   hosts: all:!opnsense
   become: true

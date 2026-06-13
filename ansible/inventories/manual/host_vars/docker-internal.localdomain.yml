@@ -2,6 +2,15 @@
 # Firewall configuration for docker-internal.localdomain (10.37.70.25)
 # Monitoring, Authentication, and Infrastructure Services
 
+# NFS storage tiers (consumed by the nfs_client role).
+# The 'san' tier backs the bulk/stateful leaves of /srv/docker (databases, TSDBs,
+# ACME certs, caches, logs). Small/secret config stays on the local LV under
+# /srv/docker/<stack>. See docs/host-storage-migration.md in rangernet/docker-stacks.
+nfs_client_mounts:
+  - src: "10.37.70.22:/mnt/tank/DockerInternal"
+    path: /srv/docker/san
+    opts: "defaults,_netdev"
+
 # SSH access (host-specific)
 firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
