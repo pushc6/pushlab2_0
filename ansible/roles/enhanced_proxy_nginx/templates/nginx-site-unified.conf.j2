@@ -17,12 +17,12 @@ server {
 {% if ssl_config.dhparam_path is defined %}
     ssl_dhparam {{ ssl_config.dhparam_path }};
 {% endif %}
-    enhanced_proxy_nginx_ssl_protocols {{ enhanced_proxy_nginx_ssl_protocols | default('TLSv1.2 TLSv1.3') }};
-    enhanced_proxy_nginx_ssl_ciphers {{ enhanced_proxy_nginx_ssl_ciphers | default('HIGH:!aNULL:!MD5') }};
-    enhanced_proxy_nginx_ssl_prefer_server_ciphers {{ enhanced_proxy_nginx_ssl_prefer_server_ciphers | default('off') }};
+    ssl_protocols {{ enhanced_proxy_nginx_ssl_protocols | default('TLSv1.2 TLSv1.3') }};
+    ssl_ciphers {{ enhanced_proxy_nginx_ssl_ciphers | default('HIGH:!aNULL:!MD5') }};
+    ssl_prefer_server_ciphers {{ enhanced_proxy_nginx_ssl_prefer_server_ciphers | default('off') }};
     ssl_session_cache shared:SSL_{{ item.domain | replace('.', '_') | replace('-', '_') }}:10m;
-    enhanced_proxy_nginx_ssl_session_timeout {{ enhanced_proxy_nginx_ssl_session_timeout | default('1d') }};
-    enhanced_proxy_nginx_ssl_session_tickets {{ enhanced_proxy_nginx_ssl_session_tickets | default('off') }};
+    ssl_session_timeout {{ enhanced_proxy_nginx_ssl_session_timeout | default('1d') }};
+    ssl_session_tickets {{ enhanced_proxy_nginx_ssl_session_tickets | default('off') }};
     
     # SSL Stapling (OCSP)
 {% if enhanced_proxy_nginx_ssl_stapling_enabled | default(true) %}
