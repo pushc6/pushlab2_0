@@ -1,5 +1,11 @@
 ---
-# Install NFS client packages and configure persistent mount
+# Install NFS client packages and configure persistent mounts.
+#
+# Two interfaces, both supported:
+#   * Legacy single mount  — set nfs_server / nfs_export_path / nfs_mount_point
+#     (used by truenas_proxy.yml).
+#   * Multiple mounts      — set nfs_client_mounts: a list of {src, path, [opts], [fstype], ...}
+#     (used by docker hosts for the tiered /srv/docker/san storage).
 - name: Ensure required packages are present
   ansible.builtin.package:
     name:
@@ -7,18 +13,37 @@
       - nfs4-acl-tools
     state: present
 
-- name: Create mount point directory
-  ansible.builtin.file:
-    path: "{{ nfs_mount_point }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
+- name: Build effective mount list (legacy scalar + explicit list)
+  ansible.builtin.set_fact:
+    nfs_client_effective_mounts: >-
+      {{
+        (nfs_client_mounts | default([]))
+        +
+        (
+          [{'src': nfs_server ~ ':' ~ nfs_export_path, 'path': nfs_mount_point}]
+          if (nfs_server is defined and nfs_export_path is defined and nfs_mount_point is defined)
+          else []
+        )
+      }}
 
-- name: Mount NFS export and persist in fstab
+- name: Create mount point directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop: "{{ nfs_client_effective_mounts }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Mount NFS exports and persist in fstab
   ansible.posix.mount:
-    src: "{{ nfs_server }}:{{ nfs_export_path }}"
-    path: "{{ nfs_mount_point }}"
-    fstype: nfs4
-    opts: defaults,_netdev
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: "{{ item.fstype | default(nfs_client_fstype) }}"
+    opts: "{{ item.opts | default(nfs_client_mount_opts) }}"
     state: mounted
+  loop: "{{ nfs_client_effective_mounts }}"
+  loop_control:
+    label: "{{ item.path }}"

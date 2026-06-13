@@ -1,11 +1,21 @@
 ---
-# Required — set per-host or per-play:
-#   nfs_server: 10.37.70.22
-#   nfs_export_path: /mnt/tank/VMStorage
-#   nfs_mount_point: /mnt/backupstorage
+# This role supports two interfaces:
+#
+# 1) Multiple mounts (preferred) — a per-host list. Each item:
+#      src:    "10.37.70.22:/mnt/tank/DockerInternal"   # server:export (required)
+#      path:   "/srv/docker/san"                          # mount point (required)
+#      opts:   "defaults,_netdev"                         # optional (default: nfs_client_mount_opts)
+#      fstype: "nfs4"                                     # optional (default: nfs_client_fstype)
+#      owner / group / mode                               # optional, for the mount-point dir
+nfs_client_mounts: []
+#
+# 2) Legacy single mount — set these three scalars (used by truenas_proxy.yml):
+#      nfs_server: 10.37.70.22
+#      nfs_export_path: /mnt/tank/VMStorage
+#      nfs_mount_point: /mnt/backupstorage
 
-# Mount options used in /etc/fstab.
+# Default mount options used in /etc/fstab.
 nfs_client_mount_opts: "defaults,_netdev"
 
-# NFS protocol version.
+# Default NFS protocol version.
 nfs_client_fstype: nfs4
