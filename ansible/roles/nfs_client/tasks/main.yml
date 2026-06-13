@@ -8,9 +8,7 @@
 #     (used by docker hosts for the tiered /srv/docker/san storage).
 - name: Ensure required packages are present
   ansible.builtin.package:
-    name:
-      - nfs-utils
-      - nfs4-acl-tools
+    name: "{{ nfs_client_packages[ansible_os_family] }}"
     state: present
 
 - name: Build effective mount list (legacy scalar + explicit list)

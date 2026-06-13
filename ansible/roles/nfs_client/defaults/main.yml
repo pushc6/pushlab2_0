@@ -19,3 +19,13 @@ nfs_client_mount_opts: "defaults,_netdev"
 
 # Default NFS protocol version.
 nfs_client_fstype: nfs4
+
+# NFS client packages, by OS family (Debian/Ubuntu use nfs-common; EL uses nfs-utils).
+# nfs-common / nfs-utils are all that's required to mount; the nfs4-acl-tools ACL CLI
+# is kept only on EL where it was already proven (and avoids a universe-repo dependency).
+nfs_client_packages:
+  Debian:
+    - nfs-common
+  RedHat:
+    - nfs-utils
+    - nfs4-acl-tools
