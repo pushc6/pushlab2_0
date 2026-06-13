@@ -33,9 +33,6 @@ ssl_security_config:
   prefer_server_ciphers: "off"
   session_timeout: "1d"
   session_tickets: "off"
-  stapling_enabled: true
-  resolver: "8.8.8.8 8.8.4.4"
-  resolver_timeout: "5s"
 
 # Security Headers Configuration (modular)
 security_headers:

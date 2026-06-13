@@ -82,7 +82,7 @@ server {
         client_max_body_size {{ nginx_config.client_max_body_size | default(oauth2_proxy_nginx_client_max_body_size) }};
     }
     
-{% if item.health_check is defined %}
+{% if item.health_check is defined and item.health_check != '/' %}
     # Service-specific health check endpoint (no auth required)
     location {{ item.health_check }} {
         access_log off;

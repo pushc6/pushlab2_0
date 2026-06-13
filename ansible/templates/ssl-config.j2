@@ -23,17 +23,6 @@ ssl_session_cache shared:SSL_{{ ssl_domain | replace('.', '_') | replace('-', '_
 ssl_session_timeout {{ ssl_session_timeout | default('1d') }};
 ssl_session_tickets {{ ssl_session_tickets | default('off') }};
 
-# SSL Stapling (OCSP)
-{% if ssl_stapling_enabled | default(true) %}
-ssl_stapling on;
-ssl_stapling_verify on;
-{% if ssl_trusted_certificate is defined %}
-ssl_trusted_certificate {{ ssl_trusted_certificate }};
-{% endif %}
-resolver {{ ssl_resolver | default('8.8.8.8 8.8.4.4') }} valid=300s;
-resolver_timeout {{ ssl_resolver_timeout | default('5s') }};
-{% endif %}
-
 # Security Headers
 add_header Strict-Transport-Security "max-age={{ hsts_max_age | default('63072000') }}; includeSubDomains{{ '; preload' if hsts_preload | default(false) else '' }}";
 add_header X-Frame-Options {{ x_frame_options | default('DENY') }};

@@ -23,18 +23,6 @@ server {
     ssl_session_cache shared:SSL_{{ item.domain | replace('.', '_') | replace('-', '_') }}:10m;
     ssl_session_timeout {{ enhanced_proxy_nginx_ssl_session_timeout | default('1d') }};
     ssl_session_tickets {{ enhanced_proxy_nginx_ssl_session_tickets | default('off') }};
-    
-    # SSL Stapling (OCSP)
-{% if enhanced_proxy_nginx_ssl_stapling_enabled | default(true) %}
-    ssl_stapling on;
-    ssl_stapling_verify on;
-{% if ssl_trusted_certificate is defined %}
-    ssl_trusted_certificate {{ ssl_trusted_certificate }};
-{% endif %}
-    resolver {{ enhanced_proxy_nginx_ssl_resolver | default('8.8.8.8 8.8.4.4') }} valid=300s;
-    resolver_timeout {{ enhanced_proxy_nginx_ssl_resolver_timeout | default('5s') }};
-{% endif %}
-    
     # Security Headers
     add_header Strict-Transport-Security "max-age={{ enhanced_proxy_nginx_hsts_max_age | default('63072000') }}; includeSubDomains{{ '; preload' if enhanced_proxy_nginx_hsts_preload | default(false) else '' }}";
     add_header X-Frame-Options {{ enhanced_proxy_nginx_x_frame_options | default('DENY') }};
@@ -177,7 +165,7 @@ server {
 {% endif %}
     }
     
-{% if item.health_check is defined %}
+{% if item.health_check is defined and item.health_check != '/' %}
     # Service-specific health check endpoint (no auth required)
     location {{ item.health_check }} {
         access_log off;
