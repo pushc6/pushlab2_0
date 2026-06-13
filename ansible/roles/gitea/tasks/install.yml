@@ -58,7 +58,9 @@
 
 - name: Parse installed Gitea version
   ansible.builtin.set_fact:
-    gitea_installed_version: '{{ (gitea_version_cmd.stdout | default("") | regex_search("([0-9]+\\.[0-9]+\\.[0-9]+)")) | default("") }}'
+    # default('', true) coalesces a no-match (regex_search -> None) to '' so
+    # downstream length checks are safe even when the version probe is skipped.
+    gitea_installed_version: '{{ (gitea_version_cmd.stdout | default("") | regex_search("([0-9]+\\.[0-9]+\\.[0-9]+)")) | default("", true) }}'
   when: gitea_bin_stat.stat.exists
 
 # Optionally resolve latest version from API
