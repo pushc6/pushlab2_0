@@ -191,6 +191,19 @@ opnsense_firewall_terraform_rules:
     port: 22
     interface: dmz_vlan
 
+  # Komodo GitOps: Core (docker-internal, DMZ) deploys/redeploys compose Stacks
+  # on docker-secure's Periphery agent. Core's container traffic SNATs to the
+  # docker-internal host IP (10.37.70.25 = semaphore alias). docker-secure is in
+  # the Trusted VLAN (10.37.20.0/24), so this is the first DMZ->Trusted Komodo
+  # rule (docker/docker-internal share VLAN70 with Core and need no rule).
+  - name: "Komodo Core to docker-secure Periphery (cross-VLAN)"
+    description: "Allow Komodo Core (docker-internal) to reach Periphery on docker-secure for GitOps deploys"
+    source: "semaphore" # 10.37.70.25 (DMZ; docker-internal runs Komodo Core)
+    destination: "10.37.20.2" # docker-secure (Trusted VLAN20)
+    protocol: tcp
+    port: 8120
+    interface: dmz_vlan
+
 # labtest is NOT listed = no firewall rule (same subnet, not needed)
 
 # Option 2: Use conditional based on subnet matching
