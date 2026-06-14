@@ -9,13 +9,22 @@
 - name: Configure Komodo Periphery
   when: komodo_periphery_passkey | length > 0
   block:
-    - name: Ensure Python Docker SDK is present
-      # Matches the technitium role: EPEL 10 lacks python3-docker, pip is portable.
-      # --break-system-packages required on EL10 (PEP 668). Harmless on Debian hosts.
+    # Docker SDK for the community.docker module. OS-aware: Debian/Ubuntu has a
+    # packaged SDK (python3-docker) and no pip by default; EL lacks the package
+    # (EPEL 10) so pip is the portable route (--break-system-packages for PEP 668).
+    - name: Ensure Python Docker SDK is present (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: python3-docker
+        state: present
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure Python Docker SDK is present (EL/other via pip)
       ansible.builtin.pip:
         name: docker
         state: present
         extra_args: --break-system-packages
+      when: ansible_os_family != "Debian"
 
     - name: Ensure Komodo root directory exists
       ansible.builtin.file:
