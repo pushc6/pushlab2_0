@@ -40,6 +40,9 @@
         restart_policy: unless-stopped
         ports:
           - "{{ komodo_periphery_port }}:8120"
+        # Explicit resolver on hosts that are their own DNS (127.0.0.1 gets stripped
+        # from container resolv.conf, breaking the stack git clone). omit = inherit.
+        dns_servers: "{{ komodo_periphery_dns or omit }}"
         env:
           PERIPHERY_PASSKEYS: "{{ komodo_periphery_passkey }}"
           PERIPHERY_ROOT_DIRECTORY: "/etc/komodo"

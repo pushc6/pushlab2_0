@@ -15,6 +15,12 @@ debian_updates_reboot_delay_minutes: 15
 komodo_periphery_passkey: "{{ lookup('env', 'KOMODO_PASSKEY') | default(vault_komodo_passkey | default(''), true) }}"
 komodo_periphery_allowed_ips:
   - "10.37.70.25" # Komodo Core (docker-internal)
+# This host IS the network's primary DNS (Technitium on 127.0.0.1), so Docker
+# strips the loopback resolver from container resolv.conf and the Periphery
+# container can't resolve git.push-lab.com to clone stacks. Point it at this
+# host's own LAN IP where Technitium answers.
+komodo_periphery_dns:
+  - "10.37.70.2" # docker-secure LAN IP (Technitium DNS)
 
 # SSH access (host-specific)
 firewall_hardened_ssh_allowed_subnets:

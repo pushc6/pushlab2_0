@@ -18,3 +18,10 @@ komodo_periphery_root_dir: "/etc/komodo"
 # Only allow connections from Komodo Core's address (defense in depth; the
 # passkey is the real auth). Empty list = allow any source.
 komodo_periphery_allowed_ips: []
+
+# DNS resolver(s) for the Periphery container. Empty = inherit the daemon default.
+# Required on hosts that are their OWN resolver (e.g. a Technitium DNS host whose
+# /etc/resolv.conf is "nameserver 127.0.0.1"): Docker strips loopback nameservers,
+# leaving the container unable to resolve internal names like git.push-lab.com, so
+# the git clone for stacks fails. Point it at a real LAN IP the host's DNS answers on.
+komodo_periphery_dns: []
