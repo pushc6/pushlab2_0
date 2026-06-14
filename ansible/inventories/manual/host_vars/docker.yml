@@ -3,6 +3,17 @@
 # Updated with actual running containers and IPv6 support
 
 # =============================================================================
+# Komodo Periphery (GitOps agent)
+# =============================================================================
+# Lets Komodo Core (docker-internal 10.37.70.25) deploy/redeploy compose Stacks
+# on this host. The passkey must match Core's KOMODO_PASSKEY. Env-first with a
+# vault fallback (same pattern as group_vars/reverse_proxies/acme.yml): set
+# KOMODO_PASSKEY as a secret environment variable in the Semaphore environment.
+komodo_periphery_passkey: "{{ lookup('env', 'KOMODO_PASSKEY') | default(vault_komodo_passkey | default(''), true) }}"
+komodo_periphery_allowed_ips:
+  - "10.37.70.25" # Komodo Core (docker-internal)
+
+# =============================================================================
 # CrowdSec Configuration
 # =============================================================================
 crowdsec_enabled: true
@@ -456,3 +467,16 @@ firewall_hardened_services:
     access: custom
     sources:
       - "10.37.70.21/32" # Veeam server (IPv4 only - no IPv6 configured on Veeam)
+
+  # ============================================================================
+  # Komodo Periphery - GitOps agent (Komodo Core deploys Stacks over this port)
+  # ============================================================================
+
+  - port: 8120
+    protocol: tcp
+    name: "Komodo Periphery - GitOps agent"
+    container: komodo-periphery
+    access: custom
+    sources:
+      - "10.37.70.25/32" # Komodo Core - docker-internal (IPv4)
+      - "fd00:1337:1337:70::25/128" # Komodo Core - docker-internal (IPv6)
