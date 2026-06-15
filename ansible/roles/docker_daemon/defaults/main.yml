@@ -1,0 +1,32 @@
+---
+# Declarative management of /etc/docker/daemon.json.
+#
+# The rendered file is a deep merge of:
+#   docker_daemon_base_options   - policy defaults below, identical on every host
+#   docker_daemon_extra_options  - host-specific keys (TLS API, sockets, runtimes,
+#                                  IPv6, metrics, storage-driver, ...) set in host_vars
+# Host extras win on key conflicts (recursive combine).
+
+# --- Logging: cap per-container json-file logs so a chatty container cannot
+#     fill the root filesystem. Applies to containers created after the next
+#     full daemon restart (reload alone does not re-read log options).
+docker_daemon_log_driver: "json-file"
+docker_daemon_log_opts:
+  max-size: "10m"
+  max-file: "3"
+
+# --- Keep containers running across a daemon restart/upgrade. Also lets
+#     `systemctl reload docker` (SIGHUP) apply reloadable options without
+#     stopping workloads.
+docker_daemon_live_restore: true
+
+docker_daemon_base_options:
+  log-driver: "{{ docker_daemon_log_driver }}"
+  log-opts: "{{ docker_daemon_log_opts }}"
+  live-restore: "{{ docker_daemon_live_restore }}"
+
+# Override in host_vars with the host's daemon settings (see host_vars/docker.yml).
+docker_daemon_extra_options: {}
+
+docker_daemon_options: >-
+  {{ docker_daemon_base_options | combine(docker_daemon_extra_options, recursive=true) }}

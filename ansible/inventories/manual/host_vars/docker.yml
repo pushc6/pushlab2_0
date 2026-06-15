@@ -11,6 +11,33 @@ komodo_periphery_allowed_ips:
   - "10.37.70.25" # Komodo Core (docker-internal)
 
 # =============================================================================
+# Docker daemon (/etc/docker/daemon.json) - managed by the docker_daemon role
+# =============================================================================
+# Host-specific daemon settings. The role deep-merges these over its policy
+# defaults (json-file log rotation max-size=10m/max-file=3 + live-restore:true),
+# so daemon.json is owned by IaC and survives a rebuild. The role reloads docker
+# via SIGHUP (never restarts), so live containers are not disrupted; log-opts
+# take effect for containers created after the next full daemon restart.
+docker_daemon_extra_options:
+  experimental: true
+  ipv6: true
+  fixed-cidr-v6: "2001:db8:1::/64"
+  metrics-addr: "10.37.70.7:9323"
+  storage-driver: "overlay2"
+  runtimes:
+    nvidia:
+      path: "nvidia-container-runtime"
+      args: []
+  hosts:
+    - "unix:///var/run/docker.sock"
+    - "tcp://0.0.0.0:2376" # Docker TLS API (Komodo Core / docker-internal)
+  tls: true
+  tlsverify: true
+  tlscacert: "/etc/docker/certs/ca.pem"
+  tlscert: "/etc/docker/certs/server-cert.pem"
+  tlskey: "/etc/docker/certs/server-key.pem"
+
+# =============================================================================
 # CrowdSec Configuration
 # =============================================================================
 crowdsec_enabled: true

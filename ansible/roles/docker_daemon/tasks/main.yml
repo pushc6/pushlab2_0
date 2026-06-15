@@ -1,0 +1,22 @@
+---
+- name: Ensure /etc/docker exists # noqa: risky-file-permissions
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+  # Intentionally no mode: preserve a host's existing (possibly hardened, e.g.
+  # 0700) directory permissions; a brand-new host gets the root-umask default.
+
+- name: Render /etc/docker/daemon.json
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+    # Reject a malformed render before it can replace the live file; a bad
+    # daemon.json would block the next full daemon restart.
+    validate: "python3 -m json.tool %s"
+  notify: Reload docker

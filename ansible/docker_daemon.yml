@@ -1,0 +1,13 @@
+---
+# Manage /etc/docker/daemon.json on the on-premise Docker host(s).
+#
+# Scoped to the `dockerhost` group only. Any other Docker host must first define
+# its own docker_daemon_extra_options in host_vars (capturing that host's TLS /
+# socket / runtime settings) before being added here -- otherwise the render
+# would drop its host-specific daemon configuration.
+- name: Configure Docker daemon
+  hosts: dockerhost
+  become: true
+  roles:
+    - docker_daemon
+  tags: [docker, daemon, apps]
