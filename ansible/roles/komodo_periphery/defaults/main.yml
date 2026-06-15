@@ -5,18 +5,11 @@
 # v2.x: keep in sync with komodo-core in docker-stacks (docker-internal/komodo).
 komodo_periphery_image: "ghcr.io/moghtech/komodo-periphery:2.2.0"
 
-# Shared secret that must match KOMODO_PASSKEY on Komodo Core. DEPRECATED in
-# Komodo v2 (ignored) in favour of PKI (komodo_periphery_core_public_keys below);
-# kept during the v1->v2 transition. Set from a vaulted variable
-# (e.g. {{ vault_komodo_passkey }}) in group_vars. Empty = role no-ops
-# (safe to leave wired into site.yml before Komodo Core exists).
-komodo_periphery_passkey: ""
-
-# Komodo v2 PKI: Core's Ed25519 public key(s) that this Periphery will trust.
-# Read from Core after it is upgraded to v2 (Settings -> Keys, or the
-# /config/keys volume) and set once at group level (it is the same Core for every
-# host). NOT secret (a public key), so a plain group_var -- no vault needed.
-# Empty list = PKI disabled (falls back to the deprecated passkey).
+# Komodo v2 PKI: Core's Ed25519 public key(s) that this Periphery will trust
+# (replaces the v1 shared passkey). Read from Core (Settings -> Keys, or the
+# /config/keys volume) and set once at group level -- it is the same Core for
+# every host. NOT secret (a public key), so a plain group_var, no vault needed.
+# Empty list = role no-ops (safe to leave wired into site.yml before Core exists).
 komodo_periphery_core_public_keys: []
 
 # Port the agent listens on for Core (https).
@@ -25,8 +18,8 @@ komodo_periphery_port: 8120
 # Where Periphery clones repos and stores stack/deploy state on the host.
 komodo_periphery_root_dir: "/etc/komodo"
 
-# Only allow connections from Komodo Core's address (defense in depth; the
-# passkey is the real auth). Empty list = allow any source.
+# Only allow connections from Komodo Core's address (defense in depth; PKI is
+# the real auth). Empty list = allow any source.
 komodo_periphery_allowed_ips: []
 
 # DNS resolver(s) for the Periphery container. Empty = inherit the daemon default.
