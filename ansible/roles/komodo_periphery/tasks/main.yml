@@ -1,13 +1,13 @@
 ---
-- name: Skip Periphery deploy when passkey is unset (pre-Komodo bootstrap)
+- name: Skip Periphery deploy when Core public key is unset (pre-Komodo bootstrap)
   ansible.builtin.debug:
     msg: >-
-      komodo_periphery_passkey is empty -- skipping Komodo Periphery deploy.
-      Set it (vaulted, matching KOMODO_PASSKEY on Komodo Core) and re-run.
-  when: komodo_periphery_passkey | length == 0
+      komodo_periphery_core_public_keys is empty -- skipping Komodo Periphery
+      deploy. Set it (Core's v2 Ed25519 public key, in group_vars) and re-run.
+  when: komodo_periphery_core_public_keys | length == 0
 
 - name: Configure Komodo Periphery
-  when: komodo_periphery_passkey | length > 0
+  when: komodo_periphery_core_public_keys | length > 0
   block:
     # Docker SDK for the community.docker module. OS-aware: Debian/Ubuntu has a
     # packaged SDK (python3-docker) and no pip by default; EL lacks the package
@@ -49,10 +49,8 @@
         # from container resolv.conf, breaking the stack git clone). omit = inherit.
         dns_servers: "{{ komodo_periphery_dns or omit }}"
         env:
-          # PKI (v2): trust Core's public key(s). Empty -> falls back to passkey.
+          # PKI (v2): Periphery trusts Core via its Ed25519 public key(s).
           PERIPHERY_CORE_PUBLIC_KEYS: "{{ komodo_periphery_core_public_keys | join(',') }}"
-          # Deprecated/ignored in v2; retained for the v1->v2 transition.
-          PERIPHERY_PASSKEYS: "{{ komodo_periphery_passkey }}"
           PERIPHERY_ROOT_DIRECTORY: "/etc/komodo"
           PERIPHERY_ALLOWED_IPS: "{{ komodo_periphery_allowed_ips | join(',') }}"
         volumes:
