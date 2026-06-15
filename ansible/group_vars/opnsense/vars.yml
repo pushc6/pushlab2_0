@@ -209,7 +209,7 @@ opnsense_firewall_terraform_rules:
   - name: "raspberrypi-ha Periphery to Gitea (cross-VLAN)"
     description: "Allow raspberrypi-ha Periphery to clone docker-stacks from git.push-lab.com (reverse proxy)"
     source: "ha_sensor_pi" # 10.37.50.12 (IoT VLAN50)
-    destination: "10.37.70.24" # nginx-internal reverse proxy (git.push-lab.com, DMZ)
+    destination: "nginx_internal" # 10.37.70.24 reverse proxy (git.push-lab.com, DMZ) — existing OPNsense alias
     protocol: tcp
     port: 443
     interface: iot_vlan
