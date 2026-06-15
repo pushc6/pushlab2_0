@@ -197,7 +197,7 @@ opnsense_firewall_terraform_rules:
   - name: "Komodo Core to raspberrypi-ha Periphery (cross-VLAN)"
     description: "Allow Komodo Core (docker-internal) to reach Periphery on raspberrypi-ha for GitOps deploys"
     source: "semaphore" # 10.37.70.25 (DMZ; docker-internal runs Komodo Core)
-    destination: "10.37.50.12" # raspberrypi-ha (IoT VLAN50)
+    destination: "ha_sensor_pi" # raspberrypi-ha 10.37.50.12 (IoT VLAN50) — existing OPNsense alias
     protocol: tcp
     port: 8120
     interface: dmz_vlan
