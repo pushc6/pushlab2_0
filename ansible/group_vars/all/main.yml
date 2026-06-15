@@ -19,6 +19,13 @@ ansible_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ3O9uVjXALQBplrprCqAWo
 # Connection Settings
 ansible_user: ansible
 
+# Komodo v2 PKI: Core's Ed25519 public key, trusted by every Periphery agent
+# (PERIPHERY_CORE_PUBLIC_KEYS). Same Core for all hosts, and a public key is not
+# secret, so it lives here once rather than per-host. Read from Komodo Core v2 on
+# docker-internal (/config/keys/core.pub). Rotate here if Core's keypair changes.
+komodo_periphery_core_public_keys:
+  - "MCowBQYDK2VuAyEAjvOHtCZm/BP3KQDLc2Sz6m1VgK31HpOmJzMZOkuGBgE="
+
 # Global firewall settings for all hosts
 firewall_management_subnet: "10.37.20.0/24"
 
