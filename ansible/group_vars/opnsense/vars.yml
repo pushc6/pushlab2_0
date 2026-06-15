@@ -202,6 +202,18 @@ opnsense_firewall_terraform_rules:
     port: 8120
     interface: dmz_vlan
 
+  # The other half of GitOps on raspberrypi-ha: its Periphery clones the
+  # docker-stacks repo from git.push-lab.com (reverse proxy 10.37.70.24, DMZ).
+  # The Pi is on the IoT VLAN, so this IoT->DMZ:443 rule is required or the
+  # clone fetches nothing and stack deploys fail.
+  - name: "raspberrypi-ha Periphery to Gitea (cross-VLAN)"
+    description: "Allow raspberrypi-ha Periphery to clone docker-stacks from git.push-lab.com (reverse proxy)"
+    source: "ha_sensor_pi" # 10.37.50.12 (IoT VLAN50)
+    destination: "10.37.70.24" # nginx-internal reverse proxy (git.push-lab.com, DMZ)
+    protocol: tcp
+    port: 443
+    interface: iot_vlan
+
 # labtest is NOT listed = no firewall rule (same subnet, not needed)
 
 # Option 2: Use conditional based on subnet matching
