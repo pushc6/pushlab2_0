@@ -3,7 +3,7 @@
 # Core (on docker-internal) can deploy compose Stacks from the docker-stacks repo.
 # No-ops on any host until komodo_periphery_passkey is set (vaulted).
 - name: Deploy Komodo Periphery
-  hosts: dockerhost:docker_internal:docker_secure
+  hosts: dockerhost:docker_internal:docker_secure:homeassistant
   become: true
   roles:
     - komodo_periphery

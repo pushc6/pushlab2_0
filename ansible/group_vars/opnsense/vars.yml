@@ -191,6 +191,17 @@ opnsense_firewall_terraform_rules:
     port: 22
     interface: dmz_vlan
 
+  # Komodo GitOps: Core (docker-internal, DMZ) deploys/redeploys compose Stacks
+  # on raspberrypi-ha's Periphery. The Pi is single-homed on the IoT VLAN (no
+  # DMZ interface), so unlike docker-secure this DMZ->IoT rule is required.
+  - name: "Komodo Core to raspberrypi-ha Periphery (cross-VLAN)"
+    description: "Allow Komodo Core (docker-internal) to reach Periphery on raspberrypi-ha for GitOps deploys"
+    source: "semaphore" # 10.37.70.25 (DMZ; docker-internal runs Komodo Core)
+    destination: "10.37.50.12" # raspberrypi-ha (IoT VLAN50)
+    protocol: tcp
+    port: 8120
+    interface: dmz_vlan
+
 # labtest is NOT listed = no firewall rule (same subnet, not needed)
 
 # Option 2: Use conditional based on subnet matching

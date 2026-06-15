@@ -3,6 +3,18 @@
 # Home Assistant companion services - Zigbee2MQTT and Z-Wave JS UI
 # OS: Debian 12 (Bookworm) on Raspberry Pi
 
+# =============================================================================
+# Komodo Periphery (GitOps agent)
+# =============================================================================
+# Lets Komodo Core (docker-internal 10.37.70.25, DMZ) deploy/redeploy the
+# zigbee2mqtt / zwavejs2mqtt compose Stacks on this host. Cross-VLAN (this host
+# is single-homed on the IoT VLAN) so an OPNsense DMZ->IoT rule for :8120 is
+# also required (group_vars/opnsense/vars.yml). Passkey must match Core's
+# KOMODO_PASSKEY; env-first with a vault fallback (Semaphore secret env var).
+komodo_periphery_passkey: "{{ lookup('env', 'KOMODO_PASSKEY') | default(vault_komodo_passkey | default(''), true) }}"
+komodo_periphery_allowed_ips:
+  - "10.37.70.25" # Komodo Core (docker-internal)
+
 # SSH access (host-specific)
 firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
@@ -68,3 +80,16 @@ firewall_hardened_services:
       - "fd00:1337:1337:20::/64" # Trusted VLAN (IPv6)
       - "10.37.50.0/24" # IoT VLAN (IPv4)
       - "fd00:1337:1337:50::/64" # IoT VLAN (IPv6)
+
+  # ============================================================================
+  # Komodo Periphery - GitOps agent (Komodo Core deploys Stacks over this port)
+  # ============================================================================
+
+  - port: 8120
+    protocol: tcp
+    name: "Komodo Periphery - GitOps agent"
+    container: komodo-periphery
+    access: custom
+    sources:
+      - "10.37.70.25/32" # Komodo Core - docker-internal (IPv4)
+      - "fd00:1337:1337:70::25/128" # Komodo Core - docker-internal (IPv6)
