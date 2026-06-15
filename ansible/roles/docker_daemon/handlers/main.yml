@@ -1,0 +1,10 @@
+---
+# Reload (SIGHUP), never restart. Reload applies live-restore and other
+# reloadable daemon options WITHOUT stopping running containers. Log-driver /
+# log-opts changes only take effect for containers created after the next full
+# daemon restart, which we intentionally leave to a maintenance window so we
+# never bounce 40+ workloads from a config-management run.
+- name: Reload docker
+  ansible.builtin.systemd:
+    name: docker
+    state: reloaded

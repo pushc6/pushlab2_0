@@ -12,6 +12,11 @@
   when: "'docker_hosts' in groups"
   tags: ["docker", "apps"]
 
+- name: Configure Docker daemon
+  import_playbook: docker_daemon.yml
+  when: "'dockerhost' in groups"
+  tags: ["docker", "daemon", "apps"]
+
 # Mount the tiered NFS storage (/srv/docker/san) on docker hosts. No-op on a host
 # that does not define nfs_client_mounts. Add docker_secure / dockerhost here as
 # they are migrated to the /srv/docker layout (docs/host-storage-migration.md).
