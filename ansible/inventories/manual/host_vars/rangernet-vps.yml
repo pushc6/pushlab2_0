@@ -9,6 +9,10 @@ tailscale_hostname: "rangernet-vps"
 tailscale_tags:
   - "tag:crowdsec-agent"
   - "tag:komodo-periphery" # lets Komodo Core (tag:komodo-core) reach 8120 via ACL
+# Accept the subnet route advertised by docker-internal so this public VPS can
+# reach the internal Git endpoint (git.push-lab.com / 10.37.70.24) for stack
+# clones. Applied via `tailscale set` (no reconnect) so the node IP is preserved.
+tailscale_accept_routes: true
 
 # =============================================================================
 # Komodo Periphery (managed by Komodo Core over Tailscale)
@@ -21,6 +25,11 @@ komodo_periphery_bind_address: "100.78.119.4" # rangernet-vps tailnet IP
 # Locked to Komodo Core's tailnet IP (docker-internal, tag:komodo-core).
 komodo_periphery_allowed_ips:
   - "100.107.104.49/32" # docker-internal tailnet IP
+# Resolve the Git endpoint to nginx-internal inside the Periphery container; the
+# host can't resolve it (public VPS) and Docker DNS won't read host /etc/hosts.
+# Reached over the tailnet subnet route advertised by docker-internal.
+komodo_periphery_extra_hosts:
+  git.push-lab.com: "10.37.70.24"
 
 # =============================================================================
 # CrowdSec Configuration

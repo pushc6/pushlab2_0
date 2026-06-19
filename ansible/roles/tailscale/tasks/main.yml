@@ -24,6 +24,19 @@
     - name: Include join tasks
       ansible.builtin.include_tasks: join.yml
 
+    # Apply route settings on every run via `tailscale set` (idempotent, does NOT
+    # reconnect), so accept/advertise changes land on already-joined nodes without
+    # a logout/up -- which would re-register the node and can change its tailnet IP
+    # (that would break callers pinned to the IP, e.g. komodo_periphery_bind_address).
+    - name: Sync subnet-route settings (no reconnect)
+      ansible.builtin.command:
+        cmd: >-
+          tailscale set
+          --accept-routes={{ tailscale_accept_routes | bool | lower }}
+          --advertise-routes={{ tailscale_advertise_routes | join(',') }}
+      changed_when: false
+      when: (tailscale_accept_routes | bool) or (tailscale_advertise_routes | length > 0)
+
     - name: Include firewall tasks
       ansible.builtin.include_tasks: firewall.yml
       when: tailscale_configure_firewall | default(true)
