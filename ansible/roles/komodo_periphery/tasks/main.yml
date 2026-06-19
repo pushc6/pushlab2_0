@@ -44,7 +44,9 @@
         init: true
         restart_policy: unless-stopped
         ports:
-          - "{{ komodo_periphery_port }}:8120"
+          # Optionally bind to a specific host IP (e.g. the Tailscale IP on public
+          # hosts) so the published port is not exposed on all interfaces.
+          - "{{ (komodo_periphery_bind_address ~ ':') if komodo_periphery_bind_address else '' }}{{ komodo_periphery_port }}:8120"
         # Explicit resolver on hosts that are their own DNS (127.0.0.1 gets stripped
         # from container resolv.conf, breaking the stack git clone). omit = inherit.
         dns_servers: "{{ komodo_periphery_dns or omit }}"
