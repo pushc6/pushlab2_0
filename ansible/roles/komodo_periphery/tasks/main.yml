@@ -11,7 +11,7 @@
   block:
     # Docker SDK for the community.docker module. OS-aware: Debian/Ubuntu has a
     # packaged SDK (python3-docker) and no pip by default; EL lacks the package
-    # (EPEL 10) so pip is the portable route (--break-system-packages for PEP 668).
+    # (EPEL 10) so pip is the portable route.
     - name: Ensure Python Docker SDK is present (Debian/Ubuntu)
       ansible.builtin.apt:
         name: python3-docker
@@ -19,11 +19,22 @@
         update_cache: true
       when: ansible_os_family == "Debian"
 
+    # EL hosts don't ship pip by default, so install it before using the pip
+    # module (otherwise: "Unable to find any of pip3 to use").
+    - name: Ensure pip is present (EL/other)
+      ansible.builtin.dnf:
+        name: python3-pip
+        state: present
+      when: ansible_os_family == "RedHat"
+
     - name: Ensure Python Docker SDK is present (EL/other via pip)
       ansible.builtin.pip:
         name: docker
         state: present
-        extra_args: --break-system-packages
+        # --break-system-packages only exists on pip >= 23 (PEP 668), shipped on
+        # EL10 (python3.12). It's an invalid option on EL9's older pip, so only
+        # pass it where it's both needed and supported.
+        extra_args: "{{ '--break-system-packages' if (ansible_distribution_major_version | int >= 10) else omit }}"
       when: ansible_os_family != "Debian"
 
     - name: Ensure Komodo root directory exists
