@@ -13,6 +13,13 @@ tailscale_enabled: true
 tailscale_hostname: "docker-internal"
 tailscale_tags:
   - "tag:komodo-core"
+# Act as a subnet router for the internal Git endpoint so the rangernet-vps
+# Periphery (a public VPS that can't reach the LAN) can clone over the tailnet.
+# git.push-lab.com resolves to nginx-internal (10.37.70.24), on this host's own
+# subnet. ip_forward is already enabled here. Route must be approved in the
+# Tailscale admin console (or via ACL autoApprovers).
+tailscale_advertise_routes:
+  - "10.37.70.24/32" # git.push-lab.com (nginx-internal) — Komodo stack clones
 
 # NFS storage tiers (consumed by the nfs_client role).
 # The 'san' tier backs the bulk/stateful leaves of /srv/docker (databases, TSDBs,

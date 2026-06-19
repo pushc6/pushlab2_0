@@ -61,6 +61,9 @@
         # Explicit resolver on hosts that are their own DNS (127.0.0.1 gets stripped
         # from container resolv.conf, breaking the stack git clone). omit = inherit.
         dns_servers: "{{ komodo_periphery_dns or omit }}"
+        # Static /etc/hosts entries (e.g. git.push-lab.com -> nginx IP) for hosts that
+        # reach the Git server over a subnet route and can't resolve its name.
+        etc_hosts: "{{ komodo_periphery_extra_hosts or omit }}"
         env:
           # PKI (v2): Periphery trusts Core via its Ed25519 public key(s).
           PERIPHERY_CORE_PUBLIC_KEYS: "{{ komodo_periphery_core_public_keys | join(',') }}"
