@@ -18,9 +18,9 @@ tailscale_tags:
 # Docker port bypasses the host firewall, so this bind is the real control.
 komodo_periphery_bind_address: "100.78.119.4" # rangernet-vps tailnet IP
 # Defense-in-depth (PKI is the real auth + bind_address keeps 8120 tailnet-only).
-# Leave empty until docker-internal has joined the tailnet, then tighten to its
-# tailnet IP (tailscale ip -4 on docker-internal) as "<ip>/32".
-komodo_periphery_allowed_ips: []
+# Locked to Komodo Core's tailnet IP (docker-internal, tag:komodo-core).
+komodo_periphery_allowed_ips:
+  - "100.107.104.49/32" # docker-internal tailnet IP
 
 # =============================================================================
 # CrowdSec Configuration
@@ -84,4 +84,4 @@ firewall_hardened_services:
     name: "Komodo Periphery (tailnet only)"
     access: custom
     sources:
-      - "100.64.0.0/10" # Tailscale CGNAT range
+      - "100.107.104.49/32" # docker-internal (Komodo Core) tailnet IP
