@@ -79,6 +79,14 @@ firewall_hardened_ssh_allowed_subnets:
   - "0.0.0.0/0" # Public SSH access required for VPS
 
 # Using unified firewall_hardened_services structure with rich rules
+# Keep these shut on every run (public VPS — no exposure beyond the intended set).
+# cockpit is a firewalld default-service; 3001/tcp is a legacy uptime-kuma port (the
+# service is now localhost-only behind nginx). See firewall_hardened disabled_* vars.
+firewall_hardened_disabled_services:
+  - cockpit
+firewall_hardened_disabled_ports:
+  - "3001/tcp"
+
 firewall_hardened_services:
   # Tailscale direct connection (avoid DERP relay)
   - port: 41641

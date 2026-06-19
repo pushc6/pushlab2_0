@@ -21,6 +21,12 @@ firewall_hardened_strict_mode: false
 # This makes firewall management declarative (recommended for production)
 firewall_hardened_purge_stale_rules: false
 
+# Declaratively keep specific zone services/ports CLOSED on every run (disabled).
+# Use for firewalld default-services (e.g. "cockpit") or legacy zone ports
+# (e.g. "3001/tcp") that should never be open. No-op when already absent.
+firewall_hardened_disabled_services: []
+firewall_hardened_disabled_ports: []
+
 # ============================================================================
 # NETWORK CONFIGURATION
 # ============================================================================

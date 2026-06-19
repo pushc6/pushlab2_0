@@ -78,6 +78,41 @@
         - services
 
     # ========================================================================
+    # ENFORCE-CLOSED (declarative removal of zone services/ports)
+    # firewall_hardened otherwise only ADDS its own services + purges rich rules;
+    # it never touches zone default-services (e.g. cockpit) or stray zone ports
+    # (e.g. a legacy 3001/tcp). These lists keep such entries shut on every run.
+    # state: disabled is a no-op when already absent, so it can't affect intended
+    # ports like ssh/http/https.
+    # ========================================================================
+
+    - name: Enforce removed services in the default zone
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        zone: "{{ firewall_hardened_default_zone }}"
+        permanent: true
+        immediate: true
+        state: disabled
+      loop: "{{ firewall_hardened_disabled_services | default([]) }}"
+      loop_control:
+        label: "{{ item }}"
+      notify: Reload firewalld
+      tags: [firewall, services]
+
+    - name: Enforce removed ports in the default zone
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        zone: "{{ firewall_hardened_default_zone }}"
+        permanent: true
+        immediate: true
+        state: disabled
+      loop: "{{ firewall_hardened_disabled_ports | default([]) }}"
+      loop_control:
+        label: "{{ item }}"
+      notify: Reload firewalld
+      tags: [firewall, services]
+
+    # ========================================================================
     # PURGE STALE RULES (declarative management)
     # ========================================================================
 

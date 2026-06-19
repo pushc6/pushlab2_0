@@ -22,6 +22,20 @@
     state: enabled
   when: (tailscale_firewalld_status.status.ActiveState | default('')) == "active"
 
+# Subnet-route CLIENTS (accept_routes) that run Docker need the trusted zone to
+# masquerade: a container's packet to a routed subnet must be SNAT'd to this node's
+# tailnet IP, or the far side can't reply. SNAT/forward only -- opens no inbound port.
+- name: Masquerade tailnet egress on subnet-route clients (firewalld)
+  ansible.posix.firewalld:
+    zone: trusted
+    masquerade: true
+    permanent: true
+    immediate: true
+    state: enabled
+  when:
+    - (tailscale_firewalld_status.status.ActiveState | default('')) == "active"
+    - tailscale_accept_routes | bool
+
 - name: Configure ufw fallback (Debian/Ubuntu without firewalld)
   when:
     - ansible_os_family == "Debian"
