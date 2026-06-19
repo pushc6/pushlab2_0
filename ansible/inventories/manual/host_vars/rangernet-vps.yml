@@ -8,6 +8,19 @@ tailscale_enabled: true
 tailscale_hostname: "rangernet-vps"
 tailscale_tags:
   - "tag:crowdsec-agent"
+  - "tag:komodo-periphery" # lets Komodo Core (tag:komodo-core) reach 8120 via ACL
+
+# =============================================================================
+# Komodo Periphery (managed by Komodo Core over Tailscale)
+# =============================================================================
+# Bind the published 8120 port to this host's Tailscale IP so Periphery is
+# reachable ONLY over the tailnet, never on the public interface. A published
+# Docker port bypasses the host firewall, so this bind is the real control.
+komodo_periphery_bind_address: "100.78.119.4" # rangernet-vps tailnet IP
+# Defense-in-depth (PKI is the real auth + bind_address keeps 8120 tailnet-only).
+# Leave empty until docker-internal has joined the tailnet, then tighten to its
+# tailnet IP (tailscale ip -4 on docker-internal) as "<ip>/32".
+komodo_periphery_allowed_ips: []
 
 # =============================================================================
 # CrowdSec Configuration
@@ -63,3 +76,12 @@ firewall_hardened_services:
     protocol: udp
     name: "Tailscale WireGuard"
     access: public
+
+  # Komodo Periphery, tailnet-only. Secondary to komodo_periphery_bind_address
+  # (the bind to the Tailscale IP is what actually keeps 8120 off the public NIC).
+  - port: 8120
+    protocol: tcp
+    name: "Komodo Periphery (tailnet only)"
+    access: custom
+    sources:
+      - "100.64.0.0/10" # Tailscale CGNAT range

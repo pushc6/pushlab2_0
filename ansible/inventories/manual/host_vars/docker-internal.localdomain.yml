@@ -2,6 +2,18 @@
 # Firewall configuration for docker-internal.localdomain (10.37.70.25)
 # Monitoring, Authentication, and Infrastructure Services
 
+# =============================================================================
+# Tailscale Configuration
+# =============================================================================
+# Put this host on the tailnet so Komodo Core (running here) can reach the
+# Periphery agent on the public VPS rangernet-vps over Tailscale (Core -> 8120,
+# one-way). The role adds tailscale0 to the firewalld trusted zone automatically;
+# no inbound rule is needed here since Core is the initiator.
+tailscale_enabled: true
+tailscale_hostname: "docker-internal"
+tailscale_tags:
+  - "tag:komodo-core"
+
 # NFS storage tiers (consumed by the nfs_client role).
 # The 'san' tier backs the bulk/stateful leaves of /srv/docker (databases, TSDBs,
 # ACME certs, caches, logs). Small/secret config stays on the local LV under

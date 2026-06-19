@@ -15,6 +15,12 @@ komodo_periphery_core_public_keys: []
 # Port the agent listens on for Core (https).
 komodo_periphery_port: 8120
 
+# Host IP to bind the published Periphery port to. Empty = all interfaces (0.0.0.0,
+# the default). On public hosts set this to the host's Tailscale IP so 8120 is
+# tailnet-only -- a published Docker port bypasses firewalld/nftables, so the bind
+# address (not a firewall rule) is the real control keeping it off the public NIC.
+komodo_periphery_bind_address: ""
+
 # Where Periphery clones repos and stores stack/deploy state on the host.
 komodo_periphery_root_dir: "/etc/komodo"
 
