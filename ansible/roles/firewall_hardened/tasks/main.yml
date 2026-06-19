@@ -90,6 +90,21 @@
         - purge
 
     # ========================================================================
+    # STRICT DEFAULT-DENY ALLOWLIST (opt-in)
+    # Reconcile the zone so ONLY declared services/ports remain open. Runs LAST,
+    # after the allowlist + ssh are in place, so access is never dropped before
+    # being ensured (the block/rescue re-enables ssh on any failure).
+    # ========================================================================
+
+    - name: Enforce strict default-deny allowlist
+      ansible.builtin.include_tasks: strict_allowlist.yml
+      when: firewall_hardened_strict_allowlist | default(false)
+      tags:
+        - firewall
+        - services
+        - strict
+
+    # ========================================================================
     # FLUSH HANDLERS (apply all pending firewall reloads)
     # ========================================================================
 

@@ -21,6 +21,16 @@ firewall_hardened_strict_mode: false
 # This makes firewall management declarative (recommended for production)
 firewall_hardened_purge_stale_rules: false
 
+# Strict default-deny allowlist (opt-in). When true, the default zone is reconciled
+# so ONLY explicitly-declared services/ports stay open: firewalld defaults (cockpit,
+# dhcpv6-client, ...) and any stray ports are removed. SSH is preserved (kept as a
+# service when ssh-hardening is disabled, or via rich rules when enabled). Default
+# false keeps the role's additive behavior. Roll out per host.
+firewall_hardened_strict_allowlist: false
+# firewalld service-names to keep open under strict mode beyond the auto-kept ssh
+# (e.g. "dhcpv6-client" on a host whose IPv6 uses DHCPv6). Usually empty.
+firewall_hardened_allowed_services: []
+
 # ============================================================================
 # NETWORK CONFIGURATION
 # ============================================================================

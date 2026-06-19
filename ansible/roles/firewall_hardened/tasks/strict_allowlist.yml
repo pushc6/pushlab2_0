@@ -1,0 +1,74 @@
+---
+# Strict default-deny allowlist: reconcile the default zone so ONLY explicitly
+# declared services/ports remain open. Runs after services + ssh + rich-rule purge,
+# inside the role's block/rescue (SSH auto-restored on failure).
+#
+# - Desired services = firewall_hardened_allowed_services + ssh (only when ssh
+#   hardening is DISABLED; when enabled, ssh is a rich rule and the service is
+#   already removed by ssh_hardening.yml).
+# - Desired ports = the declared access: public services (port/proto), which
+#   service_rules.yml already added as zone ports.
+# Everything else in the zone (firewalld defaults like cockpit/dhcpv6-client, stray
+# legacy ports) is removed.
+
+- name: "Strict allowlist: compute desired firewalld services"
+  ansible.builtin.set_fact:
+    firewall_hardened_desired_services: >-
+      {{ (firewall_hardened_allowed_services | default([]))
+         + (['ssh'] if not (firewall_hardened_ssh_hardening_enabled | default(true)) else []) }}
+
+- name: "Strict allowlist: select declared public services"
+  ansible.builtin.set_fact:
+    firewall_hardened_public_norm: >-
+      {{ firewall_hardened_normalized_services | default([])
+         | selectattr('access', 'equalto', 'public') | list }}
+
+- name: "Strict allowlist: compute desired zone ports (port/proto)"
+  ansible.builtin.set_fact:
+    firewall_hardened_desired_ports: >-
+      {{ firewall_hardened_public_norm | map(attribute='port')
+         | zip(firewall_hardened_public_norm | map(attribute='protocol'))
+         | map('join', '/') | list }}
+
+- name: "Strict allowlist: read current permanent zone services"
+  ansible.builtin.command: "firewall-cmd --permanent --zone={{ firewall_hardened_default_zone }} --list-services"
+  register: firewall_hardened_current_services
+  changed_when: false
+
+- name: "Strict allowlist: read current permanent zone ports"
+  ansible.builtin.command: "firewall-cmd --permanent --zone={{ firewall_hardened_default_zone }} --list-ports"
+  register: firewall_hardened_current_ports
+  changed_when: false
+
+- name: "Strict allowlist: show reconciliation plan"
+  ansible.builtin.debug:
+    msg: |
+      Strict allowlist on zone '{{ firewall_hardened_default_zone }}'
+      desired services: {{ firewall_hardened_desired_services }}
+      remove services : {{ firewall_hardened_current_services.stdout.split() | difference(firewall_hardened_desired_services) }}
+      desired ports   : {{ firewall_hardened_desired_ports }}
+      remove ports    : {{ firewall_hardened_current_ports.stdout.split() | difference(firewall_hardened_desired_ports) }}
+
+- name: "Strict allowlist: remove services not in the allowlist"
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    zone: "{{ firewall_hardened_default_zone }}"
+    permanent: true
+    immediate: true
+    state: disabled
+  loop: "{{ firewall_hardened_current_services.stdout.split() | difference(firewall_hardened_desired_services) }}"
+  loop_control:
+    label: "{{ item }}"
+  notify: Reload firewalld
+
+- name: "Strict allowlist: remove ports not in the allowlist"
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    zone: "{{ firewall_hardened_default_zone }}"
+    permanent: true
+    immediate: true
+    state: disabled
+  loop: "{{ firewall_hardened_current_ports.stdout.split() | difference(firewall_hardened_desired_ports) }}"
+  loop_control:
+    label: "{{ item }}"
+  notify: Reload firewalld

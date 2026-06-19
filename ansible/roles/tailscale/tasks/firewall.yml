@@ -1,26 +1,45 @@
 ---
 # Tailscale firewall integration tasks
-# Adds tailscale0 interface to trusted zone for seamless access
+# Trust the tailscale0 interface so tailnet traffic is accepted. Detect the
+# ACTIVE backend instead of assuming by OS: some Debian hosts run firewalld (not
+# ufw), and on a subnet router the trusted-zone step is what actually lets
+# forwarding work -- firewalld's FORWARD chain drops subnet-routed packets
+# otherwise (tailscaled handles the SNAT itself).
 
-- name: Configure firewall for Tailscale (RHEL/AlmaLinux)
-  when: ansible_os_family == "RedHat"
-  block:
-    - name: Check if firewalld is running
-      ansible.builtin.systemd:
-        name: firewalld
-      register: tailscale_firewalld_status
+- name: Detect whether firewalld is active
+  ansible.builtin.systemd:
+    name: firewalld
+  register: tailscale_firewalld_status
+  failed_when: false
+  changed_when: false
 
-    - name: Add tailscale0 interface to trusted zone
-      ansible.posix.firewalld:
-        interface: tailscale0
-        zone: trusted
-        permanent: true
-        immediate: true
-        state: enabled
-      when: tailscale_firewalld_status.status.ActiveState == "active"
+- name: Trust tailscale0 in firewalld (any OS where firewalld is active)
+  ansible.posix.firewalld:
+    interface: tailscale0
+    zone: trusted
+    permanent: true
+    immediate: true
+    state: enabled
+  when: (tailscale_firewalld_status.status.ActiveState | default('')) == "active"
 
-- name: Configure firewall for Tailscale (Debian/Ubuntu with ufw)
-  when: ansible_os_family == "Debian"
+# Subnet-route CLIENTS (accept_routes) that run Docker need the trusted zone to
+# masquerade: a container's packet to a routed subnet must be SNAT'd to this node's
+# tailnet IP, or the far side can't reply. SNAT/forward only -- opens no inbound port.
+- name: Masquerade tailnet egress on subnet-route clients (firewalld)
+  ansible.posix.firewalld:
+    zone: trusted
+    masquerade: true
+    permanent: true
+    immediate: true
+    state: enabled
+  when:
+    - (tailscale_firewalld_status.status.ActiveState | default('')) == "active"
+    - tailscale_accept_routes | bool
+
+- name: Configure ufw fallback (Debian/Ubuntu without firewalld)
+  when:
+    - ansible_os_family == "Debian"
+    - (tailscale_firewalld_status.status.ActiveState | default('')) != "active"
   block:
     - name: Check if ufw is available
       ansible.builtin.command: which ufw
