@@ -1,5 +1,8 @@
 ---
 # Configuration for rangernet-vps (192.210.235.136) - External VPS
+# Single source of truth for this host (the old playbook-dir ansible/host_vars/
+# copy was deleted — it shadowed firewall_hardened_services to []).
+ansible_user: ansible
 
 # =============================================================================
 # Tailscale Configuration
@@ -67,35 +70,41 @@ crowdsec_bouncer_drift_check_enabled: true
 crowdsec_drift_check_nft_set: crowdsec-blacklists-crowdsec
 
 # =============================================================================
-# Firewall Configuration
+# Firewall Configuration — default-deny allowlist (public VPS)
 # =============================================================================
+# Strict mode: ONLY the services declared below stay open; firewalld defaults
+# (cockpit, dhcpv6-client) and stray ports (legacy 3001/tcp) are removed every run.
+# rangernet has no public IPv6 (only the Tailscale ULA) and no DHCPv6, so
+# dhcpv6-client is safe to drop — no firewall_hardened_allowed_services needed.
+firewall_hardened_strict_allowlist: true
 
-# VPS-specific: SSH must remain publicly accessible (no SSH hardening)
+# VPS-specific: SSH must remain publicly accessible (no SSH hardening). With
+# hardening disabled, strict mode keeps the ssh service open (explicit allow).
 firewall_hardened_ssh_hardening_enabled: false
-
-# SSH access - public VPS needs unrestricted SSH access
-# (firewall_hardened_ssh_hardening_enabled: false disables rich rules, but we define this for documentation)
 firewall_hardened_ssh_allowed_subnets:
   - "0.0.0.0/0" # Public SSH access required for VPS
 
-# Using unified firewall_hardened_services structure with rich rules
-# Keep these shut on every run (public VPS — no exposure beyond the intended set).
-# cockpit is a firewalld default-service; 3001/tcp is a legacy uptime-kuma port (the
-# service is now localhost-only behind nginx). See firewall_hardened disabled_* vars.
-firewall_hardened_disabled_services:
-  - cockpit
-firewall_hardened_disabled_ports:
-  - "3001/tcp"
-
+# The explicit public allowlist. Everything not here is closed by strict mode.
 firewall_hardened_services:
-  # Tailscale direct connection (avoid DERP relay)
+  # Tailscale direct WireGuard (without this the node falls back to DERP relay).
   - port: 41641
     protocol: udp
     name: "Tailscale WireGuard"
     access: public
 
-  # Komodo Periphery, tailnet-only. Secondary to komodo_periphery_bind_address
-  # (the bind to the Tailscale IP is what actually keeps 8120 off the public NIC).
+  # Public websites served by the host's native nginx (incl. uptime.push-lab.com,
+  # which reverse-proxies uptime-kuma at 127.0.0.1:3001).
+  - port: 80
+    protocol: tcp
+    name: "HTTP (public sites)"
+    access: public
+  - port: 443
+    protocol: tcp
+    name: "HTTPS (public sites + uptime.push-lab.com)"
+    access: public
+
+  # Komodo Periphery, tailnet-only. Also bound to the Tailscale IP via
+  # komodo_periphery_bind_address; this restricts at the firewall to Core's IP.
   - port: 8120
     protocol: tcp
     name: "Komodo Periphery (tailnet only)"

@@ -78,41 +78,6 @@
         - services
 
     # ========================================================================
-    # ENFORCE-CLOSED (declarative removal of zone services/ports)
-    # firewall_hardened otherwise only ADDS its own services + purges rich rules;
-    # it never touches zone default-services (e.g. cockpit) or stray zone ports
-    # (e.g. a legacy 3001/tcp). These lists keep such entries shut on every run.
-    # state: disabled is a no-op when already absent, so it can't affect intended
-    # ports like ssh/http/https.
-    # ========================================================================
-
-    - name: Enforce removed services in the default zone
-      ansible.posix.firewalld:
-        service: "{{ item }}"
-        zone: "{{ firewall_hardened_default_zone }}"
-        permanent: true
-        immediate: true
-        state: disabled
-      loop: "{{ firewall_hardened_disabled_services | default([]) }}"
-      loop_control:
-        label: "{{ item }}"
-      notify: Reload firewalld
-      tags: [firewall, services]
-
-    - name: Enforce removed ports in the default zone
-      ansible.posix.firewalld:
-        port: "{{ item }}"
-        zone: "{{ firewall_hardened_default_zone }}"
-        permanent: true
-        immediate: true
-        state: disabled
-      loop: "{{ firewall_hardened_disabled_ports | default([]) }}"
-      loop_control:
-        label: "{{ item }}"
-      notify: Reload firewalld
-      tags: [firewall, services]
-
-    # ========================================================================
     # PURGE STALE RULES (declarative management)
     # ========================================================================
 
@@ -123,6 +88,21 @@
         - firewall
         - services
         - purge
+
+    # ========================================================================
+    # STRICT DEFAULT-DENY ALLOWLIST (opt-in)
+    # Reconcile the zone so ONLY declared services/ports remain open. Runs LAST,
+    # after the allowlist + ssh are in place, so access is never dropped before
+    # being ensured (the block/rescue re-enables ssh on any failure).
+    # ========================================================================
+
+    - name: Enforce strict default-deny allowlist
+      ansible.builtin.include_tasks: strict_allowlist.yml
+      when: firewall_hardened_strict_allowlist | default(false)
+      tags:
+        - firewall
+        - services
+        - strict
 
     # ========================================================================
     # FLUSH HANDLERS (apply all pending firewall reloads)
