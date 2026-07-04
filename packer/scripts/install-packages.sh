@@ -1,5 +1,6 @@
 #!/bin/bash
 # Install minimal essential packages for template
+set -euo pipefail
 
 echo "=== Installing minimal essential packages ==="
 

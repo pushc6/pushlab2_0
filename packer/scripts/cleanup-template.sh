@@ -1,5 +1,6 @@
 #!/bin/bash
 # Clean up system for template preparation
+set -euo pipefail
 
 echo "=== Starting template cleanup ==="
 
@@ -47,7 +48,7 @@ systemctl enable regenerate-ssh-keys.service
 find /var/log -type f -exec truncate -s 0 {} \;
 
 # Clear command history
-history -c
+history -c || true
 rm -f /root/.bash_history
 rm -f /home/*/.bash_history
 
