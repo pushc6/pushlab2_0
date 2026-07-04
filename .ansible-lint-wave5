@@ -1,9 +1,0 @@
----
-skip_list: []
-exclude_paths:
-  - .cache/
-  - .git/
-  - collections/
-  - ansible/group_vars/vault.yml.example
-  - ansible/inventories/prod/host_vars/gitea/vault.yml.example
-  - ansible/add_ansible_user_prompt_debian.yml
