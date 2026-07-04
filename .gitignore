@@ -50,7 +50,7 @@ ansible/roles/gitea/tmp/
 
 # Ansible environment secrets (do not commit)
 ansible/inventories/**/host_vars/**/secrets.yml
-ansible/inventories/**/group_vars/**/secrets.ymlgi
+ansible/inventories/**/group_vars/**/secrets.yml
 
 # Logs
 *.log
