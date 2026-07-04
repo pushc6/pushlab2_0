@@ -1,9 +1,14 @@
-plugin "vsphere" {
-  enabled = true
-  version = "0.6.3"
-  source  = "github.com/terraform-linters/tflint-ruleset-vsphere"
+tflint {
+  required_version = ">= 0.50"
 }
 
 config {
-  module = true
+  call_module_type = "all"
+}
+
+# Core Terraform rules (bundled ruleset): unused declarations, missing
+# version constraints, deprecated syntax, etc.
+plugin "terraform" {
+  enabled = true
+  preset  = "recommended"
 }

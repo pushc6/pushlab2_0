@@ -68,14 +68,19 @@ variable "data_disk_size_gb" {
   description = "Size of the additional data disk in GB. 0 disables the data disk."
 }
 
+# Vestigial: mounting/formatting moved to Ansible (mount_data_disk role); both
+# roots still pass these. Remove together with the vm_protected/vm_unprotected
+# dedup refactor.
+# tflint-ignore: terraform_unused_declarations
 variable "data_mount_point" {
   type        = string
-  description = "Mount point for the data disk (e.g. /data)."
+  description = "Mount point for the data disk (e.g. /data). Unused by this module; consumed by Ansible."
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "data_fs_type" {
   type        = string
-  description = "Filesystem for the data disk: ext4 or xfs."
+  description = "Filesystem for the data disk: ext4 or xfs. Unused by this module; consumed by Ansible."
 
   validation {
     condition     = contains(["ext4", "xfs"], var.data_fs_type)
@@ -83,9 +88,10 @@ variable "data_fs_type" {
   }
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "vm_ssh_user" {
   type        = string
-  description = "SSH user for in-guest provisioning/bootstrap."
+  description = "SSH user for in-guest provisioning/bootstrap. Vestigial — see data_mount_point note."
 }
 
 variable "ssh_public_key" {
@@ -94,10 +100,11 @@ variable "ssh_public_key" {
   default     = ""
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "ssh_private_key" {
   type        = string
   sensitive   = true
-  description = "Private key material used for SSH connections (PEM/OPENSSH)."
+  description = "Private key material used for SSH connections (PEM/OPENSSH). Vestigial — see data_mount_point note."
 }
 
 # Optional static IP customization (when ipv4_address is non-empty)

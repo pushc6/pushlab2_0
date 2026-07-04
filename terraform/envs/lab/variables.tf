@@ -16,21 +16,6 @@ variable "datastore" { type = string }
 variable "network" { type = string }
 variable "vm_folder" { type = string }
 
-# Map of VMs (optional for lab)
-variable "vms" {
-  description = "Map of VMs to deploy with per-VM settings"
-  type = map(object({
-    cpu_count         = number
-    memory_mb         = number
-    disk_size_gb      = number
-    thin_provisioned  = bool
-    data_disk_size_gb = number
-    data_mount_point  = string
-    data_fs_type      = string
-  }))
-  default = {}
-}
-
 variable "template_name" { type = string }
 
 # Single-VM fallback variables

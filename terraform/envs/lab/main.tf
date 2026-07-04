@@ -56,7 +56,7 @@ locals {
           children = {
             almalinux = {
               hosts = {
-                "${module.vm.vm_name}" = {
+                (module.vm.vm_name) = {
                   ansible_host    = module.vm.vm_ip
                   system_hostname = module.vm.vm_name
                 }

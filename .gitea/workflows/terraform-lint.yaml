@@ -1,0 +1,44 @@
+name: terraform-lint
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '.tflint.hcl'
+      - '.gitea/workflows/terraform-lint.yaml'
+  pull_request:
+    paths:
+      - 'terraform/**'
+      - '.tflint.hcl'
+      - '.gitea/workflows/terraform-lint.yaml'
+
+jobs:
+  tflint:
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux-cicd:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tflint
+        env:
+          TFLINT_VERSION: v0.55.1
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/tflint.zip \
+            "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/tflint_linux_amd64.zip"
+          unzip -o /tmp/tflint.zip -d /usr/local/bin
+          rm /tmp/tflint.zip
+          tflint --version
+
+      # Only the bundled terraform ruleset is used (no `tflint --init`),
+      # so this needs no GitHub API access from the runner.
+      - name: tflint
+        run: |
+          set -euo pipefail
+          for dir in terraform/envs/lab terraform/envs/prod terraform/modules/vm; do
+            echo "=== $dir ==="
+            tflint --chdir="$dir" --config="$GITHUB_WORKSPACE/.tflint.hcl"
+          done
