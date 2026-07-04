@@ -63,6 +63,57 @@ jobs:
           terraform -chdir=terraform/envs/prod fmt -check
           terraform -chdir=terraform/envs/prod validate
 
+  ansible-lint:
+    # Gate for ansible-semaphore: the standalone ansible-lint.yaml workflow runs
+    # in parallel and cannot block the Semaphore trigger, so lint again here as
+    # a `needs` dependency. No-ops (passes trivially) when ansible/ is unchanged.
+    runs-on: [self-hosted, linux, x64, alma]
+    container: almalinux-cicd:latest
+    needs: [kickoff]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect ansible changes
+        run: |
+          set -euo pipefail
+          BASE=$(jq -r '.before // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+          CHANGED=false
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+            git fetch --depth=0 origin || true
+            if git diff --name-only "$BASE" "$GITHUB_SHA" | grep -E -q '^ansible/'; then CHANGED=true; fi
+          else
+            if git show --pretty="" --name-only "$GITHUB_SHA" | grep -E -q '^ansible/'; then CHANGED=true; fi
+          fi
+          echo "ANSIBLE_CHANGED=$CHANGED" >> "$GITHUB_ENV"
+          echo "ANSIBLE_CHANGED=$CHANGED"
+
+      - name: Install ansible-core + ansible-lint
+        if: env.ANSIBLE_CHANGED == 'true'
+        run: |
+          set -euo pipefail
+          dnf install -y python3-pip || true
+          python3 -m pip install --upgrade pip
+          # Match the EE pin in execution-environment/execution-environment.yml
+          python3 -m pip install \
+            "ansible-core>=2.18,<2.19" \
+            "ansible-lint==25.6.1"
+
+      - name: Install collections
+        if: env.ANSIBLE_CHANGED == 'true'
+        run: |
+          ansible-galaxy collection install -r ansible/requirements.yml -p ~/.ansible/collections
+
+      - name: ansible-lint
+        if: env.ANSIBLE_CHANGED == 'true'
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          ansible-lint ansible/
+
+      - name: Skip note
+        if: env.ANSIBLE_CHANGED != 'true'
+        run: echo "No ansible changes; lint gate passes trivially."
+
   packer-build:
     # Packer's HTTP kickstart server must be reachable from the VM being built.
     # Run bare-metal on the packer-vm runner (packer_builder VM, 10.37.80.5) and
@@ -374,7 +425,8 @@ jobs:
   ansible-semaphore:
     runs-on: [self-hosted, linux, x64, alma]
     container: almalinux-cicd:latest
-    needs: [terraform]
+    # ansible-lint in needs: a lint failure now blocks the prod Ansible apply.
+    needs: [terraform, ansible-lint]
     if: ${{ needs.terraform.outputs.apply == 'true' || needs.terraform.outputs.ansible_changed == 'true' }}
     steps:
       - name: Trigger Semaphore Task
@@ -415,7 +467,14 @@ jobs:
 
             # Wait for task completion
             echo "Waiting for task to complete..."
+            ATTEMPT=0
+            MAX_ATTEMPTS=720  # 720 * 5s = 60 min budget; a stuck task otherwise hangs until the runner timeout
             while true; do
+              ATTEMPT=$((ATTEMPT + 1))
+              if [ "$ATTEMPT" -gt "$MAX_ATTEMPTS" ]; then
+                echo "::error::Timed out after 60 minutes waiting for Semaphore task $TASK_ID"
+                exit 1
+              fi
               sleep 5
               STATUS_RESP=$(curl -s -H "Authorization: Bearer $SEMAPHORE_TOKEN" \
                 "$SEMAPHORE_URL/api/project/$SEMAPHORE_PROJECT_ID/tasks/$TASK_ID")
