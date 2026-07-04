@@ -6,8 +6,18 @@
 # for host_vars at inventories/host_vars/, not in each subdirectory.
 #
 # This script is run automatically by pre-commit to ensure symlinks stay in sync.
+#
+# Reconciliation rules for each entry at inventories/{host,group}_vars/<name>:
+#   - missing            -> create symlink to the subdirectory copy
+#   - valid symlink      -> leave as-is (even if it points at a different
+#                           subdirectory, e.g. prod/ vs manual/ — first source wins)
+#   - broken symlink     -> repoint at the subdirectory copy
+#   - regular file, identical to the subdirectory copy -> replace with symlink
+#   - regular file, DIFFERENT from the subdirectory copy -> fail loudly; a
+#     shadow copy like this makes the two inventories disagree and must be
+#     reconciled by hand (merge into the subdirectory copy, then delete it)
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -25,23 +35,51 @@ echo -e "${YELLOW}Syncing inventory host_vars/group_vars symlinks...${NC}"
 mkdir -p "$INVENTORIES_DIR/host_vars"
 mkdir -p "$INVENTORIES_DIR/group_vars"
 
-# Track if any changes were made
+# Track if any changes were made / conflicts found
 CHANGES_MADE=0
+CONFLICTS=0
 
-# Function to create symlink if it doesn't exist
-create_symlink() {
+# Ensure inventories/<kind>/<name> is a symlink to the subdirectory copy,
+# following the reconciliation rules documented above.
+# $1 = source path (the real file/dir in a subdirectory)
+# $2 = relative symlink target (e.g. ../manual/host_vars/foo.yml)
+# $3 = destination directory (inventories/host_vars or inventories/group_vars)
+ensure_symlink() {
     local source="$1"
-    local target="$2"
-    local name="$(basename "$source")"
+    local rel_path="$2"
+    local dest_dir="$3"
+    local name
+    name="$(basename "$source")"
+    local dest="$dest_dir/$name"
 
-    if [ ! -e "$target/$name" ]; then
-        ln -sf "$source" "$target/"
-        echo -e "${GREEN}  + Created symlink: $name${NC}"
+    if [ -L "$dest" ]; then
+        if [ -e "$dest" ]; then
+            # Valid symlink (possibly to another subdirectory) — leave it.
+            return 0
+        fi
+        echo -e "${YELLOW}  ~ Repointing broken symlink: $name -> $rel_path${NC}"
+        ln -sfn "$rel_path" "$dest"
+        CHANGES_MADE=1
+    elif [ -e "$dest" ]; then
+        # Regular file (or directory) shadowing the subdirectory copy.
+        if diff -rq "$dest" "$source" >/dev/null 2>&1; then
+            echo -e "${GREEN}  + Replacing identical copy with symlink: $name -> $rel_path${NC}"
+            rm -rf "$dest"
+            ln -s "$rel_path" "$dest"
+            CHANGES_MADE=1
+        else
+            echo -e "${RED}  ! CONFLICT: $dest is a regular copy that DIFFERS from $source${NC}"
+            echo -e "${RED}    Merge the differences into $source, delete the copy, and re-run.${NC}"
+            CONFLICTS=1
+        fi
+    else
+        ln -s "$rel_path" "$dest"
+        echo -e "${GREEN}  + Created symlink: $name -> $rel_path${NC}"
         CHANGES_MADE=1
     fi
 }
 
-# Function to remove broken symlinks
+# Function to remove broken symlinks (sources that no longer exist anywhere)
 cleanup_broken_symlinks() {
     local dir="$1"
     for link in "$dir"/*; do
@@ -53,54 +91,24 @@ cleanup_broken_symlinks() {
     done
 }
 
-# Sync host_vars from all subdirectories
-echo "Checking host_vars..."
-for subdir in "$INVENTORIES_DIR"/*/; do
-    subdir_name=$(basename "$subdir")
-    # Skip the parent host_vars/group_vars directories
-    if [ "$subdir_name" = "host_vars" ] || [ "$subdir_name" = "group_vars" ]; then
-        continue
-    fi
+# Sync host_vars/group_vars from all inventory subdirectories
+for kind in host_vars group_vars; do
+    echo "Checking $kind..."
+    for subdir in "$INVENTORIES_DIR"/*/; do
+        subdir_name=$(basename "$subdir")
+        # Skip the parent host_vars/group_vars directories
+        if [ "$subdir_name" = "host_vars" ] || [ "$subdir_name" = "group_vars" ]; then
+            continue
+        fi
 
-    if [ -d "$subdir/host_vars" ]; then
-        for item in "$subdir/host_vars"/*; do
-            if [ -e "$item" ]; then
-                # Create relative symlink
-                rel_path="../${subdir_name}/host_vars/$(basename "$item")"
-                name="$(basename "$item")"
-                if [ ! -e "$INVENTORIES_DIR/host_vars/$name" ]; then
-                    ln -sf "$rel_path" "$INVENTORIES_DIR/host_vars/"
-                    echo -e "${GREEN}  + Created symlink: host_vars/$name -> $rel_path${NC}"
-                    CHANGES_MADE=1
+        if [ -d "$subdir/$kind" ]; then
+            for item in "$subdir/$kind"/*; do
+                if [ -e "$item" ]; then
+                    ensure_symlink "$item" "../${subdir_name}/$kind/$(basename "$item")" "$INVENTORIES_DIR/$kind"
                 fi
-            fi
-        done
-    fi
-done
-
-# Sync group_vars from all subdirectories
-echo "Checking group_vars..."
-for subdir in "$INVENTORIES_DIR"/*/; do
-    subdir_name=$(basename "$subdir")
-    # Skip the parent host_vars/group_vars directories
-    if [ "$subdir_name" = "host_vars" ] || [ "$subdir_name" = "group_vars" ]; then
-        continue
-    fi
-
-    if [ -d "$subdir/group_vars" ]; then
-        for item in "$subdir/group_vars"/*; do
-            if [ -e "$item" ]; then
-                # Create relative symlink
-                rel_path="../${subdir_name}/group_vars/$(basename "$item")"
-                name="$(basename "$item")"
-                if [ ! -e "$INVENTORIES_DIR/group_vars/$name" ]; then
-                    ln -sf "$rel_path" "$INVENTORIES_DIR/group_vars/"
-                    echo -e "${GREEN}  + Created symlink: group_vars/$name -> $rel_path${NC}"
-                    CHANGES_MADE=1
-                fi
-            fi
-        done
-    fi
+            done
+        fi
+    done
 done
 
 # Clean up broken symlinks
@@ -108,7 +116,10 @@ echo "Checking for broken symlinks..."
 cleanup_broken_symlinks "$INVENTORIES_DIR/host_vars"
 cleanup_broken_symlinks "$INVENTORIES_DIR/group_vars"
 
-if [ $CHANGES_MADE -eq 1 ]; then
+if [ $CONFLICTS -eq 1 ]; then
+    echo -e "${RED}Drifted shadow copies found — resolve the conflicts above before committing.${NC}"
+    exit 1
+elif [ $CHANGES_MADE -eq 1 ]; then
     echo -e "${YELLOW}Symlinks updated. Please stage the changes and commit again.${NC}"
     # Add the symlinks to git staging
     git add "$INVENTORIES_DIR/host_vars" "$INVENTORIES_DIR/group_vars" 2>/dev/null || true

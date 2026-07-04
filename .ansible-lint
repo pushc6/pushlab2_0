@@ -8,6 +8,9 @@ profile: production
 exclude_paths:
   - .cache/
   - .git/
+  # Gitea Actions workflows are not Ansible content; CI lints ansible/ only,
+  # but the pre-commit hook scans the whole repo — keep the two consistent.
+  - .gitea/
   - collections/
   - ansible/group_vars/vault.yml.example
   - ansible/inventories/prod/host_vars/gitea/vault.yml.example

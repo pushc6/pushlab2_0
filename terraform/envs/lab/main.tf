@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.7.5, < 2.0"
   required_providers {
     vsphere = {
       source  = "vmware/vsphere"
@@ -7,7 +7,7 @@ terraform {
     }
     local = {
       source  = "hashicorp/local"
-      version = ">= 2.0"
+      version = "~> 2.0"
     }
   }
 }
@@ -56,7 +56,7 @@ locals {
           children = {
             almalinux = {
               hosts = {
-                "${module.vm.vm_name}" = {
+                (module.vm.vm_name) = {
                   ansible_host    = module.vm.vm_ip
                   system_hostname = module.vm.vm_name
                 }

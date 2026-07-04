@@ -37,13 +37,13 @@ Workflows: `.gitea/workflows/`
 - Builds the AlmaLinux CI runner image
 - Used by other workflows as base container
 
-**schedule-drift-check.yaml**
-- Scheduled daily drift detection
-- Triggers Semaphore for full convergence check
+**ansible-lint.yaml**
+- Runs `ansible-lint` (production profile) and `ansible-playbook --syntax-check`
+- Triggered on push/PR when `ansible/` changes
 
 **prod-drift-check.yaml**
-- Production-specific drift detection
-- Compares current state against desired
+- Scheduled daily drift detection for production (3:00 AM UTC) + manual dispatch
+- `terraform plan -detailed-exitcode`; notifies Discord and PagerDuty on drift
 
 **redeploy-vm.yaml**
 - Manual VM redeployment workflow
@@ -86,4 +86,4 @@ Reference implementations: `orchestrate-push.yaml`, `orchestrate-dispatch.yaml`,
 - **Push to `main`**: validation + gated Terraform, Packer (if changed)
 - **Push to `orchestrate-apply`**: forces apply path
 - **Manual dispatch**: choose environment/action via Gitea UI
-- **Daily schedule**: drift check at 2:00 AM UTC
+- **Daily schedule**: drift check at 3:00 AM UTC

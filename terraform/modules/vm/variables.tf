@@ -1,32 +1,98 @@
-variable "datacenter" { type = string }
+variable "datacenter" {
+  type        = string
+  description = "vSphere datacenter to deploy into."
+}
 
-variable "cluster" { type = string }
+variable "cluster" {
+  type        = string
+  description = "vSphere compute cluster (used to resolve the resource pool)."
+}
 
-variable "datastore" { type = string }
+variable "datastore" {
+  type        = string
+  description = "Datastore for the VM's disks."
+}
 
-variable "network" { type = string }
+variable "network" {
+  type        = string
+  description = "Port group / network name for the primary NIC."
+}
 
-variable "vm_folder" { type = string }
+variable "vm_folder" {
+  type        = string
+  description = "vSphere inventory folder for the VM."
+}
 
-variable "template_name" { type = string }
+variable "template_name" {
+  type        = string
+  description = "Name of the VM template to clone from."
+}
 
-variable "vm_name" { type = string }
+variable "vm_name" {
+  type        = string
+  description = "Name (and default hostname) of the VM."
+}
 
-variable "cpu_count" { type = number }
+variable "cpu_count" {
+  type        = number
+  description = "Number of vCPUs."
 
-variable "memory_mb" { type = number }
+  validation {
+    condition     = var.cpu_count >= 1
+    error_message = "cpu_count must be at least 1."
+  }
+}
 
-variable "disk_size_gb" { type = number }
+variable "memory_mb" {
+  type        = number
+  description = "Memory in MB."
 
-variable "thin_provisioned" { type = bool }
+  validation {
+    condition     = var.memory_mb >= 512
+    error_message = "memory_mb must be at least 512."
+  }
+}
 
-variable "data_disk_size_gb" { type = number }
+variable "disk_size_gb" {
+  type        = number
+  description = "OS disk size in GB. Never shrunk below the template's base disk (vSphere disallows shrinking on clone)."
+}
 
-variable "data_mount_point" { type = string }
+variable "thin_provisioned" {
+  type        = bool
+  description = "Whether the VM's disks are thin provisioned."
+}
 
-variable "data_fs_type" { type = string }
+variable "data_disk_size_gb" {
+  type        = number
+  description = "Size of the additional data disk in GB. 0 disables the data disk."
+}
 
-variable "vm_ssh_user" { type = string }
+# Vestigial: mounting/formatting moved to Ansible (mount_data_disk role); both
+# roots still pass these. Remove together with the vm_protected/vm_unprotected
+# dedup refactor.
+# tflint-ignore: terraform_unused_declarations
+variable "data_mount_point" {
+  type        = string
+  description = "Mount point for the data disk (e.g. /data). Unused by this module; consumed by Ansible."
+}
+
+# tflint-ignore: terraform_unused_declarations
+variable "data_fs_type" {
+  type        = string
+  description = "Filesystem for the data disk: ext4 or xfs. Unused by this module; consumed by Ansible."
+
+  validation {
+    condition     = contains(["ext4", "xfs"], var.data_fs_type)
+    error_message = "data_fs_type must be one of: ext4, xfs."
+  }
+}
+
+# tflint-ignore: terraform_unused_declarations
+variable "vm_ssh_user" {
+  type        = string
+  description = "SSH user for in-guest provisioning/bootstrap. Vestigial — see data_mount_point note."
+}
 
 variable "ssh_public_key" {
   type        = string
@@ -34,10 +100,11 @@ variable "ssh_public_key" {
   default     = ""
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "ssh_private_key" {
   type        = string
   sensitive   = true
-  description = "Private key material used for SSH connections (PEM/OPENSSH)."
+  description = "Private key material used for SSH connections (PEM/OPENSSH). Vestigial — see data_mount_point note."
 }
 
 # Optional static IP customization (when ipv4_address is non-empty)
@@ -51,6 +118,11 @@ variable "ipv4_netmask" {
   type        = number
   description = "IPv4 netmask (prefix length), e.g., 24 for 255.255.255.0."
   default     = 24
+
+  validation {
+    condition     = var.ipv4_netmask >= 0 && var.ipv4_netmask <= 32
+    error_message = "ipv4_netmask must be a prefix length between 0 and 32."
+  }
 }
 
 variable "ipv4_gateway" {

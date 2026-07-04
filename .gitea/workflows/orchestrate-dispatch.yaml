@@ -353,7 +353,14 @@ jobs:
             echo "Firewall task launched. Task ID: $TASK_ID"
 
             echo "Waiting for firewall task to complete..."
+            ATTEMPT=0
+            MAX_ATTEMPTS=720  # 720 * 5s = 60 min budget; a stuck task otherwise hangs until the runner timeout
             while true; do
+              ATTEMPT=$((ATTEMPT + 1))
+              if [ "$ATTEMPT" -gt "$MAX_ATTEMPTS" ]; then
+                echo "::error::Timed out after 60 minutes waiting for Semaphore task $TASK_ID"
+                exit 1
+              fi
               sleep 5
               STATUS_RESP=$(curl -s -H "Authorization: Bearer $SEMAPHORE_TOKEN" \
                 "$SEMAPHORE_URL/api/project/$SEMAPHORE_PROJECT_ID/tasks/$TASK_ID")
@@ -415,7 +422,14 @@ jobs:
             echo "Onboard task launched. Task ID: $TASK_ID"
 
             echo "Waiting for onboard task to complete..."
+            ATTEMPT=0
+            MAX_ATTEMPTS=720  # 720 * 5s = 60 min budget; a stuck task otherwise hangs until the runner timeout
             while true; do
+              ATTEMPT=$((ATTEMPT + 1))
+              if [ "$ATTEMPT" -gt "$MAX_ATTEMPTS" ]; then
+                echo "::error::Timed out after 60 minutes waiting for Semaphore task $TASK_ID"
+                exit 1
+              fi
               sleep 5
               STATUS_RESP=$(curl -s -H "Authorization: Bearer $SEMAPHORE_TOKEN" \
                 "$SEMAPHORE_URL/api/project/$SEMAPHORE_PROJECT_ID/tasks/$TASK_ID")
@@ -484,7 +498,14 @@ jobs:
             echo "Task launched successfully. Task ID: $TASK_ID"
 
             echo "Waiting for task to complete..."
+            ATTEMPT=0
+            MAX_ATTEMPTS=720  # 720 * 5s = 60 min budget; a stuck task otherwise hangs until the runner timeout
             while true; do
+              ATTEMPT=$((ATTEMPT + 1))
+              if [ "$ATTEMPT" -gt "$MAX_ATTEMPTS" ]; then
+                echo "::error::Timed out after 60 minutes waiting for Semaphore task $TASK_ID"
+                exit 1
+              fi
               sleep 5
               STATUS_RESP=$(curl -s -H "Authorization: Bearer $SEMAPHORE_TOKEN" \
                 "$SEMAPHORE_URL/api/project/$SEMAPHORE_PROJECT_ID/tasks/$TASK_ID")

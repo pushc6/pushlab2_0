@@ -1,5 +1,6 @@
 #!/bin/bash
 # Configure essential services
+set -euo pipefail
 
 echo "=== Configuring services ==="
 

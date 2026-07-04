@@ -125,7 +125,9 @@
   when: (gitea_backup_before_upgrade | bool) and (gitea_update_needed | bool)
 
 - name: Measure free space on backup filesystem (bytes)
-  ansible.builtin.shell: "df -PB1 {{ gitea_backup_dir }} | awk 'NR==2 {print $4}'"
+  ansible.builtin.shell: "set -o pipefail; df -PB1 {{ gitea_backup_dir }} | awk 'NR==2 {print $4}'"
+  args:
+    executable: /bin/bash
   register: gitea_backup_free_bytes
   changed_when: false
   when: (gitea_backup_before_upgrade | bool) and (gitea_update_needed | bool)

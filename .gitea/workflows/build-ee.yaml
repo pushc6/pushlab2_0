@@ -25,6 +25,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # execution-environment/requirements.yml is a hand-maintained mirror of
+      # ansible/requirements.yml; fail the build if they drift (comments and
+      # blank lines excluded from the comparison).
+      - name: Verify requirements.yml is in sync with ansible/requirements.yml
+        run: |
+          set -euo pipefail
+          if ! diff -u \
+            <(grep -Ev '^\s*(#|$)' ansible/requirements.yml) \
+            <(grep -Ev '^\s*(#|$)' execution-environment/requirements.yml); then
+            echo "::error::execution-environment/requirements.yml has drifted from ansible/requirements.yml — keep them in sync."
+            exit 1
+          fi
+          echo "requirements.yml files are in sync."
+
       - name: Install Python, Ansible Builder, and Docker CLI
         run: |
           dnf install -y dnf-plugins-core

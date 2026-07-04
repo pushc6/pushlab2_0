@@ -1,11 +1,13 @@
 terraform {
+  required_version = ">= 1.7.5"
   required_providers {
     vsphere = {
       source  = "vmware/vsphere"
       version = "~> 2.15"
     }
     null = {
-      source = "hashicorp/null"
+      source  = "hashicorp/null"
+      version = "~> 3.0"
     }
   }
 }
@@ -37,9 +39,6 @@ locals {
       parseint(substr(md5("${var.vm_name}-${iface.network_name}"), 4, 2), 16)
     )
   ]
-
-  # All MACs in order (primary first, then additional)
-  all_macs = concat([local.primary_mac], local.additional_macs)
 
   # ============================================================================
   # CLOUD-INIT NETWORK CONFIGURATION (MAC-based matching)
@@ -488,7 +487,3 @@ resource "vsphere_virtual_machine" "vm_protected" {
   }
 }
 
-locals {
-  vm_id         = var.prevent_destroy ? vsphere_virtual_machine.vm_protected[0].id : vsphere_virtual_machine.vm_unprotected[0].id
-  vm_default_ip = var.prevent_destroy ? vsphere_virtual_machine.vm_protected[0].default_ip_address : vsphere_virtual_machine.vm_unprotected[0].default_ip_address
-}
