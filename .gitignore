@@ -7,7 +7,6 @@
 tfplan
 tfplan.*
 .terraform/
-.terraform.lock.hcl
 
 # Sensitive configuration
 terraform.tfvars
