@@ -22,6 +22,9 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_REGION: us-east-005
+      AWS_EC2_METADATA_DISABLED: "true"
       TF_VAR_vsphere_user: ${{ secrets.VSPHERE_USER }}
       TF_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
       # Pubkey is non-sensitive — prefer vars.TF_SSH_PUBLIC_KEY for auditability.
@@ -36,7 +39,9 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.9.0"
+          # Keep in lockstep with docker/ci-image/Dockerfile — mixed versions
+          # writing the same state means the older one can no longer read it.
+          terraform_version: "1.9.8"
           terraform_wrapper: false
 
       - name: Initialize Terraform

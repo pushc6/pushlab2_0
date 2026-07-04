@@ -23,8 +23,10 @@ RUN curl -fsSL https://rpm.nodesource.com/setup_20.x | bash - && \
 # Install AWS CLI via pip
 RUN pip3 install --no-cache-dir awscli
 
-# Install Terraform 1.7.5
-RUN curl -fsSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o /tmp/terraform.zip && \
+# Install Terraform 1.9.8 — keep in lockstep with the setup-terraform pin in
+# .gitea/workflows/redeploy-vm.yaml (mixed versions writing the same state
+# means the older one can no longer read it).
+RUN curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o /tmp/terraform.zip && \
     unzip -o /tmp/terraform.zip -d /usr/local/bin && \
     rm /tmp/terraform.zip && \
     terraform version
