@@ -87,13 +87,17 @@ ANSIBLE_HOST_KEY_CHECKING=False \
 ## Other Roles
 
 The project includes additional roles for:
-- Docker installation
-- Firewall hardening
-- System updates
+- Docker installation and daemon configuration (`docker`, `docker_daemon`)
+- Firewall hardening (`firewall_hardened`)
+- System updates (`system_updates`, `rhel_updates`, `debian_updates`)
 - NFS client
 - OPNsense firewall management
-- Technitium DNS
-- OAuth2 proxy/NGINX
+- Technitium DNS (`technitium`)
+- Reverse proxies: NGINX (`enhanced_proxy_nginx`, `oauth2_proxy_nginx`) and Caddy for the DMZ/ECH migration (`caddy_proxy`)
+- ACME certificate issuance (`acme_sh`)
+- CrowdSec agent/LAPI (`crowdsec`)
+- Tailscale (`tailscale`)
+- Komodo Periphery for Docker GitOps (`komodo_periphery`)
 
 See `ansible/roles/` for the full list.
 
