@@ -68,21 +68,22 @@ komodo_periphery_dns: []
 # Static hosts entries injected into the Periphery container (docker --add-host).
 # Map name -> IP, e.g. {"git.push-lab.com": "10.37.70.24"}.
 #
-# Needed where the host can REACH an internal service but cannot RESOLVE its name.
-# The off-LAN VPS is the case: Komodo Core advertises a 10.37.70.24/32 subnet route
-# (nginx_internal, the reverse proxy fronting git.push-lab.com), so the IP is routable
-# over the tailnet -- but Tailscale MagicDNS carries no Split DNS route for push-lab.com,
-# so `git.push-lab.com` does not resolve at all and the stack clone dies with
-# "Could not resolve host: git.push-lab.com". The nginx cert is CN=push-lab.com with
-# SAN *.push-lab.com, so TLS still validates when the name is mapped to that IP.
+# Needed where the host can REACH an internal service but cannot RESOLVE its name --
+# a host that is routable to the service by IP while its resolver knows nothing about
+# the internal zone. It fixes one name in one container, so prefer a Tailscale Split
+# DNS route where the host is on the tailnet (see below); keep this for hosts where
+# that is not an option.
 #
-# komodo_periphery_dns is the sibling knob and does NOT help here: it points the
-# container at a resolver, and no resolver that knows push-lab.com is routable from
-# the VPS (only the single /32 above is advertised).
+# The off-LAN VPS used to need it for git.push-lab.com and no longer does: a Split DNS
+# route (git.push-lab.com -> 10.37.70.2, Technitium on docker-secure) now resolves it
+# for the whole node, so the map is empty there. That took three things in agreement --
+# the Split DNS entry, a subnet route to the resolver advertised by docker-internal AND
+# approved in the admin console, and an ACL grant to the resolver on :53. Without the
+# grant the coordination server strips the route from the node netmap and it never
+# installs, which presents exactly like an approval that did not take.
 #
-# Longer-term alternative: add a Tailscale Split DNS route for push-lab.com -> the
-# internal Technitium resolver, which also requires advertising a route to that
-# resolver. That fixes every tailnet node at once; this map fixes one container.
+# komodo_periphery_dns is the sibling knob and is NOT a substitute: it points the
+# container at a resolver, so it only helps when such a resolver is already routable.
 komodo_periphery_etc_hosts: {}
 
 # Host-level nftables guard restricting the published Periphery port to Core only.

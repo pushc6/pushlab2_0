@@ -20,6 +20,18 @@ docker_daemon_log_opts:
 #     stopping workloads.
 docker_daemon_live_restore: true
 
+# --- Container DNS resolvers. Default to the .2 and .254 of whatever /24 this
+#     host's primary (default-route) interface sits in -- i.e. the subnet the
+#     docker host resides in. On this network that is the local DNS server
+#     (Technitium on <subnet>.2) plus the gateway/secondary resolver on .254, so
+#     containers resolve internal names directly instead of inheriting a host
+#     loopback resolver that Docker strips from container resolv.conf.
+#     Requires gathered facts (ansible_default_ipv4). Set to [] in host_vars to
+#     leave container DNS at Docker's default.
+docker_daemon_dns:
+  - "{{ ansible_default_ipv4.network | ansible.utils.ipmath(2) }}"
+  - "{{ ansible_default_ipv4.network | ansible.utils.ipmath(254) }}"
+
 docker_daemon_base_options:
   log-driver: "{{ docker_daemon_log_driver }}"
   log-opts: "{{ docker_daemon_log_opts }}"
@@ -28,5 +40,9 @@ docker_daemon_base_options:
 # Override in host_vars with the host's daemon settings (see host_vars/docker.yml).
 docker_daemon_extra_options: {}
 
+# Fold the subnet-derived DNS resolvers into the policy defaults (omitted when
+# docker_daemon_dns is emptied), then let host extras win on any key conflict.
 docker_daemon_options: >-
-  {{ docker_daemon_base_options | combine(docker_daemon_extra_options, recursive=true) }}
+  {{ docker_daemon_base_options
+     | combine({'dns': docker_daemon_dns} if docker_daemon_dns else {})
+     | combine(docker_daemon_extra_options, recursive=true) }}

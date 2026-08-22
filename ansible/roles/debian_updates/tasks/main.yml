@@ -1,16 +1,20 @@
 ---
 # Debian-specific update tasks
+# lock_timeout waits out a concurrent apt holder (apt-daily / unattended-upgrades
+# fire on a systemd timer and routinely own /var/lib/apt/lists/lock at boot);
+# without it the module fails immediately on contention.
 - name: Update apt cache
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: "{{ debian_updates_apt_cache_valid_time }}"
+    lock_timeout: "{{ debian_updates_apt_lock_timeout }}"
 
 - name: Update all packages
   ansible.builtin.apt:
     upgrade: "{{ debian_updates_apt_upgrade_type }}"
     autoclean: "{{ debian_updates_apt_autoclean | bool }}"
     autoremove: "{{ debian_updates_apt_autoremove | bool }}"
-    lock_timeout: 300
+    lock_timeout: "{{ debian_updates_apt_lock_timeout }}"
   environment:
     DEBIAN_FRONTEND: noninteractive
     NEEDRESTART_MODE: a

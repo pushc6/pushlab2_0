@@ -45,6 +45,7 @@
         name: "{{ crowdsec_packages[ansible_os_family].agent }}"
         state: present
         update_cache: true
+        lock_timeout: 600
 
 - name: Enable and start CrowdSec service
   ansible.builtin.systemd:

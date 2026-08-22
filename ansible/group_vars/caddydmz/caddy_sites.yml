@@ -1,0 +1,41 @@
+---
+# group_vars/caddydmz/caddy_sites.yml
+# Public DMZ web vhosts, migrated 1:1 from the hand-managed nginx config on
+# nginx-dmz (10.37.70.5). Each entry renders one Caddy site block.
+#
+# profile:
+#   standard  - plain reverse proxy (Caddy forwards all headers, handles
+#               websockets, sets X-Forwarded-* and preserves Host by default)
+#   plex      - unbuffered, 7200s timeouts, unlimited body, websocket
+#   nextcloud - large uploads, hardened headers, .well-known + blocked paths
+#   static    - respond / redir (no upstream)
+# aliases:    - extra server names served by the same block (e.g. www).
+# max_body:   - request body cap (Caddy default is unlimited).
+
+caddy_proxy_sites:
+  # --- push-lab.com services -------------------------------------------------
+  - { host: "amp.push-lab.com", upstream: "10.37.70.19:8080", profile: standard }
+  - { host: "auth.push-lab.com", upstream: "10.37.70.7:8082", profile: standard }
+  - { host: "invite.push-lab.com", upstream: "10.37.70.7:5690", profile: standard }
+  - { host: "n8n.push-lab.com", upstream: "10.37.70.7:5678", profile: standard } # websocket (auto)
+  - { host: "request.push-lab.com", upstream: "10.37.70.7:5055", profile: standard }
+  - { host: "sso.push-lab.com", upstream: "10.37.70.7:4180", profile: standard } # oauth2-proxy
+  - { host: "speedtest.push-lab.com", upstream: "10.37.70.7:3006", profile: standard }
+  - { host: "wolfbawt.push-lab.com", upstream: "10.37.70.25:8000", profile: standard }
+  - { host: "plex.push-lab.com", upstream: "10.37.70.7:32400", profile: plex }
+
+  # --- ryanpampush.com services ----------------------------------------------
+  - { host: "request.ryanpampush.com", upstream: "10.37.70.7:5055", profile: standard }
+  - { host: "plex.ryanpampush.com", upstream: "10.37.70.7:32400", profile: plex }
+
+  # --- patreons7.club (Nextcloud) --------------------------------------------
+  - { host: "nc.patreons7.club", upstream: "10.37.70.28:11000", profile: nextcloud }
+  - { host: "bigfile.patreons7.club", upstream: "10.37.70.28:11000", profile: nextcloud }
+
+  # --- apex landing pages ----------------------------------------------------
+  # NOTE: apex names are the known-fiddly case for ECH HTTPS-record publication
+  # on Cloudflare (caddy #6887). Verify `dig HTTPS push-lab.com` after cutover;
+  # the subdomains above are the primary ECH beneficiaries.
+  - { host: "push-lab.com", aliases: ["www.push-lab.com"], upstream: "10.37.70.25:8180", profile: standard }
+  - { host: "ryanpampush.com", aliases: ["www.ryanpampush.com"], upstream: "10.37.70.25:8180", profile: standard }
+  - { host: "rangernet.dev", aliases: ["www.rangernet.dev"], upstream: "10.37.70.25:8180", profile: standard }

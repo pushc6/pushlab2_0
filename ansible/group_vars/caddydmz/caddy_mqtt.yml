@@ -1,0 +1,12 @@
+---
+# group_vars/caddydmz/caddy_mqtt.yml
+# MQTT-over-TLS layer4 stream (replaces the nginx stream{} block on .5).
+# Caddy terminates TLS for caddy_proxy_mqtt.domain and proxies raw TCP to Mosquitto.
+# (variables use the caddy_proxy_ role prefix; the filename is unprefixed)
+
+caddy_proxy_mqtt_enabled: true
+caddy_proxy_mqtt:
+  domain: "mqtt.rangernet.dev" # SNI / cert presented on the listener
+  listen_port: 8883
+  backend_host: "10.37.70.25"
+  backend_port: 1883

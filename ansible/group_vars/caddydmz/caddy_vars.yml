@@ -1,0 +1,21 @@
+---
+# group_vars/caddydmz/caddy_vars.yml
+# Host-group settings for the Caddy DMZ proxy.
+
+# Custom Caddy build (cloudflare DNS + caddy-l4). Produced by docker/caddy-build/
+# and published to an internal artifact location. MUST be set before deploy.
+caddy_proxy_binary_url: "" # e.g. "https://git.push-lab.com/.../caddy-2.10.2-ech-l4"
+caddy_proxy_binary_checksum: "" # e.g. "sha256:..."
+
+# Cloudflare API token for DNS-01 + ECH publication (same source as acme.sh).
+caddy_proxy_cf_api_token: "{{ lookup('env', 'ACME_CF_TOKEN') | default(vault_acme_cf_token, true) }}"
+
+# ACME contact.
+caddy_proxy_acme_email: "ryan.pampush@gmail.com"
+
+# --- ECH cutover gate ------------------------------------------------------
+# Keep FALSE until the public 80/443 NAT points at this host. Flip to true as
+# the FINAL cutover step so Caddy generates ECH keys and publishes the HTTPS
+# DNS records (publishing earlier breaks ECH-capable browsers against .5).
+caddy_proxy_ech_enabled: false
+caddy_proxy_ech_public_name: "ech.push-lab.com"

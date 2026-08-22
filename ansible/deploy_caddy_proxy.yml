@@ -1,0 +1,43 @@
+---
+# deploy_caddy_proxy.yml
+# Deploys the Caddy DMZ reverse proxy (web + ECH + MQTT layer4) to the new host.
+#
+# Usage:
+#   ansible-playbook -i inventories/manual/on_premise.yml deploy_caddy_proxy.yml
+#
+# Prerequisites:
+#   - The target VM is provisioned and reachable (set ansible_host in host_vars).
+#   - ACME_CF_TOKEN (Cloudflare API token) is provided via env / Semaphore.
+#   - caddy_proxy_binary_url points at the custom build (cloudflare DNS + caddy-l4)
+#     produced by docker/caddy-build/.
+#
+# Cutover ordering: deploy with caddy_proxy_ech_enabled=false, validate via curl
+# --resolve, move the OPNsense 80/443/8883 NAT, THEN re-run with
+# -e caddy_proxy_ech_enabled=true to publish ECH records.
+
+- name: Deploy Caddy DMZ reverse proxy
+  hosts: "{{ target_group | default('caddydmz') }}"
+  become: true
+  remote_user: ansible
+  gather_facts: true
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - caddy_proxy_binary_url is defined and caddy_proxy_binary_url | length > 0
+          - caddy_proxy_cf_api_token is defined and caddy_proxy_cf_api_token | length > 0
+        fail_msg: >-
+          caddy_proxy_binary_url and caddy_proxy_cf_api_token must be set. Provide
+          ACME_CF_TOKEN via environment/Semaphore and set caddy_proxy_binary_url
+          to the custom Caddy artifact.
+
+  roles:
+    - role: firewall_hardened
+      tags: [firewall]
+
+    - role: crowdsec
+      tags: [crowdsec]
+
+    - role: caddy_proxy
+      tags: [caddy]

@@ -1,0 +1,15 @@
+---
+# roles/caddy_proxy/handlers/main.yml
+
+- name: Reload caddy
+  ansible.builtin.systemd:
+    name: caddy
+    state: reloaded
+  listen: reload caddy
+
+- name: Restart caddy
+  ansible.builtin.systemd:
+    name: caddy
+    state: restarted
+    daemon_reload: true
+  listen: restart caddy

@@ -34,13 +34,17 @@ komodo_periphery_docker_wait_for_tailscale: true
 # (2026-08-22 outage; see tailscale_snat_subnet_routes in the tailscale role defaults.)
 tailscale_snat_subnet_routes: false
 
-# This host is off-LAN: Core advertises a 10.37.70.24/32 route (nginx_internal) so the
-# Gitea reverse proxy is REACHABLE, but Tailscale MagicDNS has no Split DNS route for
-# push-lab.com, so the name does not resolve and the stack clone fails with
-# "Could not resolve host: git.push-lab.com". Map it to the routed proxy IP; the nginx
-# cert (CN=push-lab.com, SAN *.push-lab.com) still validates for this name.
-komodo_periphery_etc_hosts:
-  git.push-lab.com: "10.37.70.24"
+# This host is off-LAN, so git.push-lab.com has to resolve over the tailnet. That is now
+# a Tailscale Split DNS route (git.push-lab.com -> 10.37.70.2, the Technitium resolver on
+# docker-secure), which works because docker-internal advertises 10.37.70.2/32 alongside
+# the pre-existing 10.37.70.24/32 for nginx_internal. Both routes need admin-console
+# approval AND an ACL grant (tag:komodo-periphery -> 10.37.70.2:53); without the grant the
+# coordination server strips the route from this node's netmap and it never installs.
+#
+# This replaces a komodo_periphery_etc_hosts pin of git.push-lab.com -> 10.37.70.24, which
+# fixed one name in one container. Removed 2026-08-22 after verifying a container with no
+# /etc/hosts entry resolves via MagicDNS (nameserver 100.100.100.100, reachable from
+# docker0 even with tailscale_snat_subnet_routes: false).
 
 # Host-level nftables backstop so the tailnet ACL and PERIPHERY_ALLOWED_IPS are not the
 # only things scoping 8120 to Core. Needed here because the personal (untagged) devices

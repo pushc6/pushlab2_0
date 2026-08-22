@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  author: Infrastructure Team
+  description: Caddy reverse proxy for the public DMZ with ECH and an MQTT-over-TLS layer4 stream
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["9", "10"]
+  galaxy_tags:
+    - caddy
+    - proxy
+    - ech
+    - tls
+    - reverseproxy
+
+dependencies: []
+collections:
+  - ansible.builtin
+  - ansible.posix
+  - community.general

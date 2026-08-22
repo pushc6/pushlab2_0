@@ -1,0 +1,108 @@
+---
+# roles/caddy_proxy/tasks/main.yml
+# Install a custom Caddy build and render the DMZ Caddyfile (web + ECH + MQTT).
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - caddy_proxy_binary_url | length > 0
+      - caddy_proxy_cf_api_token | length > 0
+      - caddy_proxy_sites is defined
+      - not caddy_proxy_mqtt_enabled or (caddy_proxy_mqtt is defined and caddy_proxy_mqtt.backend_host is defined)
+    fail_msg: >-
+      caddy_proxy_binary_url, caddy_proxy_cf_api_token and caddy_proxy_sites must be set
+      (and caddy_proxy_mqtt when caddy_proxy_mqtt_enabled). Ensure ACME_CF_TOKEN is provided.
+
+- name: Create caddy group
+  ansible.builtin.group:
+    name: "{{ caddy_proxy_group }}"
+    system: true
+
+- name: Create caddy user
+  ansible.builtin.user:
+    name: "{{ caddy_proxy_user }}"
+    group: "{{ caddy_proxy_group }}"
+    system: true
+    shell: /sbin/nologin
+    home: "{{ caddy_proxy_data_dir }}"
+    create_home: false
+
+- name: Create caddy directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ caddy_proxy_group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ caddy_proxy_config_dir }}", owner: "root", mode: "0755" }
+    - { path: "{{ caddy_proxy_data_dir }}", owner: "{{ caddy_proxy_user }}", mode: "0750" }
+    - { path: "{{ caddy_proxy_log_dir }}", owner: "{{ caddy_proxy_user }}", mode: "0750" }
+
+- name: Install Caddy binary (custom xcaddy build with cloudflare + caddy-l4)
+  ansible.builtin.get_url:
+    url: "{{ caddy_proxy_binary_url }}"
+    dest: "{{ caddy_proxy_bin_path }}"
+    checksum: "{{ caddy_proxy_binary_checksum | default(omit, true) }}"
+    owner: root
+    group: root
+    mode: "0755"
+  notify: restart caddy
+
+- name: Restore SELinux context on the caddy binary
+  ansible.builtin.command:
+    cmd: "restorecon -v {{ caddy_proxy_bin_path }}"
+  register: caddy_proxy_restorecon
+  changed_when: "'Relabeled' in caddy_proxy_restorecon.stdout"
+  when:
+    - caddy_proxy_selinux_manage
+    - ansible_selinux is defined
+    - ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Allow caddy to bind the MQTT port under SELinux
+  community.general.seport:
+    ports: "{{ caddy_proxy_mqtt.listen_port | default(8883) }}"
+    proto: tcp
+    setype: http_port_t
+    state: present
+  when:
+    - caddy_proxy_selinux_manage
+    - caddy_proxy_mqtt_enabled | default(true)
+    - ansible_selinux is defined
+    - ansible_selinux.status | default('disabled') == 'enabled'
+
+- name: Write Caddy environment file (Cloudflare token)
+  ansible.builtin.template:
+    src: caddy.env.j2
+    dest: "{{ caddy_proxy_config_dir }}/caddy.env"
+    owner: "{{ caddy_proxy_user }}"
+    group: "{{ caddy_proxy_group }}"
+    mode: "0600"
+  no_log: true
+  notify: restart caddy
+
+- name: Install caddy systemd unit
+  ansible.builtin.template:
+    src: caddy.service.j2
+    dest: /etc/systemd/system/caddy.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart caddy
+
+- name: Render Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ caddy_proxy_config_dir }}/Caddyfile"
+    owner: root
+    group: "{{ caddy_proxy_group }}"
+    mode: "0640"
+    validate: "{{ caddy_proxy_bin_path }} validate --config %s"
+  notify: reload caddy
+
+- name: Ensure caddy is enabled and running
+  ansible.builtin.systemd:
+    name: caddy
+    state: started
+    enabled: true
+    daemon_reload: true

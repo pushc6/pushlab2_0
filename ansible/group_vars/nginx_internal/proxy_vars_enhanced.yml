@@ -188,7 +188,7 @@ oauth2_services:
     ssl_domain: "push-lab.com"
     description: "Tracearr"
     category: "media"
-    health_check: "/ping"
+    health_check: "/health" # SPA reads readiness from /health; must reach backend, not nginx stub
     enable_caching: false
 
   - name: "lidarr"

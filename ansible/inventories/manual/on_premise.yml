@@ -27,6 +27,9 @@ docker_secure:
 nginx_internal:
   hosts:
     "nginx-internal.localdomain":
+caddydmz:
+  hosts:
+    "caddy-dmz.localdomain":
 crowdsec_controller:
   hosts:
     "crowdsec.localdomain":

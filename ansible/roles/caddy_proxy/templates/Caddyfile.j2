@@ -1,0 +1,129 @@
+#jinja2: trim_blocks: True, lstrip_blocks: True
+# {{ ansible_managed }}
+# Public DMZ reverse proxy. Replaces the hand-managed nginx vhosts on
+# nginx-dmz (10.37.70.5). Certs are issued via Cloudflare DNS-01; SNI is
+# protected with Encrypted Client Hello (ECH) once caddy_proxy_ech_enabled is set.
+
+{
+	email {{ caddy_proxy_acme_email }}
+
+	# Default DNS provider — used for the ACME DNS-01 challenge (all sites)
+	# and for publishing ECH configs. Token comes from the systemd EnvironmentFile.
+	dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+
+	{% if caddy_proxy_ech_enabled %}
+	# Encrypted Client Hello: generate keys and publish ECHConfig to HTTPS DNS
+	# records under a single cover/outer name. Only rendered post-cutover.
+	ech {{ caddy_proxy_ech_public_name }}
+	{% endif %}
+
+	# Caddy runtime log.
+	log {
+		output file {{ caddy_proxy_log_dir }}/caddy.log {
+			roll_size 50MiB
+			roll_keep 5
+		}
+		level INFO
+	}
+
+	{% if caddy_proxy_mqtt_enabled %}
+	# --- Layer 4: MQTT over TLS (replaces nginx stream{}) -------------------
+	# Terminate TLS (cert presented by SNI from Caddy's cert cache — provisioned
+	# by the {{ caddy_proxy_mqtt.domain }} site block below) and proxy raw TCP to the
+	# Mosquitto backend. ECH does not apply to MQTT.
+	layer4 {
+		0.0.0.0:{{ caddy_proxy_mqtt.listen_port | default(8883) }} {
+			route {
+				tls
+				proxy {
+					upstream {{ caddy_proxy_mqtt.backend_host }}:{{ caddy_proxy_mqtt.backend_port }}
+				}
+			}
+		}
+	}
+	{% endif %}
+}
+
+# --- ECH cover / outer name --------------------------------------------------
+# Caddy must be authoritative for and hold a cert for the public name so it can
+# complete the ECH "retry" handshake. Publish an A record for it at cutover.
+{{ caddy_proxy_ech_public_name }} {
+	respond "OK" 200
+}
+
+{% if caddy_proxy_mqtt_enabled %}
+# --- MQTT cert provisioning --------------------------------------------------
+# This HTTPS site exists so Caddy obtains the {{ caddy_proxy_mqtt.domain }} cert; the
+# layer4 `tls` handler then presents it by SNI on :{{ caddy_proxy_mqtt.listen_port | default(8883) }}.
+{{ caddy_proxy_mqtt.domain }} {
+	respond "MQTT endpoint — connect on port {{ caddy_proxy_mqtt.listen_port | default(8883) }}" 200
+}
+{% endif %}
+
+# --- Web vhosts --------------------------------------------------------------
+{% for site in caddy_proxy_sites %}
+{{ ([site.host] + (site.aliases | default([]))) | join(' ') }} {
+	log {
+		output file {{ caddy_proxy_log_dir }}/{{ site.host }}.access.log {
+			roll_size 50MiB
+			roll_keep 5
+		}
+		format json
+	}
+	header Strict-Transport-Security "max-age=63072000; includeSubDomains"
+
+	{% if site.profile == 'static' %}
+	{% if site.redirect is defined %}
+	redir {{ site.redirect }}{% if site.redirect_code is defined %} {{ site.redirect_code }}{% endif %}
+
+	{% else %}
+	respond "{{ site.body | default('OK') }}" {{ site.status | default(200) }}
+	{% endif %}
+	{% elif site.profile == 'nextcloud' %}
+	# Nextcloud: large uploads, hardened headers, .well-known redirects, blocked paths.
+	request_body {
+		max_size {{ site.max_body | default('10GB') }}
+	}
+	header {
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		X-Permitted-Cross-Domain-Policies "none"
+		X-Robots-Tag "noindex, nofollow"
+		X-XSS-Protection "1; mode=block"
+		-X-Powered-By
+	}
+	route {
+		redir /.well-known/carddav /remote.php/dav 301
+		redir /.well-known/caldav /remote.php/dav 301
+		redir /.well-known/webfinger /index.php/.well-known/webfinger 301
+		redir /.well-known/nodeinfo /index.php/.well-known/nodeinfo 301
+		@forbidden path /build/* /tests/* /config/* /lib/* /3rdparty/* /templates/* /data/* /.* /autotest* /occ* /issue* /indie* /db_* /console*
+		respond @forbidden 404
+		reverse_proxy {{ site.upstream }} {
+			flush_interval -1
+		}
+	}
+	{% elif site.profile == 'plex' %}
+	# Plex: unbuffered, very long timeouts, unlimited body, websocket-capable.
+	# Caddy forwards all request headers (incl. X-Plex-*) and preserves Host by default.
+	reverse_proxy {{ site.upstream }} {
+		flush_interval -1
+		transport http {
+			dial_timeout 10s
+			read_timeout 7200s
+			write_timeout 7200s
+		}
+	}
+	{% else %}
+	# standard / websocket — Caddy proxies websockets and sets X-Forwarded-* by default.
+	{% if site.max_body is defined %}
+	request_body {
+		max_size {{ site.max_body }}
+	}
+	{% endif %}
+	reverse_proxy {{ site.upstream }}
+	{% endif %}
+}
+
+{% endfor %}

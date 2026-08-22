@@ -5,6 +5,9 @@ debian_updates_apt_upgrade_type: dist # Options: yes, safe, full, dist
 debian_updates_apt_autoremove: true
 debian_updates_apt_autoclean: true
 debian_updates_apt_update_cache_only: false
+# Seconds to wait for the dpkg/apt lock before failing. Sized to outlast a
+# typical apt-daily-upgrade run rather than racing it.
+debian_updates_apt_lock_timeout: 600
 
 # Schedule reboot instead of rebooting immediately (useful for hosts running orchestrators)
 debian_updates_schedule_reboot: false

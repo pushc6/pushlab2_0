@@ -1,0 +1,47 @@
+---
+# roles/caddy_proxy/defaults/main.yml
+# Caddy reverse proxy for the public DMZ, with Encrypted Client Hello (ECH)
+# and an MQTT-over-TLS layer4 stream (replaces the nginx stream{} block).
+
+# --- Binary ---------------------------------------------------------------
+# Caddy MUST be a custom build that includes:
+#   - github.com/caddy-dns/cloudflare  (ECH publication + DNS-01 certs)
+#   - github.com/mholt/caddy-l4        (MQTT TLS stream)
+# Build it with xcaddy (see docker/caddy-build/) and publish the artifact, then
+# point caddy_proxy_binary_url at it. Pin >= 2.10 (ECH support; past the Cloudflare
+# ECH-publish fix, caddy issue #6887).
+caddy_proxy_version: "2.10.2"
+caddy_proxy_binary_url: "" # REQUIRED: URL to the xcaddy-built static binary
+caddy_proxy_binary_checksum: "" # optional, e.g. "sha256:abc123..."
+
+# --- Paths / identity -----------------------------------------------------
+caddy_proxy_user: "caddy"
+caddy_proxy_group: "caddy"
+caddy_proxy_bin_path: "/usr/bin/caddy"
+caddy_proxy_config_dir: "/etc/caddy"
+caddy_proxy_data_dir: "/var/lib/caddy" # XDG_DATA_HOME -> cert/key storage
+caddy_proxy_log_dir: "/var/log/caddy" # JSON access logs (CrowdSec acquisition)
+
+# --- ACME -----------------------------------------------------------------
+caddy_proxy_acme_email: "ryan.pampush@gmail.com"
+# Cloudflare API token consumed by the cloudflare DNS module at runtime.
+# Sourced the same way as the acme.sh role (env -> vault fallback).
+caddy_proxy_cf_api_token: "{{ lookup('env', 'ACME_CF_TOKEN') | default(vault_acme_cf_token, true) }}"
+
+# --- ECH (Encrypted Client Hello) -----------------------------------------
+# IMPORTANT cutover ordering: keep this FALSE until the public 80/443 NAT
+# points at this host. Enabling ECH renders the `ech` global option, which
+# makes Caddy generate keys AND publish ECHConfig to HTTPS DNS records. If
+# published while the old nginx box is still the live target, ECH-capable
+# browsers break on a cover-name cert mismatch. Flip to true as the final
+# cutover step.
+caddy_proxy_ech_enabled: false
+# Single cover/outer public name shared by all inner sites (maximizes the
+# anonymity set). Caddy must be authoritative for it and obtain its cert.
+caddy_proxy_ech_public_name: "ech.push-lab.com"
+
+# --- MQTT layer4 stream ---------------------------------------------------
+caddy_proxy_mqtt_enabled: true
+
+# --- SELinux --------------------------------------------------------------
+caddy_proxy_selinux_manage: true

@@ -177,12 +177,14 @@ server {
     }
 {% endif %}
     
+{% if item.health_check is not defined or item.health_check != '/health' %}
     # Generic health check endpoint (no auth required)
     location /health {
         access_log off;
         return 200 "OK";
         add_header Content-Type text/plain;
     }
+{% endif %}
     
 {% if proxy_mode == 'traditional' and enhanced_proxy_nginx_traditional_proxy_config.enable_status_page | default(false) %}
     # Status page for enhanced_proxy_nginx_monitoring (restricted)
