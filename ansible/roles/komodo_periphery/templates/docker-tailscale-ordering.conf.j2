@@ -1,0 +1,41 @@
+{{ ansible_managed | comment }}
+# Managed by the komodo_periphery Ansible role.
+#
+# Periphery publishes {{ komodo_periphery_port }} bound to this host's Tailscale IP
+# ({{ komodo_periphery_bind_address }}). At boot, dockerd would otherwise start before
+# tailscale0 has that address; libnetwork then fails to create the container's network
+# endpoint, leaving it with only `lo` -- no eth0, no docker-proxy, no DNAT rule -- while the
+# container still reports "Up", so restart_policy: unless-stopped never retries. The result
+# is an agent Komodo Core cannot reach until the container is RECREATED (a restart reuses
+# the broken sandbox). See the 2026-08-15 rangernet-vps incident.
+#
+# After= alone is NOT sufficient: tailscaled.service is Type=notify, so it reports ready when
+# the daemon is up -- strictly earlier than the tailnet address being assigned to tailscale0.
+# There is no `tailscale wait-online` to order against, hence the poll below.
+
+[Unit]
+After=tailscaled.service
+# Wants= rather than Requires= so a failed tailscaled cannot cascade dockerd into failure.
+Wants=tailscaled.service
+
+[Service]
+# Poll for the exact precondition that failed: the address dockerd is about to bind actually
+# being present on an interface. Stronger than `tailscale ip -4`, which answers from daemon
+# state and can report an address before the interface is configured.
+#
+# The leading '-' makes systemd ignore a non-zero exit, so if the tailnet never comes up
+# dockerd still starts (degraded) rather than the unit failing and taking every container on
+# the host down with it. That is what bounds this to a delay and never a boot block.
+#
+# Absolute paths throughout: `ip` is at /usr/sbin/ip, which is not on the PATH systemd hands
+# a service. No '$' anywhere -- systemd expands $VAR/${VAR} in Exec lines, so a
+# `for i in $(seq ...)` / $((i+1)) loop would be mangled unless every '$' were escaped '$$'.
+#
+# grep -F (fixed string), not -w: the dots in an IP are regex wildcards under -w, and
+# matching " inet <addr>/" anchors on the address boundary so a longer prefix sharing our
+# address as its stem (e.g. 100.78.119.41/32) can never satisfy the wait.
+#
+# Both bounds are load-bearing: docker.service ships TimeoutStartUSec=infinity (verified on
+# this host), so systemd will NOT kill a hung ExecStartPre for us. timeout(1) caps the wait,
+# and the leading '-' makes the resulting exit 124 non-fatal.
+ExecStartPre=-/usr/bin/timeout {{ komodo_periphery_tailscale_wait_timeout }} /usr/bin/bash -c 'until /usr/sbin/ip -4 -o addr show | /usr/bin/grep -qF " inet {{ komodo_periphery_bind_address }}/"; do /usr/bin/sleep 1; done'

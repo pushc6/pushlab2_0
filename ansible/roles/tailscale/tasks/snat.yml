@@ -1,0 +1,24 @@
+---
+# Subnet-route SNAT, applied on EVERY converge.
+#
+# Deliberately not folded into the `tailscale up` line in join.yml: that command only runs
+# when the node is not already on the tailnet, so a flag there would never reach an
+# already-joined host. `tailscale set` is the live path and persists the pref into
+# /var/lib/tailscale/tailscaled.state, so it survives daemon restarts and package upgrades.
+#
+# See tailscale_snat_subnet_routes in defaults/main.yml for why a host would turn this off.
+
+- name: Read current Tailscale prefs
+  ansible.builtin.command: tailscale debug prefs
+  register: tailscale_prefs_raw
+  changed_when: false
+  failed_when: false
+
+- name: Apply subnet-route SNAT setting
+  ansible.builtin.command: >-
+    tailscale set --snat-subnet-routes={{ tailscale_snat_subnet_routes | bool | string | lower }}
+  when:
+    - tailscale_prefs_raw.rc == 0
+    - ((tailscale_prefs_raw.stdout | from_json).NoSNAT | default(false))
+      != (not (tailscale_snat_subnet_routes | bool))
+  changed_when: true

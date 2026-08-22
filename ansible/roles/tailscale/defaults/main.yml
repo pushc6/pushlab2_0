@@ -32,6 +32,25 @@ tailscale_ssh: false # Enable Tailscale SSH
 tailscale_accept_dns: true # Use Tailscale MagicDNS
 tailscale_extra_args: "" # Additional tailscale up arguments
 
+# SNAT for tailnet traffic this node forwards into its OWN local interfaces
+# (Docker bridges included). Tailscale's default (true) installs a MASQUERADE in
+# nat/ts-postrouting for packets marked 0x40000 by filter/ts-forward, rewriting the
+# tailnet source to the bridge gateway (e.g. 172.17.0.1).
+#
+# Set false wherever a CONTAINER filters on the real tailnet source IP -- e.g. Komodo
+# Periphery's PERIPHERY_ALLOWED_IPS. With SNAT on, every request arrives as 172.17.0.1,
+# Periphery answers 401 "requesting ip not allowed", and Core marks the server unhealthy
+# (2026-08-22 incident: a tailscale package upgrade restarted tailscaled, which reinserted
+# its FORWARD jump at position 1 ahead of Docker's chains, activating the masquerade that
+# Docker's rule ordering had previously pre-empted -- an ordering race that flips on
+# whichever daemon restarted last).
+#
+# Safe to disable on any node that advertises no subnet routes (AdvertiseRoutes: null):
+# nothing legitimate depends on it, and disabling makes source-IP preservation
+# independent of iptables chain ordering. Conntrack still reverses the DNAT, so replies
+# leave with the correct tailnet source.
+tailscale_snat_subnet_routes: true
+
 # Force rejoin even if already connected (useful for tag changes)
 tailscale_force_rejoin: false
 

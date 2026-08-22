@@ -1,0 +1,65 @@
+---
+# Lift Periphery's Ed25519 identity out of the container's writable layer onto the host,
+# BEFORE the deploy task recreates the container with the /config bind mount.
+#
+# Ordering is load-bearing: adding a volume makes community.docker.docker_container recreate
+# the container, so if this ran after the deploy the key would be destroyed by the very run
+# meant to protect it. Three states must all be safe:
+#   - container exists, key not yet on host -> docker cp lifts it out (the migration)
+#   - key already on host                   -> `creates:` short-circuits, no-op
+#   - no container yet (fresh host)         -> skipped; entrypoint mints a key into the mount
+
+# komodo_periphery_existing is probed once in tasks/main.yml, before this file is included,
+# because the deploy task consumes the same result to detect the boot-race signature.
+
+- name: Check whether the Periphery key has already been migrated to the host
+  ansible.builtin.stat:
+    path: "{{ komodo_periphery_config_dir }}/keys/periphery.key"
+  register: komodo_periphery_host_key
+
+- name: Ensure the Periphery key directory exists on the host
+  ansible.builtin.file:
+    path: "{{ komodo_periphery_config_dir }}/keys"
+    state: directory
+    owner: root
+    group: root
+    # 0700: the private key lives here.
+    mode: "0700"
+
+# Guarded by an explicit stat rather than `creates:`, because `creates` short-circuits the
+# command but still lets `changed_when: true` mark the task changed -- a false "changed" on
+# every subsequent run. Gating with `when:` makes repeat runs genuinely skip.
+- name: Migrate the existing Periphery key out of the container writable layer
+  ansible.builtin.command:
+    cmd: >-
+      docker cp komodo-periphery:/config/keys/.
+      {{ komodo_periphery_config_dir }}/keys/
+  changed_when: true
+  when:
+    - komodo_periphery_existing.exists | default(false)
+    - not komodo_periphery_host_key.stat.exists
+
+# Stat before enforcing rather than assuming the cp landed. The key material is legitimately
+# absent in two cases: a fresh host with no container to migrate from (the entrypoint mints it
+# on first start), and check mode, where the docker cp above reports "changed" without
+# actually running. Gating on the stat keeps this correct in both real and check runs.
+- name: Check which Periphery key files are present on the host
+  ansible.builtin.stat:
+    path: "{{ komodo_periphery_config_dir }}/keys/{{ item.name }}"
+  loop:
+    - { name: periphery.key, mode: "0600" }
+    - { name: periphery.pub, mode: "0644" }
+  loop_control:
+    label: "{{ item.name }}"
+  register: komodo_periphery_key_files
+
+- name: Enforce ownership and permissions on the migrated key material
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    owner: root
+    group: root
+    mode: "{{ item.item.mode }}"
+  loop: "{{ komodo_periphery_key_files.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.stat.exists

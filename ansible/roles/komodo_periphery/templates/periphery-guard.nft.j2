@@ -1,0 +1,21 @@
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+# Restrict the published Komodo Periphery port to Komodo Core only.
+#
+# Runs at forward hook priority -20 so it evaluates BEFORE tailscale's ts-forward
+# (priority 0). ts-forward ends with an ACCEPT for mark 0x40000, which terminates
+# FORWARD traversal for all tailnet traffic -- so Docker's DOCKER-USER chain never
+# sees it and cannot filter it. Priority -20 also runs ahead of Docker's own chains.
+#
+# The add/delete/create idiom makes this file idempotent on re-apply.
+add table inet periphery_guard
+delete table inet periphery_guard
+table inet periphery_guard {
+    chain forward {
+        type filter hook forward priority -20; policy accept;
+{% for src in komodo_periphery_allowed_ips %}
+        oifname "{{ komodo_periphery_guard_bridge }}" tcp dport {{ komodo_periphery_port }} ip saddr {{ src }} counter accept
+{% endfor %}
+        meta nfproto ipv4 oifname "{{ komodo_periphery_guard_bridge }}" tcp dport {{ komodo_periphery_port }} counter drop
+    }
+}

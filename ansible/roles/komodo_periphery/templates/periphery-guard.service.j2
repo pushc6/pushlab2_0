@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Restrict Komodo Periphery ({{ komodo_periphery_port }}) to Komodo Core only
+After=network-online.target firewalld.service docker.service tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/nftables/periphery-guard.nft
+ExecStop=/usr/sbin/nft delete table inet periphery_guard
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,35 @@
+---
+# Order dockerd behind the tailnet address on hosts that bind Periphery's published port to a
+# Tailscale IP. Included only when komodo_periphery_docker_wait_for_tailscale is true.
+#
+# Follows the repo's template -> /etc/systemd/system/ -> daemon_reload idiom
+# (see roles/crowdsec/tasks/drift_check.yml, roles/caddy_proxy/tasks/main.yml), extended to a
+# drop-in because we are amending a vendor unit rather than shipping our own.
+
+- name: Fail fast when the Tailscale wait is enabled without a bind address
+  ansible.builtin.assert:
+    that:
+      - komodo_periphery_bind_address | length > 0
+    fail_msg: >-
+      komodo_periphery_docker_wait_for_tailscale is true but
+      komodo_periphery_bind_address is empty. The drop-in polls for that specific address,
+      so there is nothing to wait for -- either set the host's Tailscale IP or turn the
+      wait off.
+    quiet: true
+
+- name: Ensure the dockerd drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the dockerd Tailscale ordering drop-in
+  ansible.builtin.template:
+    src: docker-tailscale-ordering.conf.j2
+    dest: /etc/systemd/system/docker.service.d/10-komodo-periphery-tailscale.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for the dockerd drop-in

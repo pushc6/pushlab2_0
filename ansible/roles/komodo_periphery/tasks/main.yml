@@ -17,6 +17,7 @@
         name: python3-docker
         state: present
         update_cache: true
+        lock_timeout: 600
       when: ansible_os_family == "Debian"
 
     # EL hosts don't ship pip by default, so install it before using the pip
@@ -43,11 +44,45 @@
         state: directory
         mode: "0755"
 
+    # Probed once here because two consumers need it: migrate_keys.yml (is there a container
+    # to lift the old identity out of?) and the deploy task below (does the running container
+    # carry the boot-race signature?).
+    - name: Inspect the current Periphery container
+      community.docker.docker_container_info:
+        name: komodo-periphery
+      register: komodo_periphery_existing
+
+    # MUST precede the deploy task: adding the /config volume below makes docker_container
+    # recreate the container, which would destroy a key still living in the writable layer.
+    - name: Persist Periphery identity across container recreation
+      ansible.builtin.include_tasks: migrate_keys.yml
+
+    - name: Ensure dockerd waits for the tailnet address before starting
+      ansible.builtin.include_tasks: docker_tailscale_ordering.yml
+      when: komodo_periphery_docker_wait_for_tailscale | bool
+
+    # Backstop for the boot race. The drop-in's wait is bounded and non-fatal BY DESIGN (a
+    # dead tailnet must not block boot), so dockerd can still start too early and leave the
+    # container Running with an empty network sandbox: no eth0, no docker-proxy, and
+    # NetworkSettings.Ports empty instead of carrying 8120/tcp. Nothing exits, so
+    # restart_policy never retries, and `docker restart` reuses the broken sandbox -- only a
+    # recreate repairs it. Detecting that signature here makes every converge self-healing,
+    # which is exactly what was missing during the 2026-08-15 incident.
+    - name: Detect a Periphery container whose published port never attached
+      ansible.builtin.set_fact:
+        komodo_periphery_force_recreate: >-
+          {{ komodo_periphery_existing.exists
+             and (komodo_periphery_existing.container.State.Running | default(false))
+             and ('8120/tcp' not in
+                  (komodo_periphery_existing.container.NetworkSettings.Ports | default({}, true))) }}
+
     - name: Deploy Komodo Periphery agent
       community.docker.docker_container:
         name: komodo-periphery
         image: "{{ komodo_periphery_image }}"
         state: started
+        # Force a rebuild of the network sandbox when the boot race left it empty.
+        recreate: "{{ komodo_periphery_force_recreate | bool }}"
         # Pull on every run so an image-tag bump (e.g. 1.19.5 -> 2.2.0) is actually
         # fetched and the container recreated, instead of reusing a stale local image.
         pull: always
@@ -61,6 +96,9 @@
         # Explicit resolver on hosts that are their own DNS (127.0.0.1 gets stripped
         # from container resolv.conf, breaking the stack git clone). omit = inherit.
         dns_servers: "{{ komodo_periphery_dns or omit }}"
+        # Static name->IP entries for internal services this host can route to but
+        # cannot resolve (see komodo_periphery_etc_hosts in defaults). omit = none.
+        etc_hosts: "{{ komodo_periphery_etc_hosts or omit }}"
         env:
           # PKI (v2): Periphery trusts Core via its Ed25519 public key(s).
           PERIPHERY_CORE_PUBLIC_KEYS: "{{ komodo_periphery_core_public_keys | join(',') }}"
@@ -70,3 +108,13 @@
           - "/var/run/docker.sock:/var/run/docker.sock"
           - "{{ komodo_periphery_root_dir }}:/etc/komodo"
           - "/proc:/proc"
+          # Keeps the Ed25519 identity (image default: /config/keys/periphery.key) on the
+          # host, so recreating the container does not mint a brand-new identity.
+          - "{{ komodo_periphery_config_dir }}:/config"
+
+    # Defence in depth behind PKI + bind_address + the Tailscale ACL. Opt-in per host.
+    - name: Install host-level guard for the Periphery port
+      ansible.builtin.include_tasks: guard.yml
+      when:
+        - komodo_periphery_guard_enabled | bool
+        - komodo_periphery_allowed_ips | length > 0

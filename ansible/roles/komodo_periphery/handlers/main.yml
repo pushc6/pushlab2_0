@@ -1,0 +1,14 @@
+---
+- name: Reload systemd for the dockerd drop-in
+  # Deliberately a daemon-reload only, never a dockerd restart: the drop-in changes boot-time
+  # ordering only, and restarting the daemon would bounce every container on the host.
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Reload periphery guard
+  # Re-applies the nftables ruleset in place. The .nft file's add/delete/create idiom
+  # makes this safe to run repeatedly; it does not touch Docker or Tailscale chains.
+  ansible.builtin.systemd_service:
+    name: periphery-guard.service
+    state: restarted
+    daemon_reload: true

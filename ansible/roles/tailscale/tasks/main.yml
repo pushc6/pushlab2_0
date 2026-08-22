@@ -24,6 +24,9 @@
     - name: Include join tasks
       ansible.builtin.include_tasks: join.yml
 
+    - name: Include subnet-route SNAT tasks
+      ansible.builtin.include_tasks: snat.yml
+
     - name: Include firewall tasks
       ansible.builtin.include_tasks: firewall.yml
       when: tailscale_configure_firewall | default(true)

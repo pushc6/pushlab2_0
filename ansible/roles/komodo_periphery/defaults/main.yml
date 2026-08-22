@@ -28,9 +28,78 @@ komodo_periphery_root_dir: "/etc/komodo"
 # the real auth). Empty list = allow any source.
 komodo_periphery_allowed_ips: []
 
+# Host path bind-mounted at /config, where Periphery keeps its Ed25519 identity.
+# The IMAGE defaults PERIPHERY_CONFIG_PATHS=/config and
+# PERIPHERY_PRIVATE_KEY=file:/config/keys/periphery.key (baked into the Dockerfile, which is
+# why neither appears anywhere in this repo), and entrypoint.sh mints the keypair there on
+# first start. Left unmounted, that key lives in the container's writable layer and dies with
+# any `docker rm` -- the agent then comes back with a NEW identity.
+#
+# Scope note (verified 2026-08-15, Komodo 2.2.0): this is HARDENING, not an outage fix. Core
+# does not currently pin the Periphery public key -- info.public_key and
+# info.attempted_public_key are empty on all five Server records, and the key appears nowhere
+# in Core's database -- so an agent that regenerates its keypair is still accepted. Trust runs
+# one way: Periphery verifies Core via PERIPHERY_CORE_PUBLIC_KEYS, not the reverse. Those two
+# schema fields exist though, so pinning may activate in a later version; persisting the key
+# keeps it backup-able and auditable and costs nothing. Do NOT treat a lost key as an
+# incident on current versions. Deliberately NOT nested
+# under komodo_periphery_root_dir: that path is already bind-mounted at /etc/komodo for
+# stack/repo state, and nesting would surface the same files at two paths in the container.
+komodo_periphery_config_dir: "/var/lib/komodo-periphery"
+
+# Make dockerd wait for the tailnet address before starting. Only needed where
+# komodo_periphery_bind_address is a Tailscale IP: dockerd publishing to an address that does
+# not exist yet silently produces a container with NO network endpoint (only lo, no eth0, no
+# docker-proxy) while the container still reports "Up", so restart_policy never retries.
+# Opt-in per host -- pointless anywhere the bind address is empty or a static LAN IP.
+komodo_periphery_docker_wait_for_tailscale: false
+
+# Upper bound on that wait, in seconds. On expiry dockerd starts ANYWAY (the drop-in's
+# ExecStartPre is prefixed with '-'), so a Tailscale outage can never permanently block boot.
+komodo_periphery_tailscale_wait_timeout: 60
+
 # DNS resolver(s) for the Periphery container. Empty = inherit the daemon default.
 # Required on hosts that are their OWN resolver (e.g. a Technitium DNS host whose
 # /etc/resolv.conf is "nameserver 127.0.0.1"): Docker strips loopback nameservers,
 # leaving the container unable to resolve internal names like git.push-lab.com, so
 # the git clone for stacks fails. Point it at a real LAN IP the host's DNS answers on.
 komodo_periphery_dns: []
+
+# Static hosts entries injected into the Periphery container (docker --add-host).
+# Map name -> IP, e.g. {"git.push-lab.com": "10.37.70.24"}.
+#
+# Needed where the host can REACH an internal service but cannot RESOLVE its name.
+# The off-LAN VPS is the case: Komodo Core advertises a 10.37.70.24/32 subnet route
+# (nginx_internal, the reverse proxy fronting git.push-lab.com), so the IP is routable
+# over the tailnet -- but Tailscale MagicDNS carries no Split DNS route for push-lab.com,
+# so `git.push-lab.com` does not resolve at all and the stack clone dies with
+# "Could not resolve host: git.push-lab.com". The nginx cert is CN=push-lab.com with
+# SAN *.push-lab.com, so TLS still validates when the name is mapped to that IP.
+#
+# komodo_periphery_dns is the sibling knob and does NOT help here: it points the
+# container at a resolver, and no resolver that knows push-lab.com is routable from
+# the VPS (only the single /32 above is advertised).
+#
+# Longer-term alternative: add a Tailscale Split DNS route for push-lab.com -> the
+# internal Technitium resolver, which also requires advertising a route to that
+# resolver. That fixes every tailnet node at once; this map fixes one container.
+komodo_periphery_etc_hosts: {}
+
+# Host-level nftables guard restricting the published Periphery port to Core only.
+#
+# Why not DOCKER-USER (the usual hook): tailscale's filter/ts-forward chain sits at
+# FORWARD position 1 and ends with `-m mark --mark 0x40000 -j ACCEPT`, which terminates
+# FORWARD traversal for ALL tailnet traffic before Docker's chains are reached. Measured
+# 2026-08-22: with traffic flowing, ts-forward counted +36 packets while DOCKER-USER and
+# DOCKER-FORWARD stayed frozen -- a DOCKER-USER rule here matches literally nothing.
+#
+# So the guard is its own nftables table at forward hook priority -20, which runs BEFORE
+# both tailscale (priority 0) and Docker, and is immune to the iptables ordering race.
+#
+# NB: do NOT express this as a firewalld direct rule. `firewall-cmd --direct --add-rule`
+# makes firewalld rebuild via iptables-restore and FLUSHES the filter and nat tables,
+# taking every Docker and Tailscale chain with it (only a dockerd restart rebuilds them).
+komodo_periphery_guard_enabled: false
+
+# Bridge the Periphery container is published on (guard matches its oifname).
+komodo_periphery_guard_bridge: "docker0"

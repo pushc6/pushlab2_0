@@ -21,6 +21,31 @@ komodo_periphery_bind_address: "100.78.119.4" # rangernet-vps tailnet IP
 # Locked to Komodo Core's tailnet IP (docker-internal, tag:komodo-core).
 komodo_periphery_allowed_ips:
   - "100.107.104.49/32" # docker-internal tailnet IP
+# dockerd publishes 8120 on the Tailscale IP above. At boot it would otherwise start before
+# tailscale0 has that address, silently producing a container with NO network endpoint that
+# still reports "Up" -- unreachable until recreated (2026-08-15 incident). Order dockerd
+# behind the address becoming available. Only this host binds to a dynamic IP.
+komodo_periphery_docker_wait_for_tailscale: true
+
+# Preserve the real tailnet source IP into the Docker bridge. Tailscale's default
+# subnet-route SNAT rewrites it to 172.17.0.1, which makes komodo_periphery_allowed_ips
+# above reject EVERY request with 401 "requesting ip not allowed" and Core mark this
+# server unhealthy. This host advertises no subnet routes, so nothing else depends on it.
+# (2026-08-22 outage; see tailscale_snat_subnet_routes in the tailscale role defaults.)
+tailscale_snat_subnet_routes: false
+
+# This host is off-LAN: Core advertises a 10.37.70.24/32 route (nginx_internal) so the
+# Gitea reverse proxy is REACHABLE, but Tailscale MagicDNS has no Split DNS route for
+# push-lab.com, so the name does not resolve and the stack clone fails with
+# "Could not resolve host: git.push-lab.com". Map it to the routed proxy IP; the nginx
+# cert (CN=push-lab.com, SAN *.push-lab.com) still validates for this name.
+komodo_periphery_etc_hosts:
+  git.push-lab.com: "10.37.70.24"
+
+# Host-level nftables backstop so the tailnet ACL and PERIPHERY_ALLOWED_IPS are not the
+# only things scoping 8120 to Core. Needed here because the personal (untagged) devices
+# hold a broad tailnet grant to this VPS.
+komodo_periphery_guard_enabled: true
 
 # =============================================================================
 # CrowdSec Configuration
