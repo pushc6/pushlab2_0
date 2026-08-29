@@ -1,8 +1,10 @@
 ---
 # Firewall configuration for dns02 - Technitium DNS Server.
 # Multi-homed across all VLANs (10.37.X.254 on each); Ansible reaches it via
-# the App VLAN interface 10.37.80.254. Technitium :5380 admin binds on the
-# Trusted (10.37.20.254) and App (10.37.80.254) VLANs; DNS :53 listens on all.
+# the DMZ VLAN interface 10.37.70.254, the same segment Semaphore (10.37.70.25)
+# sits on, so the path is symmetric and satisfies strict rp_filter. Technitium
+# :5380 admin binds on the Trusted (10.37.20.254), DMZ (10.37.70.254) and App
+# (10.37.80.254) VLANs; DNS :53 listens on all.
 
 # SSH access (host-specific)
 firewall_hardened_ssh_allowed_subnets:
@@ -90,6 +92,9 @@ technitium_dns_local_endpoints:
   # VLAN 60 - Guest
   - "10.37.60.254:53"
   - "[fd00:1337:1337:60::254]:53"
+  # VLAN 70 - DMZ
+  - "10.37.70.254:53"
+  - "[fd00:1337:1337:70::254]:53"
   # VLAN 80 - App (uplink)
   - "10.37.80.254:53"
   - "[fd00:1337:1337:80::254]:53"

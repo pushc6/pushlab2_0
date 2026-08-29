@@ -63,12 +63,17 @@ opnsense_firewall_aliases:
       - "10.37.50.9"
     description: "CUPS print server in IoT VLAN"
 
-  # DNS02 - Secondary DNS server (App VLAN IP for Ansible access)
+  # DNS02 - Secondary DNS server. Must track ansible_host in
+  # terraform/envs/prod/prod.tfvars. This static entry is the ONLY source of the
+  # "dns02" alias: the role's "Create individual host aliases" task is gated on
+  # groups['terraform_created'], which does not exist in the isolated opnsense
+  # inventory, so it never runs here.
   - name: "dns02"
     type: host
     content:
-      - "10.37.80.254"
-    description: "Secondary DNS server - App VLAN IP for cross-VLAN Ansible access"
+      - "10.37.70.254" # DMZ VLAN - the address Ansible/Semaphore now uses
+      - "10.37.80.254" # App VLAN - retained so the cross-VLAN fallback rules still resolve
+    description: "Secondary DNS server - DMZ VLAN IP (Ansible) + App VLAN IP (fallback)"
 
   # Network aliases (CIDR ranges)
   - name: "internal_networks"
@@ -109,7 +114,7 @@ opnsense_firewall_terraform_rules:
   - name: "SSH from Ansible to DNS02 (cross-VLAN)"
     description: "Allow Ansible SSH to DNS02"
     source: "semaphore" # 10.37.70.x (DMZ)
-    destination: "dns02" # 10.37.80.254 (multi-homed; App VLAN IP used for cross-VLAN reach)
+    destination: "dns02" # 10.37.70.254 (DMZ) is same-subnet so this is inert; kept as fallback
     protocol: tcp
     port: 22
     interface: dmz_vlan # Use friendly name - will be mapped to opt1
@@ -138,13 +143,13 @@ opnsense_firewall_terraform_rules:
     port: 443
     interface: app_vlan
 
-  # dns02 syslog → Alloy on docker-internal. dns02 has no DMZ interface
-  # (unlike dns01 which is multi-homed across every VLAN), so its Log
-  # Exporter syslog packets must traverse App→DMZ via OPNsense. Without
-  # this rule, DNS query logs from dns02 are silently dropped.
+  # dns02 syslog → Alloy on docker-internal. STALE as of the VLAN 70 - DMZ NIC:
+  # dns02 is now multi-homed onto the DMZ VLAN too, so its Log Exporter packets
+  # reach 10.37.70.25 directly over eth4 and never traverse OPNsense. Kept as a
+  # fallback in case the DMZ interface is ever removed.
   - name: "DNS02 syslog to Alloy (cross-VLAN)"
     description: "Allow dns02 Log Exporter to ship DNS query logs to Alloy on docker-internal"
-    source: "dns02" # 10.37.80.254 (App VLAN)
+    source: "dns02" # alias now covers 10.37.70.254 (DMZ) and 10.37.80.254 (App)
     destination: "semaphore" # 10.37.70.25 (DMZ; docker-internal runs Alloy)
     protocol: udp
     port: 1514
@@ -168,9 +173,9 @@ opnsense_firewall_terraform_rules:
     interface: dmz_vlan
 
   - name: "SSH from Semaphore to DNS02 (cross-VLAN)"
-    description: "Allow Semaphore SSH to DNS02 (multi-homed; reached via App VLAN)"
+    description: "Allow Semaphore SSH to DNS02 (multi-homed; now reached same-subnet on DMZ)"
     source: "semaphore" # 10.37.70.25 (DMZ)
-    destination: "dns02" # 10.37.80.254 (App VLAN)
+    destination: "dns02" # 10.37.70.254 (DMZ) is same-subnet so this is inert; kept as fallback
     protocol: tcp
     port: 22
     interface: dmz_vlan
