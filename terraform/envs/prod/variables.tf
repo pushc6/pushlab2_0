@@ -35,6 +35,8 @@ variable "vms" {
     prevent_destroy = optional(bool)
     # Optional ansible_host override (for multi-homed VMs reachable via different IP)
     ansible_host = optional(string)
+    # Inventory alias can change independently of the stable VM/state key.
+    ansible_name = optional(string)
     # Static IP settings (when ipv4_address is non-empty)
     ipv4_address = string
     ipv4_netmask = number

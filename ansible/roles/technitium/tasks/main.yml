@@ -9,7 +9,7 @@
     msg: >-
       technitium_api_token is empty -- skipping API config (apps, zones,
       DHCP scopes, offer delay, reservation sync). Generate a token in the
-      web UI, set it as TECHNITIUM_API_TOKEN_DNS02 in Semaphore, then re-run.
+      web UI, set it as TECHNITIUM_API_TOKEN_NS02 in Semaphore, then re-run.
   when: technitium_api_token | length == 0
 
 - name: Wait for Technitium API to become reachable

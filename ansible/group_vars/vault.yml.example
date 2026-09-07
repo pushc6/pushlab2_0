@@ -23,7 +23,7 @@ vault_komodo_admin_password: "changeme"
 #   TECHNITIUM_API_TOKEN_DNS01
 #   TECHNITIUM_API_TOKEN_DNS02
 # These vault entries are the local-run fallback (`default(vault_..., true)`
-# in host_vars/dns02.yml). Generate tokens in each Technitium web UI under
+# in host_vars/ns02.yml). Generate tokens in each Technitium web UI under
 # Administration -> Users -> non-expiring token.
-vault_technitium_api_token_dns01: "changeme"
-vault_technitium_api_token_dns02: "changeme"
+vault_technitium_api_token_ns01: "changeme"
+vault_technitium_api_token_ns02: "changeme"

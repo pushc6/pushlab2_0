@@ -64,7 +64,7 @@
 
 - name: Deploy Technitium
   import_playbook: technitium.yml
-  when: "'dns02' in hostvars"
+  when: "'ns02' in hostvars"
   tags: ["technitium", "apps"]
 
 - name: Deploy Komodo Periphery
@@ -72,5 +72,5 @@
   when: >-
     'dockerhost' in groups or 'docker_internal' in groups or
     'docker_secure' in groups or 'homeassistant' in groups or
-    'docker_hosts' in groups or 'dns02' in hostvars
+    'docker_hosts' in groups or 'ns02' in hostvars
   tags: ["komodo", "gitops", "apps"]
