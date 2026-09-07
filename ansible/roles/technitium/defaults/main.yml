@@ -7,7 +7,7 @@ technitium_image: "technitium/dns-server:14.2.0"
 technitium_config_dir: /opt/technitium/config
 
 # DNS server domain advertised to clients.
-technitium_dns_domain: "dns02.localdomain"
+technitium_dns_domain: "ns02.localdomain"
 
 # Local addresses the web admin service listens on.
 # Comma-separated list. DNS itself (port 53) always binds on every interface
@@ -22,7 +22,7 @@ technitium_dns_domain: "dns02.localdomain"
 technitium_web_service_local_addresses: "10.37.20.254,10.37.70.254,10.37.80.254"
 
 # API token for this host's Technitium instance.
-# Set from a vaulted variable in host_vars (e.g. {{ vault_technitium_api_token_dns02 }}).
+# Set from a vaulted variable in host_vars (e.g. {{ vault_technitium_api_token_ns02 }}).
 technitium_api_token: ""
 
 # Address Ansible uses to reach this host's Technitium API.
@@ -90,7 +90,7 @@ technitium_dns_apps: []
 technitium_reservation_sync_enabled: false
 technitium_reservation_sync_interval: "5min"
 technitium_reservation_sync_randomized_delay: "30s"
-technitium_reservation_sync_primary_host: ""   # e.g. "10.37.20.253" or "dns01.localdomain"
+technitium_reservation_sync_primary_host: ""   # e.g. "10.37.20.253" or "ns01.localdomain"
 technitium_reservation_sync_primary_port: 5380
 technitium_reservation_sync_primary_scheme: "http"
 technitium_reservation_sync_primary_token: ""  # vaulted

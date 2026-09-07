@@ -83,7 +83,7 @@ locals {
         terraform_created = {
           children = {
             almalinux = {
-              hosts = { for name, m in module.vm : name => {
+              hosts = { for name, m in module.vm : coalesce(var.vms[name].ansible_name, name) => {
                 # Use ansible_host override if provided, otherwise primary IP
                 ansible_host    = coalesce(try(var.vms[name].ansible_host, null), var.vms[name].ipv4_address, m.vm_ip)
                 system_hostname = try(var.vms[name].hostname, name)
@@ -92,7 +92,7 @@ locals {
           }
         }
         docker_hosts = {
-          hosts = { for name, _ in module.vm : name => {} }
+          hosts = { for name, _ in module.vm : coalesce(var.vms[name].ansible_name, name) => {} }
         }
       }
     }

@@ -63,7 +63,8 @@ opnsense_firewall_aliases:
       - "10.37.50.9"
     description: "CUPS print server in IoT VLAN"
 
-  # DNS02 - Secondary DNS server. Must track ansible_host in
+  # ns02 - Secondary DNS server. The dns02 firewall alias is a stable
+  # internal identifier containing IPs, not a DNS lookup. Must track ansible_host in
   # terraform/envs/prod/prod.tfvars. This static entry is the ONLY source of the
   # "dns02" alias: the role's "Create individual host aliases" task is gated on
   # groups['terraform_created'], which does not exist in the isolated opnsense

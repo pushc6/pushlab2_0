@@ -36,6 +36,7 @@ vms = {
     domain       = "localdomain"
   }
 
+  # ns02: the legacy dns02 VM/state key is stable; Ansible uses ns02.
   # Secondary DNS server - multi-homed across all VLANs
   "dns02" = {
     network          = "VLAN 10 - Management"
@@ -43,7 +44,8 @@ vms = {
     memory_mb        = 8192
     disk_size_gb     = 40
     thin_provisioned = true
-    hostname         = "dns02"
+    hostname         = "ns02"
+    ansible_name     = "ns02"
     domain           = "localdomain"
 
     ipv4_address = "10.37.10.254"
