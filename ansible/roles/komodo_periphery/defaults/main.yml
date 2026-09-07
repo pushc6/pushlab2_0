@@ -39,3 +39,8 @@ komodo_periphery_extra_hosts: {}
 # leaving the container unable to resolve internal names like git.push-lab.com, so
 # the git clone for stacks fails. Point it at a real LAN IP the host's DNS answers on.
 komodo_periphery_dns: []
+
+# Optional private-key location (file: URI). Set on newly onboarded hosts to
+# a path under the persistent root directory; migrate existing keys first.
+# Empty retains the image default for existing hosts.
+komodo_periphery_private_key: ""

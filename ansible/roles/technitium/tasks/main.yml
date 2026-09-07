@@ -1,35 +1,8 @@
 ---
-- name: Ensure Technitium config directory exists
-  ansible.builtin.file:
-    path: "{{ technitium_config_dir }}"
-    state: directory
-    mode: "0755"
-
-- name: Ensure pip is installed
-  ansible.builtin.dnf:
-    name: python3-pip
-    state: present
-
-- name: Install Python Docker SDK via pip
-  # EPEL 10 does not yet package python3-docker; pip is the portable path.
-  # --break-system-packages is required on EL10 (PEP 668 externally-managed env).
-  ansible.builtin.pip:
-    name: docker
-    state: present
-    extra_args: --break-system-packages
-
-- name: Deploy Technitium DNS Server
-  community.docker.docker_container:
-    name: dns-server
-    image: "{{ technitium_image }}"
-    state: started
-    restart_policy: unless-stopped
-    network_mode: host
-    volumes:
-      - "{{ technitium_config_dir }}:/etc/dns"
-    env:
-      DNS_SERVER_DOMAIN: "{{ technitium_dns_domain }}"
-      DNS_SERVER_WEB_SERVICE_LOCAL_ADDRESSES: "{{ technitium_web_service_local_addresses }}"
+# Komodo-managed hosts retain the API configuration and reservation-sync tasks.
+- name: Manage Technitium container with Ansible
+  ansible.builtin.import_tasks: container.yml
+  when: technitium_manage_container | bool
 
 - name: Skip API configuration when token is unset (first-deploy bootstrap)
   ansible.builtin.debug:

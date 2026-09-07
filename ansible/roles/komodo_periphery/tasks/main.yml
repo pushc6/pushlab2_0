@@ -68,6 +68,7 @@
           # PKI (v2): Periphery trusts Core via its Ed25519 public key(s).
           PERIPHERY_CORE_PUBLIC_KEYS: "{{ komodo_periphery_core_public_keys | join(',') }}"
           PERIPHERY_ROOT_DIRECTORY: "/etc/komodo"
+          PERIPHERY_PRIVATE_KEY: "{{ komodo_periphery_private_key or omit }}"
           PERIPHERY_ALLOWED_IPS: "{{ komodo_periphery_allowed_ips | join(',') }}"
         volumes:
           - "/var/run/docker.sock:/var/run/docker.sock"

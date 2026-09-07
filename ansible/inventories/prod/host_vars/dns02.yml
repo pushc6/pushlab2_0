@@ -6,6 +6,21 @@
 # :5380 admin binds on the Trusted (10.37.20.254), DMZ (10.37.70.254) and App
 # (10.37.80.254) VLANs; DNS :53 listens on all.
 
+# Container lifecycle is owned by Komodo stack technitium-ns02.
+# Compose source: rangernet/docker-stacks, dns02/technitium/compose.yml.
+# Ansible continues managing DNS/DHCP settings and the reservation-sync timer.
+technitium_manage_container: false
+
+# Core reaches Periphery on the directly connected DMZ VLAN. Resolve through
+# dns01 so repo clones still work while dns02 is restarting.
+# Retain agent identity across container recreation.
+komodo_periphery_private_key: "file:/etc/komodo/keys/periphery.key"
+komodo_periphery_bind_address: "10.37.70.254"
+komodo_periphery_allowed_ips:
+  - "10.37.70.25"
+komodo_periphery_dns:
+  - "10.37.70.2"
+
 # SSH access (host-specific)
 firewall_hardened_ssh_allowed_subnets:
   - "10.37.20.0/24" # trusted_vlan
@@ -14,6 +29,14 @@ firewall_hardened_ssh_allowed_subnets:
 
 # Using unified firewall_hardened_services structure with rich rules
 firewall_hardened_services:
+  - port: 8120
+    protocol: tcp
+    name: "Komodo Periphery"
+    container: komodo-periphery
+    access: custom
+    sources:
+      - "10.37.70.25/32"
+
   # Custom services - DNS accessible from local networks
   - port: 53
     protocol: tcp
