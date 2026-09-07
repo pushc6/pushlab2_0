@@ -5,7 +5,7 @@
 - name: Deploy Komodo Periphery
   # docker_hosts adds the public VPS rangernet-vps, managed by Core over Tailscale
   # (its host_vars bind Periphery to the tailnet IP so 8120 stays off the public NIC).
-  hosts: dockerhost:docker_internal:docker_secure:homeassistant:docker_hosts
+  hosts: dockerhost:docker_internal:docker_secure:homeassistant:docker_hosts:dns02
   become: true
   roles:
     - komodo_periphery
