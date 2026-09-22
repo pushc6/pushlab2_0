@@ -244,6 +244,22 @@ oauth2_services:
     allowed_ips: [] # Empty = allow all
     allow_http: false # Force HTTPS
 
+  - name: "medianotifier"
+    domain: "medianotifier.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "8088"
+    # Native OIDC, and Maintainerr posts to /api/webhook/maintainerr unauthenticated --
+    # `auth_type: none` is what keeps both reachable, so it must not drift to simple/groups.
+    auth_type: "none"
+    proxy_mode: "traditional" # Traditional proxy mode
+    ssl_domain: "push-lab.com"
+    description: "MediaNotifier"
+    category: "media"
+    health_check: "/healthz"
+    enable_caching: false
+    allowed_ips: [] # Empty = allow all
+    allow_http: false # Force HTTPS
+
 # Nginx proxy settings (applies to both modes)
 enhanced_proxy_nginx_config:
   proxy_timeout: "60s"
