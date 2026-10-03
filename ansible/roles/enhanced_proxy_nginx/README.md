@@ -78,6 +78,23 @@ oauth2_services:
     cache_valid_time: "5m"        # Cache duration
 ```
 
+Further per-service options:
+
+- `cloudflare_origin_pull` — require Cloudflare Authenticated Origin Pulls. Requests
+  without Cloudflare's client certificate get a 403, except from addresses matching
+  `bypass_remote_addr_regex` (LAN clients reaching the host via split DNS).
+  ```yaml
+  cloudflare_origin_pull:
+    ca_path: "/etc/nginx/ssl/cloudflare/authenticated_origin_pull_ca.pem"
+    bypass_remote_addr_regex: "^(10\\.37\\.|fd00:1337:1337:)"
+  ```
+- `gzip` / `hide_backend_headers` — per-service overrides of the traditional-mode
+  `enable_gzip` and `hide_backend_headers` settings.
+
+A service's own `proxy_mode` is only applied on hosts that set
+`enhanced_proxy_nginx_honor_service_proxy_mode: true` (nginx-dmz does). Elsewhere the
+play's mode is forced onto every service, and `proxy_mode` on an entry is ignored.
+
 ## Usage Examples
 
 ### Example 1: All Services with OAuth2

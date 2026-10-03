@@ -23,6 +23,18 @@ server {
     ssl_session_cache shared:SSL_{{ item.domain | replace('.', '_') | replace('-', '_') }}:10m;
     ssl_session_timeout {{ enhanced_proxy_nginx_ssl_session_timeout | default('1d') }};
     ssl_session_tickets {{ enhanced_proxy_nginx_ssl_session_tickets | default('off') }};
+{% if item.cloudflare_origin_pull is defined %}
+
+    # Cloudflare Authenticated Origin Pulls (zone-level, Cloudflare's certificate).
+    ssl_client_certificate {{ item.cloudflare_origin_pull.ca_path }};
+    ssl_verify_client optional;
+    set $aop_ok $ssl_client_verify;
+{% if item.cloudflare_origin_pull.bypass_remote_addr_regex is defined %}
+    # LAN clients reach this host directly through split DNS and carry no Cloudflare certificate.
+    if ($remote_addr ~ "{{ item.cloudflare_origin_pull.bypass_remote_addr_regex }}") { set $aop_ok SUCCESS; }
+{% endif %}
+    if ($aop_ok != SUCCESS) { return 403; }
+{% endif %}
     # Security Headers
     add_header Strict-Transport-Security "max-age={{ enhanced_proxy_nginx_hsts_max_age | default('63072000') }}; includeSubDomains{{ '; preload' if enhanced_proxy_nginx_hsts_preload | default(false) else '' }}";
     add_header X-Frame-Options {{ enhanced_proxy_nginx_x_frame_options | default('DENY') }};
@@ -57,7 +69,7 @@ server {
     limit_req zone=proxy_limit burst=20 nodelay;
     {% endif %}
     
-    {% if enhanced_proxy_nginx_traditional_proxy_config.enable_gzip | default(true) %}
+    {% if item.gzip | default(enhanced_proxy_nginx_traditional_proxy_config.enable_gzip | default(true)) %}
     # Gzip compression
     gzip on;
     gzip_vary on;
@@ -157,7 +169,7 @@ server {
         proxy_set_header Connection "upgrade";
         
         # Additional security for traditional proxy
-{% if proxy_mode == 'traditional' %}
+{% if proxy_mode == 'traditional' and item.hide_backend_headers | default(enhanced_proxy_nginx_traditional_proxy_config.hide_backend_headers | default(true)) %}
         proxy_hide_header X-Powered-By;
         proxy_hide_header Server;
         proxy_hide_header X-AspNet-Version;
