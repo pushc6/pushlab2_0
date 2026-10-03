@@ -95,6 +95,16 @@ Further per-service options:
     ca_path: "/etc/nginx/ssl/cloudflare/authenticated_origin_pull_ca.pem"
     bypass_remote_addr_regex: "^(10\\.37\\.|fd00:1337:1337:)"
   ```
+- `public_paths` — publish only these paths; every other path on the host is a 404.
+  Takes the place of `proxy_mode`: no auth, no oauth2 helpers, no health endpoints.
+  `X-Forwarded-For` is overwritten with the client address rather than appended.
+  ```yaml
+  public_paths:
+    - match: "~"                      # nginx location modifier; default "="
+      path: "^/hold/[A-Za-z0-9_.-]{1,512}$"
+      methods: ["GET", "POST"]        # default ["GET"]; others get 403
+      client_max_body_size: "1k"      # optional
+  ```
 - `gzip` / `hide_backend_headers` — per-service overrides of the traditional-mode
   `enable_gzip` and `hide_backend_headers` settings.
 

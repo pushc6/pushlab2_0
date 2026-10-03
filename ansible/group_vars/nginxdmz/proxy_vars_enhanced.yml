@@ -51,3 +51,25 @@ oauth2_services:
     # The live vhost was converted from an oauth2 render, which emits neither.
     gzip: false
     hide_backend_headers: false
+
+  # MediaNotifier's hold links, and nothing else. The admin UI, login, webhook and
+  # health endpoints stay on nginx-internal; outside, every other path is a 404.
+  # Same hostname as internally: split DNS sends LAN clients to nginx-internal.
+  - name: "medianotifier-public"
+    domain: "medianotifier.push-lab.com"
+    backend_host: "10.37.70.7"
+    backend_port: "8088"
+    proxy_mode: "traditional"
+    auth_type: "none"
+    ssl_domain: "push-lab.com"
+    description: "MediaNotifier hold links (public)"
+    category: "media"
+    public_paths:
+      # The hold page: GET shows it, POST confirms. Tokens are URL-safe base64 + dots.
+      - match: "~"
+        path: "^/hold/[A-Za-z0-9_.-]{1,512}$"
+        methods: ["GET", "POST"]
+        client_max_body_size: "1k"
+      - match: "="
+        path: "/static/app.css"
+        methods: ["GET"]
