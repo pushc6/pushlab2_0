@@ -4,6 +4,9 @@
 
 - name: Check SELinux status
   ansible.builtin.command: getenforce
+  # Read-only, so it runs under --check too; skipped, the SELinux tasks below
+  # cannot tell a disabled host from an enforcing one.
+  check_mode: false
   register: enhanced_proxy_nginx_selinux_status
   changed_when: false
   failed_when: false

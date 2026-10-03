@@ -9,14 +9,22 @@
       - enhanced_proxy_nginx_role_config.mode is defined
     fail_msg: "Required proxy variables are not properly defined"
 
-- name: Set proxy mode for all services if not using overrides
+# Each service gets, in order of precedence: a survey override for it, the
+# proxy_mode it declares, or the play's mode.
+- name: Start the per-service proxy mode list
+  ansible.builtin.set_fact:
+    enhanced_proxy_nginx_all_services: []
+  when: oauth2_services is defined
+
+- name: Set each service's proxy mode
   ansible.builtin.set_fact:
     enhanced_proxy_nginx_all_services: >-
-      {{
-        oauth2_services | map('combine', {'proxy_mode': enhanced_proxy_nginx_role_config.mode}) | list
-        if service_proxy_overrides is not defined or service_proxy_overrides | length == 0
-        else enhanced_proxy_nginx_services_with_proxy_modes
-      }}
+      {{ enhanced_proxy_nginx_all_services
+         + [item | combine({'proxy_mode': (service_proxy_overrides | default({})).get(
+              item.name, item.proxy_mode | default(enhanced_proxy_nginx_role_config.mode))})] }}
+  loop: "{{ oauth2_services }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: oauth2_services is defined
 
 - name: Filter services if specified

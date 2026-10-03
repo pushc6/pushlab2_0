@@ -78,6 +78,29 @@ oauth2_services:
     cache_valid_time: "5m"        # Cache duration
 ```
 
+Further per-service options:
+
+- `required_groups`, `required_roles`, `required_client_roles` — restrict an oauth2
+  service to members. They are passed to oauth2-proxy as `allowed_groups` on a
+  per-vhost auth endpoint: groups as named, realm roles as `role:<name>`, client roles
+  as `role:<client>:<name>` (client from `enhanced_proxy_nginx_oauth2_client_id`).
+  oauth2-proxy answers 401 without a session (sent to sign-in) and 403 for a session
+  without the membership.
+
+- `cloudflare_origin_pull` — require Cloudflare Authenticated Origin Pulls. Requests
+  without Cloudflare's client certificate get a 403, except from addresses matching
+  `bypass_remote_addr_regex` (LAN clients reaching the host via split DNS).
+  ```yaml
+  cloudflare_origin_pull:
+    ca_path: "/etc/nginx/ssl/cloudflare/authenticated_origin_pull_ca.pem"
+    bypass_remote_addr_regex: "^(10\\.37\\.|fd00:1337:1337:)"
+  ```
+- `gzip` / `hide_backend_headers` — per-service overrides of the traditional-mode
+  `enable_gzip` and `hide_backend_headers` settings.
+
+A service's mode is, in order: a survey override for it (`service_override_string`),
+the `proxy_mode` it declares, then the play's `proxy_mode`.
+
 ## Usage Examples
 
 ### Example 1: All Services with OAuth2

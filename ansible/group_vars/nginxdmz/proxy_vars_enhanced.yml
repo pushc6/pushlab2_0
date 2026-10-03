@@ -1,0 +1,53 @@
+---
+# group_vars/nginxdmz/proxy_vars_enhanced.yml
+# Enhanced proxy config for the DMZ proxy (nginx.localdomain, 10.37.70.5).
+#
+# SCOPE: nginx-dmz's other vhosts (auth/invite/n8n/plex.push-lab.com,
+# *.ryanpampush.com, patreons7.club, ...) are hand-built on the host and are NOT
+# represented here. Only the services listed below are Ansible-managed.
+
+# Default proxy mode for services in this group
+enhanced_proxy_nginx_default_proxy_mode: "oauth2"
+
+# Shared OAuth2-Proxy on docker-internal (serves nginx-internal and nginx-dmz).
+# firewalld on docker-internal already admits 10.37.70.5 on 4180.
+enhanced_proxy_nginx_oauth2_proxy_host: "10.37.70.25"
+enhanced_proxy_nginx_oauth2_proxy_port: "4180"
+
+# IMPORTANT: not /etc/nginx/conf.d on this host.
+# nginx-dmz's nginx.conf includes conf.d/*.conf at the *http* level, and the
+# role's oauth2-*.conf snippets hold bare `location` blocks -- writing them into
+# conf.d would break `nginx -t`. (nginx-internal includes only
+# sites-enabled/*.conf, which is why the default is safe there.) A dedicated dir
+# also keeps the role's "remove default nginx configurations" task away from the
+# hand-built /etc/nginx/conf.d/default.conf that other DMZ vhosts rely on.
+enhanced_proxy_nginx_conf_d: "/etc/nginx/oauth2.d"
+
+# Cert filenames differ from nginx-internal: this host has push-lab.com.cer
+# (not .fullchain.cer), issued by acme.sh on the host.
+ssl_certificates:
+  push-lab.com:
+    cert_path: "/etc/nginx/ssl/push-lab.com/push-lab.com.cer"
+    key_path: "/etc/nginx/ssl/push-lab.com/push-lab.com.key"
+    dhparam_path: "/etc/nginx/ssl/push-lab.com/dhparams.pem"
+
+oauth2_services:
+  # Matches the live vhost (hand-edited 2026-09-13): no oauth2-proxy. Access is
+  # gated by Cloudflare Authenticated Origin Pulls instead -- only requests that
+  # came through Cloudflare (or from the LAN, via split DNS) reach the app.
+  - name: "cargame-dev"
+    domain: "cargame-dev.push-lab.com"
+    backend_host: "10.37.70.25"
+    backend_port: "3000"
+    proxy_mode: "traditional"
+    auth_type: "none"
+    ssl_domain: "push-lab.com"
+    description: "Cargame (dev)"
+    category: "apps"
+    health_check: "/healthz" # app's own path; it does not serve /health
+    cloudflare_origin_pull:
+      ca_path: "/etc/nginx/ssl/cloudflare/authenticated_origin_pull_ca.pem"
+      bypass_remote_addr_regex: "^(10\\.37\\.|fd00:1337:1337:)"
+    # The live vhost was converted from an oauth2 render, which emits neither.
+    gzip: false
+    hide_backend_headers: false
