@@ -98,9 +98,8 @@ Further per-service options:
 - `gzip` / `hide_backend_headers` — per-service overrides of the traditional-mode
   `enable_gzip` and `hide_backend_headers` settings.
 
-A service's own `proxy_mode` is only applied on hosts that set
-`enhanced_proxy_nginx_honor_service_proxy_mode: true` (nginx-dmz does). Elsewhere the
-play's mode is forced onto every service, and `proxy_mode` on an entry is ignored.
+A service's mode is, in order: a survey override for it (`service_override_string`),
+the `proxy_mode` it declares, then the play's `proxy_mode`.
 
 ## Usage Examples
 

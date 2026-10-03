@@ -5,11 +5,6 @@
 # Default proxy mode
 enhanced_proxy_nginx_default_proxy_mode: "oauth2" # Options: "oauth2" or "traditional"
 
-# When true, each service's own proxy_mode is applied (a survey override still
-# wins). When false, every service gets the play's mode and proxy_mode on a
-# service entry is ignored -- the long-standing behaviour nginx-internal relies on.
-enhanced_proxy_nginx_honor_service_proxy_mode: false
-
 # OAuth2-Proxy settings
 enhanced_proxy_nginx_oauth2_proxy_host: "localhost"
 enhanced_proxy_nginx_oauth2_proxy_port: "4180"

@@ -212,12 +212,15 @@ server {
     }
 {% endif %}
     
-    # Generic health check endpoint (no auth required)
+{% if item.health_check | default('') != '/health' %}
+    # Generic health check endpoint (no auth required). Omitted when the service's
+    # own health check is /health: two identical locations fail `nginx -t`.
     location /health {
         access_log off;
         return 200 "OK";
         add_header Content-Type text/plain;
     }
+{% endif %}
     
 {% if proxy_mode == 'traditional' and enhanced_proxy_nginx_traditional_proxy_config.enable_status_page | default(false) %}
     # Status page for enhanced_proxy_nginx_monitoring (restricted)
