@@ -80,6 +80,13 @@ oauth2_services:
 
 Further per-service options:
 
+- `required_groups`, `required_roles`, `required_client_roles` — restrict an oauth2
+  service to members. They are passed to oauth2-proxy as `allowed_groups` on a
+  per-vhost auth endpoint: groups as named, realm roles as `role:<name>`, client roles
+  as `role:<client>:<name>` (client from `enhanced_proxy_nginx_oauth2_client_id`).
+  oauth2-proxy answers 401 without a session (sent to sign-in) and 403 for a session
+  without the membership.
+
 - `cloudflare_origin_pull` — require Cloudflare Authenticated Origin Pulls. Requests
   without Cloudflare's client certificate get a 403, except from addresses matching
   `bypass_remote_addr_regex` (LAN clients reaching the host via split DNS).

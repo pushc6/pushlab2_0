@@ -16,6 +16,13 @@ location /oauth2/ {
     proxy_read_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
     proxy_redirect off;
     proxy_buffering off;
+    # Header buffers: oauth2-proxy's Set-Cookie on /oauth2/callback carries the
+    # session (ID token) and can exceed nginx's default header buffer, which
+    # surfaces as "upstream sent too big header" -> 502. Applies even with
+    # proxy_buffering off, which only affects the body.
+    proxy_buffer_size {{ enhanced_proxy_nginx_oauth2_buffer_size | default('16k') }};
+    proxy_buffers {{ enhanced_proxy_nginx_oauth2_buffers | default('8 16k') }};
+    proxy_busy_buffers_size {{ enhanced_proxy_nginx_oauth2_busy_buffers_size | default('32k') }};
 }
 
 location = /oauth2/auth {
@@ -36,6 +43,13 @@ location = /oauth2/auth {
     proxy_send_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
     proxy_read_timeout {{ enhanced_proxy_nginx_proxy_timeout }};
     proxy_buffering off;
+    # Header buffers: oauth2-proxy's Set-Cookie on /oauth2/callback carries the
+    # session (ID token) and can exceed nginx's default header buffer, which
+    # surfaces as "upstream sent too big header" -> 502. Applies even with
+    # proxy_buffering off, which only affects the body.
+    proxy_buffer_size {{ enhanced_proxy_nginx_oauth2_buffer_size | default('16k') }};
+    proxy_buffers {{ enhanced_proxy_nginx_oauth2_buffers | default('8 16k') }};
+    proxy_busy_buffers_size {{ enhanced_proxy_nginx_oauth2_busy_buffers_size | default('32k') }};
 }
 
 # Enhanced userinfo endpoint for ID token extraction
@@ -63,4 +77,11 @@ location = /oauth2/userinfo {
         add_header Content-Length 0;
         return 204;
     }
+    # Header buffers: oauth2-proxy's Set-Cookie on /oauth2/callback carries the
+    # session (ID token) and can exceed nginx's default header buffer, which
+    # surfaces as "upstream sent too big header" -> 502. Applies even with
+    # proxy_buffering off, which only affects the body.
+    proxy_buffer_size {{ enhanced_proxy_nginx_oauth2_buffer_size | default('16k') }};
+    proxy_buffers {{ enhanced_proxy_nginx_oauth2_buffers | default('8 16k') }};
+    proxy_busy_buffers_size {{ enhanced_proxy_nginx_oauth2_busy_buffers_size | default('32k') }};
 }

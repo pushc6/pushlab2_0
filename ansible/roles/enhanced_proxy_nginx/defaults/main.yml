@@ -14,6 +14,13 @@ enhanced_proxy_nginx_honor_service_proxy_mode: false
 enhanced_proxy_nginx_oauth2_proxy_host: "localhost"
 enhanced_proxy_nginx_oauth2_proxy_port: "4180"
 
+# Header buffers for the /oauth2/* locations. oauth2-proxy's Set-Cookie on
+# /oauth2/callback carries the session (ID token) and overruns nginx's default
+# header buffer, which surfaces as "upstream sent too big header" -> 502.
+enhanced_proxy_nginx_oauth2_buffer_size: "16k"
+enhanced_proxy_nginx_oauth2_buffers: "8 16k"
+enhanced_proxy_nginx_oauth2_busy_buffers_size: "32k"
+
 # Traditional proxy defaults
 enhanced_proxy_nginx_traditional_proxy_config:
   enable_caching: false
@@ -68,6 +75,12 @@ enhanced_proxy_nginx_default_ssl_domain: "localhost"
 
 # Service filtering (empty means all services)
 enhanced_proxy_nginx_oauth2_services_filter: []
+
+# Keycloak client the shared oauth2-proxy authenticates as. Must match client_id
+# in oauth2-proxy.cfg on the proxy host; it is the namespace for any client roles
+# named in a service's required_client_roles. Deliberately separate from
+# enhanced_proxy_nginx_logout_config.keycloak_client_id, which currently disagrees.
+enhanced_proxy_nginx_oauth2_client_id: "oauth2-proxy"
 # Logout configuration defaults
 enhanced_proxy_nginx_logout_config:
   enable_id_token_logout: true
