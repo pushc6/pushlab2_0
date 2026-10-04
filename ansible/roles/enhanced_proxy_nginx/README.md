@@ -105,6 +105,10 @@ Further per-service options:
       methods: ["GET", "POST"]        # default ["GET"]; others get 403
       client_max_body_size: "1k"      # optional
   ```
+- `overwrite_forwarded_for` — send `X-Forwarded-For: $remote_addr` instead of appending
+  to what the client sent. For backends that trust the header from any source and read
+  its leftmost entry (uvicorn's `--forwarded-allow-ips *`), where appending lets a client
+  choose the address used for rate limits and logs. Default `false`.
 - `gzip` / `hide_backend_headers` — per-service overrides of the traditional-mode
   `enable_gzip` and `hide_backend_headers` settings.
 

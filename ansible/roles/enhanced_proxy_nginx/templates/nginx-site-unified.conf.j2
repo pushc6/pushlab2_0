@@ -5,6 +5,9 @@
 
 {% set ssl_config = ssl_certificates[item.ssl_domain] %}
 {% set proxy_mode = item.proxy_mode | default(enhanced_proxy_nginx_role_config.mode) %}
+{# Overwritten, not appended, for a backend that trusts X-Forwarded-For from any source:
+   appended, the leftmost entry -- which such a backend reads -- is whatever the client sent. #}
+{% set _xff = '$remote_addr' if item.overwrite_forwarded_for | default(false) else '$proxy_add_x_forwarded_for' %}
 
 server {
     listen 443 ssl;
@@ -186,7 +189,7 @@ server {
         proxy_pass http://{{ item.backend_host }}:{{ item.backend_port }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For {{ _xff }};
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-Port $server_port;
@@ -237,7 +240,7 @@ server {
         proxy_pass http://{{ item.backend_host }}:{{ item.backend_port }}{{ item.health_check }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For {{ _xff }};
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 {% endif %}
@@ -294,7 +297,7 @@ server {
         proxy_pass http://{{ item.backend_host }}:{{ item.backend_port }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For {{ _xff }};
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 {% else %}
