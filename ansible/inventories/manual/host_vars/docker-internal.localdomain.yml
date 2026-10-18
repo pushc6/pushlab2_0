@@ -59,8 +59,11 @@ firewall_hardened_services:
 
   - port: 3000
     protocol: tcp
-    name: "Semaphore - Ansible Automation UI"
-    container: semaphore
+    # Was labelled Semaphore; Semaphore actually listens on 3004 (rule further down).
+    # 3000 is the cargame app (Komodo project "cargame"), reverse-proxied as
+    # cargame-dev.push-lab.com by nginx-dmz.
+    name: "Cargame - car game (dev)"
+    container: cargame-app-1
     access: custom
     sources:
       - "10.37.70.5/32" # nginx-dmz (IPv4)
