@@ -3,6 +3,20 @@
 # Monitoring, Authentication, and Infrastructure Services
 
 # =============================================================================
+# OS Updates
+# =============================================================================
+# Semaphore runs here. Upgrading docker or rebooting mid-run kills the
+# update_all.yml job that is driving the upgrade, so debian_updates holds these
+# packages and upgrades them (and reboots if needed) from a systemd timer that
+# fires after the job ends.
+debian_updates_deferred_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# =============================================================================
 # Tailscale Configuration
 # =============================================================================
 # Put this host on the tailnet so Komodo Core (running here) can reach the

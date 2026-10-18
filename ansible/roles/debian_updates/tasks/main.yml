@@ -1,9 +1,56 @@
 ---
 # Debian-specific update tasks
-- name: Update apt cache
-  ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: "{{ debian_updates_apt_cache_valid_time }}"
+- name: Refresh apt cache
+  block:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: "{{ debian_updates_apt_cache_valid_time }}"
+      register: debian_updates_apt_cache_result
+      retries: "{{ debian_updates_apt_cache_retries }}"
+      delay: "{{ debian_updates_apt_cache_delay }}"
+      until: debian_updates_apt_cache_result is succeeded
+  rescue:
+    # Hosts carrying third-party repos (e.g. AMP's cdn-repo.c7rs.com, which sits
+    # behind Cloudflare and intermittently answers 406) would otherwise abort the
+    # whole patch run over an outage we do not control. Opt those hosts out via
+    # debian_updates_apt_cache_required so the upgrade proceeds on the last-known
+    # good cache instead.
+    - name: Fail when a fresh apt cache is required
+      ansible.builtin.fail:
+        msg: >-
+          apt cache refresh failed on {{ inventory_hostname }}:
+          {{ debian_updates_apt_cache_result.msg | default('unknown error') }}
+      when: debian_updates_apt_cache_required | bool
+
+    - name: Warn that the upgrade will run against a stale apt cache
+      ansible.builtin.debug:
+        msg: >-
+          apt cache refresh failed on {{ inventory_hostname }} and
+          debian_updates_apt_cache_required is false; continuing with the
+          existing package lists.
+          Error: {{ debian_updates_apt_cache_result.msg | default('unknown error') }}
+
+# Packages in debian_updates_deferred_packages are held during the upgrade and
+# upgraded by a detached systemd timer once this run is over. Used on the
+# Semaphore host, where a docker-ce upgrade (dockerd restart) or a reboot would
+# kill the job that is running this play.
+- name: Hold deferred packages during the upgrade
+  when: debian_updates_deferred_packages | length > 0
+  block:
+    - name: Gather installed packages
+      ansible.builtin.package_facts:
+        manager: apt
+
+    - name: Select deferred packages that are installed
+      ansible.builtin.set_fact:
+        debian_updates_deferred_installed: "{{ debian_updates_deferred_packages | select('in', ansible_facts.packages) | list }}"
+
+    - name: Hold installed deferred packages
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop: "{{ debian_updates_deferred_installed }}"
 
 - name: Update all packages
   ansible.builtin.apt:
@@ -42,6 +89,7 @@
   when:
     - enable_reboot | bool
     - not debian_updates_schedule_reboot | bool
+    - debian_updates_deferred_packages | length == 0
     - debian_updates_reboot_required_file.stat.exists
 
 - name: Schedule deferred reboot
@@ -51,6 +99,7 @@
   when:
     - enable_reboot | bool
     - debian_updates_schedule_reboot | bool
+    - debian_updates_deferred_packages | length == 0
     - debian_updates_reboot_required_file.stat.exists
 
 - name: Notify scheduled reboot
@@ -59,4 +108,45 @@
   when:
     - enable_reboot | bool
     - debian_updates_schedule_reboot | bool
+    - debian_updates_deferred_packages | length == 0
     - debian_updates_reboot_required_file.stat.exists
+
+- name: Schedule deferred package upgrade and reboot
+  when: debian_updates_deferred_packages | length > 0
+  block:
+    - name: Check for an already scheduled deferred upgrade
+      ansible.builtin.systemd_service:
+        name: "{{ debian_updates_deferred_unit }}.timer"
+      register: debian_updates_deferred_timer
+      failed_when: false
+
+    # --collect unloads the transient unit even if it fails, so the unit name
+    # is free for the next run.
+    - name: Start detached upgrade timer
+      ansible.builtin.command:
+        argv:
+          - systemd-run
+          - --unit={{ debian_updates_deferred_unit }}
+          - --collect
+          - --on-active={{ debian_updates_deferred_delay_seconds }}s
+          - --timer-property=AccuracySec=1s
+          - /bin/sh
+          - -c
+          - >-
+            {% if debian_updates_deferred_installed | length > 0 %}
+            apt-mark unhold {{ debian_updates_deferred_installed | join(' ') }};
+            DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+            apt-get install -y --only-upgrade
+            -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold
+            {{ debian_updates_deferred_installed | join(' ') }};
+            {% endif %}
+            {% if enable_reboot | bool %}if [ -f /var/run/reboot-required ]; then systemctl reboot; fi{% else %}true{% endif %}
+      changed_when: true # systemd-run always creates a new transient unit.
+      when: debian_updates_deferred_timer.status.ActiveState | default('inactive') != 'active'
+
+    - name: Notify deferred upgrade
+      ansible.builtin.debug:
+        msg: >-
+          {{ debian_updates_deferred_packages | join(', ') }} will be upgraded on
+          {{ inventory_hostname }} in {{ debian_updates_deferred_delay_seconds }}s,
+          then the host reboots if required (enable_reboot={{ enable_reboot }}).

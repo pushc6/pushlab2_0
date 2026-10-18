@@ -6,6 +6,20 @@ debian_updates_apt_autoremove: true
 debian_updates_apt_autoclean: true
 debian_updates_apt_update_cache_only: false
 
+# apt cache refresh resilience.
+# Set debian_updates_apt_cache_required: false on hosts carrying flaky
+# third-party repos so a transient CDN outage does not abort their patch run.
+debian_updates_apt_cache_retries: 3
+debian_updates_apt_cache_delay: 20
+debian_updates_apt_cache_required: true
+
 # Schedule reboot instead of rebooting immediately (useful for hosts running orchestrators)
 debian_updates_schedule_reboot: false
 debian_updates_reboot_delay_minutes: 15
+
+# Packages to hold during the upgrade and upgrade afterwards from a detached
+# systemd timer, which also owns any reboot. For hosts that run the automation
+# driving this play (e.g. Semaphore on docker-internal).
+debian_updates_deferred_packages: []
+debian_updates_deferred_delay_seconds: 120
+debian_updates_deferred_unit: debian-updates-deferred
