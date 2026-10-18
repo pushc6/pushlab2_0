@@ -44,3 +44,10 @@ firewall_hardened_services:
     sources:
       - "10.37.20.0/24" # trusted_vlan - direct access
       - "10.37.70.5/32" # nginx-internal reverse proxy
+
+# Package updates
+# This host carries the CubeCoders AMP apt repo (cdn-repo.c7rs.com), which sits
+# behind Cloudflare and intermittently returns 406 Not Acceptable. Don't abort
+# the whole patch run over a third-party CDN we don't control - upgrade against
+# the last-known-good package lists instead.
+debian_updates_apt_cache_required: false
