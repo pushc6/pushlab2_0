@@ -22,22 +22,16 @@
   async: 1800
   poll: 15
 
-# Guard: only run reboot check if needs-restarting exists
-- name: Check availability of needs-restarting
-  ansible.builtin.shell: "command -v needs-restarting >/dev/null 2>&1"
-  register: rhel_updates_needs_restarting_cmd
-  changed_when: false
-  failed_when: false
-  when: enable_reboot | bool
-
+# `dnf needs-restarting` ships in dnf-plugins-core on EL8/9/10 (installed via
+# rhel_updates_packages_to_install). The standalone needs-restarting binary is
+# absent on EL10, which silently skipped reboot detection there.
+# rc 0 = no reboot needed, rc 1 = reboot needed, anything else is an error.
 - name: Check if reboot is required
-  ansible.builtin.command: needs-restarting -r
+  ansible.builtin.command: dnf needs-restarting -r
   register: rhel_updates_needs_restarting
-  failed_when: false
+  failed_when: rhel_updates_needs_restarting.rc not in [0, 1]
   changed_when: false
-  when:
-    - enable_reboot | bool
-    - rhel_updates_needs_restarting_cmd.rc == 0
+  when: enable_reboot | bool
 
 - name: Reboot RHEL server if needed
   ansible.builtin.reboot:
@@ -54,5 +48,4 @@
     ansible_ssh_args: "-o ControlMaster=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes"
   when:
     - enable_reboot | bool
-    - rhel_updates_needs_restarting_cmd.rc == 0
     - rhel_updates_needs_restarting.rc == 1

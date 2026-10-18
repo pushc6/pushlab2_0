@@ -1,17 +1,60 @@
 ---
-# Update the CrowdSec LAPI host first so its API is back online before
-# agent hosts upgrade — the crowdsec deb's post-install restarts the
-# service, and agents fail dpkg (rc=100) if they can't reach LAPI during
-# their own restart window. Missing crowdsec_controller group is a no-op.
-- name: Update CrowdSec LAPI host first
-  hosts: crowdsec_controller
+# Patch order matters:
+#   1. CrowdSec LAPI host and ns02. LAPI comes back before agent hosts upgrade
+#      (the crowdsec deb's post-install restarts the service, and agents fail
+#      dpkg (rc=100) if they can't reach LAPI during their own restart window).
+#      ns02 must be answering DNS again before the run continues, because ns01
+#      lives on docker-secure, which patches in play 2. any_errors_fatal stops
+#      the run if ns02 doesn't come back, so both resolvers are never down at once.
+#   2. Everything else.
+#   3. docker-internal last. Semaphore runs there, so upgrading docker-ce or
+#      rebooting mid-run kills the job that is driving the run. debian_updates
+#      holds the docker packages (debian_updates_deferred_packages) and hands
+#      their upgrade, plus any reboot, to a systemd timer that fires after the
+#      job has finished.
+- name: Update CrowdSec LAPI host and ns02 first
+  hosts: crowdsec_controller:ns02
+  become: true
+  any_errors_fatal: true
+  roles:
+    - system_updates
+  post_tasks:
+    - name: Verify ns02 is serving DNS before patching ns01
+      when: inventory_hostname == 'ns02'
+      block:
+        - name: Ensure dig is available
+          ansible.builtin.package:
+            name: bind-utils
+            state: present
+
+        - name: Wait for DNS port on ns02
+          ansible.builtin.wait_for:
+            host: "{{ ansible_host }}"
+            port: 53
+            timeout: 300
+          delegate_to: localhost
+          become: false
+
+        - name: Resolve a record through ns02
+          ansible.builtin.command: dig +short +time=2 +tries=1 @127.0.0.1 ns02.push-lab.com
+          register: update_all_ns02_dig
+          changed_when: false
+          retries: 20
+          delay: 15
+          until:
+            - update_all_ns02_dig.rc == 0
+            - update_all_ns02_dig.stdout | trim | length > 0
+  tags: [updates]
+
+- name: Update all other systems
+  hosts: all:!opnsense:!crowdsec_controller:!ns02:!docker_internal
   become: true
   roles:
     - system_updates
   tags: [updates]
 
-- name: Update all other systems
-  hosts: all:!opnsense:!crowdsec_controller
+- name: Update the Semaphore host last
+  hosts: docker_internal
   become: true
   roles:
     - system_updates

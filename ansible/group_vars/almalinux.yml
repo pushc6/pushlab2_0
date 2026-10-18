@@ -1,0 +1,6 @@
+---
+# AlmaLinux hosts (inventory group `almalinux`), consumed by rhel_updates.
+# dnf-plugins-core provides `dnf needs-restarting`, which reboot detection uses.
+rhel_updates_packages_to_install:
+  - dnf-plugins-core
+  - policycoreutils-python-utils
