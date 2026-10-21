@@ -462,6 +462,12 @@ firewall_hardened_services:
     container: vnc
     access: trusted_vlan
 
+  - port: 9393
+    protocol: tcp
+    name: "NeXroll - Plex Preroll Manager"
+    container: nexroll
+    access: trusted_vlan
+
   # ============================================================================
   # Docker Daemon API (TLS)
   # ============================================================================

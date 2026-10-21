@@ -82,9 +82,14 @@ vms = {
       { network_name = "VLAN 40 - LAN Only (No WAN)", ipv4_address = "10.37.40.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0040::254/64", accept_ra = false },
       { network_name = "VLAN 50 - IoT", ipv4_address = "10.37.50.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0050::254/64", accept_ra = false },
       { network_name = "VLAN 60 - Guest", ipv4_address = "10.37.60.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0060::254/64", accept_ra = false },
-      { network_name = "VLAN 70 - DMZ", ipv4_address = "10.37.70.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0070::254/64", accept_ra = false },
       { network_name = "VLAN 80 - App", ipv4_address = "10.37.80.254", ipv4_netmask = 24, ipv4_gateway = "10.37.80.1", ipv6_address = "fd00:1337:1337:0080::254/64", ipv6_gateway = "fe80::250:56ff:febc:bf", accept_ra = true },
-      { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0100::254/64", accept_ra = false }
+      { network_name = "VLAN 100 - Test", ipv4_address = "10.37.100.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0100::254/64", accept_ra = false },
+      # DMZ is LAST on purpose, not in VLAN order. vsphere_virtual_machine pairs
+      # network_interface blocks to existing vNICs by list index, and this NIC was
+      # hot-added by hand in vCenter so it physically occupies the final slot.
+      # Listing it in VLAN order (between 60 and 80) makes Terraform rotate slots
+      # 5-7 and rewrite MACs on three live vNICs. Append new NICs here; never insert.
+      { network_name = "VLAN 70 - DMZ", ipv4_address = "10.37.70.254", ipv4_netmask = 24, ipv6_address = "fd00:1337:1337:0070::254/64", accept_ra = false }
     ]
   }
 

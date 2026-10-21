@@ -61,3 +61,8 @@ ansible/inventories/**/group_vars/**/secrets.yml
 
 # Downloaded ISOs
 *.iso
+
+# Local credential/token scratch files (never commit)
+komodo_key.json
+opnsensepw
+temptokenns01

@@ -284,6 +284,8 @@ public_dns_records:
       # nginx-dmz backends
       - name: auth.push-lab.com
         ip: "{{ host_registry.nginx_dmz.ip }}"
+      - name: cargame-dev.push-lab.com
+        ip: "{{ host_registry.nginx_dmz.ip }}"
       - name: invite.push-lab.com
         ip: "{{ host_registry.nginx_dmz.ip }}"
       - name: n8n.push-lab.com
@@ -461,6 +463,13 @@ services:
   # -------------------------------------------------------------------------
   # Media & Applications
   # -------------------------------------------------------------------------
+  cargame:
+    host: docker_internal
+    ip: "{{ host_registry.docker_internal.ip }}"
+    hostname: "{{ host_registry.docker_internal.hostname }}"
+    port: 3000
+    description: "Cargame (dev) - cargame-dev.push-lab.com via nginx-dmz"
+
   immich:
     host: docker_internal
     ip: "{{ host_registry.docker_internal.ip }}"
