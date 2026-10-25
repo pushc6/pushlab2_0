@@ -2,8 +2,8 @@
 # Komodo Periphery agent. Runs as a Docker container on each managed Docker host
 # and lets Komodo Core deploy/redeploy compose Stacks here. See docker-stacks repo
 # for Core + the docker-stacks GitOps source of truth.
-# v2.x: keep in sync with komodo-core in docker-stacks (docker-internal/komodo).
-komodo_periphery_image: "ghcr.io/moghtech/komodo-periphery:2.2.0"
+# v2.x: keep in sync with komodo-core in docker-stacks (docker-internal/komodo/compose.yml).
+komodo_periphery_image: "ghcr.io/moghtech/komodo-periphery:2.3.4"
 
 # Komodo v2 PKI: Core's Ed25519 public key(s) that this Periphery will trust
 # (replaces the v1 shared passkey). Read from Core (Settings -> Keys, or the
