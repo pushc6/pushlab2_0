@@ -39,7 +39,7 @@
 | VMware vCenter Server 8 | — | 6 | 24 | chonkyboi | ssd_local1 | VLAN 10 |
 | Docker - Internal | docker-internal | 8 | 16 | slimboi | ssd-local | VLAN 10, 70 |
 | Docker - Secure | docker-secure (ns01) | 6 | 16 | slimboi | FreeNas iscsi, iscsi2 | VLAN 20,10,30,40,50,60,70,100,80 |
-| dns02 | ns02 | 2 | 8 | slimboi | ssd-local | 9 NICs (10,20,30,40,50,60,70,80,100) |
+| dns02 | ns02 | 2 | 8 | chonkyboi | ssd_local1 (per-VM TF override) | 9 NICs (10,20,30,40,50,60,70,80,100) |
 | gitea | gitea | 8 | 12 | slimboi | ssd-local | VLAN 80 |
 | packer_builder | packer_builder | 12 | 18 | slimboi | ssd-local | VLAN 80 |
 | NGINX - Internal | nginx-internal | 2 | 16 | slimboi | ssd-local | VLAN 70 |

@@ -47,7 +47,7 @@ flowchart TB
 | vmkernel | 10.37.10.17 (mgmt), 10.37.70.31/.32, 10.37.30.42 (storage) | 10.37.10.18 (mgmt), 10.37.70.29/.30, 10.37.30.41 (storage) |
 | PCIe passthrough | NVIDIA Quadro P2000 → VM `Docker` | — |
 | Last boot | 2026-02-11 | 2025-06-16 |
-| Hosted VMs | opnSense, Docker, NGINX, GameServer, Veeam2022, vCenter | Docker-Internal, Docker-Secure, dns02, gitea, packer_builder, NGINX-Internal, Crowdsec, prusa3dbawkz, HomeAssistant, templates |
+| Hosted VMs | opnSense, Docker, NGINX, GameServer, Veeam2022, vCenter, dns02 | Docker-Internal, Docker-Secure, gitea, packer_builder, NGINX-Internal, Crowdsec, prusa3dbawkz, HomeAssistant, templates |
 
 Networking is a single **vSphere Distributed Switch** `DSwitch` with one port group per VLAN (see [network](03-network.md)) plus `ISCSI-PG1` / `ISCSI-PG2` for storage multipathing.
 
@@ -72,7 +72,7 @@ vCenter: VCSA 8.0.2 at 10.37.10.35 (VLAN 10), 6 vCPU / 24 GB, running on chonkyb
 | FreeNas iscsi2 | VMFS (iSCSI) | 400 GB | 228 GB | Docker-Secure, HomeAssistant |
 | FreeNas 10GbE | NFS | 35 TB | 26 TB | bulk |
 
-> OPNsense and ns01 (Docker-Secure) boot from **TrueNAS iSCSI**. If TrueNAS is down, routing and primary DNS are down too. ns02 is on local `ssd-local`, which is why it survives that. See [findings](findings.md).
+> OPNsense and ns01 (Docker-Secure) boot from **TrueNAS iSCSI**. If TrueNAS is down, routing and primary DNS are down too. ns02 is on chonkyboi's local `ssd_local1` (moved 2026-11-15), so it survives a NAS outage and doesn't share a host with ns01. See [findings](findings.md).
 
 ## Edge devices
 
