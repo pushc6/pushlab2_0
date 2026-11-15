@@ -13,7 +13,7 @@ One card per machine. vCPU and RAM numbers are what the guest sees (live). **Man
 | docker | 10.37.70.7 | 70 | Ubuntu 24.04 | 12 / 58 GB | chonkyboi | manual | Media + apps, Keycloak, GPU |
 | docker-internal | 10.37.70.25 | 70 (+10) | Ubuntu 24.04 | 8 / 15 GB | slimboi | manual | Platform services |
 | docker-secure (ns01) | 10.37.10.2 / 10.37.20.2 | all | Ubuntu 24.04 | 6 / 15 GB | slimboi | manual | Primary DNS/DHCP |
-| ns02 | .254 (Ansible 10.37.70.254) | all | AlmaLinux 10.2 | 2 / 7.5 GB | slimboi | Terraform | Secondary DNS/DHCP |
+| ns02 | .254 (Ansible 10.37.70.254) | all | AlmaLinux 10.2 | 2 / 7.5 GB | chonkyboi | Terraform | Secondary DNS/DHCP |
 | gitea | 10.37.80.4 | 80 | AlmaLinux 10.2 | 8 / 11 GB | slimboi | Terraform | Git, registry, CI runner |
 | packer_builder | 10.37.80.5 | 80 | AlmaLinux 10 | 12 / 18 GB | slimboi | Terraform | Packer/TF runner |
 | nginx (nginx-dmz) | 10.37.70.5 | 70 | RHEL 9.9 | 4 / 5.5 GB | chonkyboi | manual | Public reverse proxy |
@@ -54,7 +54,7 @@ One card per machine. vCPU and RAM numbers are what the guest sees (live). **Man
 - **Firewall:** dns, dhcp and 5380 allowed. **Ansible:** common, firewall, updates, komodo_periphery.
 
 ### ns02 — .254 on every VLAN
-- **Role:** secondary DNS + standby DHCP. Built by Terraform (key `dns02`, VM name `dns02`); 2 vCPU / 8 GB / 40 GB on local `ssd-local`, so it survives a TrueNAS outage.
+- **Role:** secondary DNS + standby DHCP. Built by Terraform (key `dns02`, VM name `dns02`); 2 vCPU / 8 GB / 40 GB on chonkyboi's local `ssd_local1` (per-VM `datastore` override in `prod.tfvars`), so it survives a TrueNAS outage and is on a different host from ns01.
 - **Ansible:** common, docker, firewall, `system_hostname`, `technitium`, updates (first), komodo_periphery.
 - **Notes:**
   - NIC ordering is fragile; see [network](03-network.md#multi-homed-hosts).
