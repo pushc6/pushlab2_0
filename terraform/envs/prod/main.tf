@@ -36,7 +36,8 @@ module "vm" {
 
   datacenter = var.datacenter
   cluster    = var.cluster
-  datastore  = var.datastore
+  # Prefer per-VM datastore override when provided; fall back to root var.datastore
+  datastore = coalesce(try(each.value.datastore, null), var.datastore)
   # Prefer per-VM network override when provided; fall back to root var.network
   network   = coalesce(try(each.value.network, null), var.network)
   vm_folder = var.vm_folder
