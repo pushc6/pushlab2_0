@@ -106,6 +106,8 @@ docs/                      # Full documentation
 
 ## Documentation
 
+**For whole-lab infrastructure context (hosts, IPs, VLANs, services, ingress, traps), read `docs/architecture/ARCHITECTURE.ai.md` first.** Known risks and drift: `docs/architecture/findings.md`.
+
 Comprehensive documentation in `docs/`:
 - `overview.md` - Architecture and high-level flow
 - `bootstrapping.md` - Step-by-step setup guide

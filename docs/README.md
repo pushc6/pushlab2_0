@@ -2,6 +2,8 @@
 
 This directory contains detailed documentation for the AlmaLinux 10 vSphere IaC project.
 
+> **Whole-lab architecture** (physical, network, DNS, hosts, services, ingress, storage, observability, GitOps) lives in [`architecture/`](architecture/README.md). The docs below cover the Gitea/IaC pipeline specifically.
+
 ## Getting Started
 
 | Document | Description |
