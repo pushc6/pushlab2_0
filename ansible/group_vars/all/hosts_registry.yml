@@ -241,8 +241,6 @@ public_dns_records:
     zone: push-lab.com
     records:
       # nginx-internal backends
-      - name: aap.push-lab.com
-        ip: "{{ host_registry.nginx_internal.ip }}"
       - name: code.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"
       - name: dashboard.push-lab.com
@@ -250,8 +248,6 @@ public_dns_records:
       - name: digx.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"
       - name: dozzle.push-lab.com
-        ip: "{{ host_registry.nginx_internal.ip }}"
-      - name: esxi.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"
       - name: git.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"
@@ -274,8 +270,6 @@ public_dns_records:
       - name: syno.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"
       - name: truenas.push-lab.com
-        ip: "{{ host_registry.nginx_internal.ip }}"
-      - name: vsphere.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"
       - name: zigbee.push-lab.com
         ip: "{{ host_registry.nginx_internal.ip }}"

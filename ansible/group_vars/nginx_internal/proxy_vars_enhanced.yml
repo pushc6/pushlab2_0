@@ -14,6 +14,16 @@ service_proxy_overrides:
   grafana: "traditional" # Grafana has built-in auth
   # All other services will use the enhanced_proxy_nginx_default_proxy_mode
 
+# Hand-made vhosts whose backends are gone (removed 2026-11-15):
+#   aap     -> 10.37.70.27 (AAP VM no longer exists)
+#   esxi    -> 10.37.70.17, vsphere -> 10.37.70.14 (stale IPs; mgmt is VLAN 10,
+#              unreachable from this host by design — use 10.37.10.x directly)
+# Matching records were also dropped from hosts_registry.yml public_dns_records.
+enhanced_proxy_nginx_retired_domains:
+  - aap.push-lab.com
+  - esxi.push-lab.com
+  - vsphere.push-lab.com
+
 # OAuth2-Proxy server settings (used only for OAuth2 mode services)
 enhanced_proxy_nginx_oauth2_proxy_host: "10.37.70.25"
 enhanced_proxy_nginx_oauth2_proxy_port: "4180"

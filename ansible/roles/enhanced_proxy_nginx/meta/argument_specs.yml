@@ -31,3 +31,10 @@ argument_specs:
         description: Default client_max_body_size.
         type: str
         default: "100M"
+      enhanced_proxy_nginx_retired_domains:
+        description:
+          - Vhost domains (e.g. C(old.push-lab.com)) whose site config and sites-enabled link are deleted.
+          - Must not overlap with any domain still being deployed.
+        type: list
+        elements: str
+        default: []
