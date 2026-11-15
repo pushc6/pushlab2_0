@@ -24,7 +24,7 @@ Risks, drift and discrepancies found while compiling these docs (2026-11-15). No
 
 | # | Sev | Finding | Evidence | Suggested action |
 |---|---|---|---|---|
-| B1 | High | **OPNsense, ns01 (docker-secure), HAOS and Veeam boot from TrueNAS iSCSI.** A TrueNAS outage takes out routing, primary DNS/DHCP and backups at the same time | vCenter datastores | Move OPNsense + ns01 to local datastores (`ssd-local` / `ssd_local1`) |
+| B1 | High | **OPNsense, ns01 (docker-secure), HAOS and Veeam boot from TrueNAS iSCSI.** A TrueNAS outage takes out routing, primary DNS/DHCP and backups at the same time | vCenter datastores | Move OPNsense + ns01 to local datastores. **Progress 2026-11-15:** ns02 moved to chonkyboi/`ssd_local1`, so DNS now survives one host or NAS failure (PR #28 pins it in Terraform). Still open: ns01 and OPNsense; consider an OPNsense CARP pair on local disks, HA restart priorities (OPNsense highest), and an ns01/ns02 anti-affinity rule |
 | B2 | High | OPNsense is a single VM on chonkyboi. If that host goes down, all routing goes down. DHCP failover to ns02 is manual | vCenter | Document recovery; consider HA/DRS affinity or a CARP pair |
 | B3 | Med | docker-internal is the control plane (Komodo, Semaphore, oauth2-proxy, MQTT, logs) **and** docker hosts Keycloak. If either is lost, SSO and automation are lost | services | Document break-glass access (local admin accounts) |
 | B4 | Med | ns02 was down or rebooting during the first survey (rebooted 15:01). From VLAN 20 only 10.37.20.254 answers SSH; .70.254 and .80.254 time out (asymmetric path) | live | Check why it rebooted; this is expected behaviour per the NIC/rp_filter design |
