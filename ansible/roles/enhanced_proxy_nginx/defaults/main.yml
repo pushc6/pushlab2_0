@@ -49,6 +49,11 @@ enhanced_proxy_nginx_sites_available: "/etc/nginx/sites-available"
 enhanced_proxy_nginx_sites_enabled: "/etc/nginx/sites-enabled"
 enhanced_proxy_nginx_conf_d: "/etc/nginx/conf.d"
 
+# Domains whose vhosts should be removed from sites-enabled/sites-available.
+# The role only ever creates vhosts, so a service dropped from the service
+# list keeps serving until it is listed here. Entries must not also be active.
+enhanced_proxy_nginx_retired_domains: []
+
 # SSL settings
 enhanced_proxy_nginx_ssl_protocols: "TLSv1.2 TLSv1.3"
 enhanced_proxy_nginx_ssl_ciphers: "HIGH:!aNULL:!MD5"

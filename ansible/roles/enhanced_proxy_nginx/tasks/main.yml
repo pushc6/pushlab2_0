@@ -169,6 +169,25 @@
   loop: "{{ enhanced_proxy_nginx_filtered_services }}"
   notify: reload nginx
 
+- name: Refuse to retire a domain that is still being deployed
+  ansible.builtin.assert:
+    that:
+      - (enhanced_proxy_nginx_retired_domains | intersect(enhanced_proxy_nginx_filtered_services | default([]) | map(attribute='domain') | list)) | length == 0
+    fail_msg: >-
+      enhanced_proxy_nginx_retired_domains overlaps active services:
+      {{ enhanced_proxy_nginx_retired_domains | intersect(enhanced_proxy_nginx_filtered_services | default([]) | map(attribute='domain') | list) }}
+    quiet: true
+  when: enhanced_proxy_nginx_retired_domains | length > 0
+
+- name: Remove retired vhosts
+  ansible.builtin.file:
+    path: "{{ item.1 }}/{{ item.0 }}.conf"
+    state: absent
+  loop: "{{ enhanced_proxy_nginx_retired_domains | product([enhanced_proxy_nginx_sites_enabled, enhanced_proxy_nginx_sites_available]) | list }}"
+  loop_control:
+    label: "{{ item.1 }}/{{ item.0 }}.conf"
+  notify: reload nginx
+
 - name: Remove default nginx configurations
   ansible.builtin.file:
     path: "{{ item }}"
