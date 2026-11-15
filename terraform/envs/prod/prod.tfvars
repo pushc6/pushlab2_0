@@ -39,7 +39,10 @@ vms = {
   # ns02: the legacy dns02 VM/state key is stable; Ansible uses ns02.
   # Secondary DNS server - multi-homed across all VLANs
   "dns02" = {
-    network          = "VLAN 10 - Management"
+    network = "VLAN 10 - Management"
+    # On chonkyboi's local datastore (moved 2026-11-15) so ns02 stays up when
+    # slimboi (ns01's host) or the TrueNAS iSCSI datastores are down.
+    datastore        = "ssd_local1"
     cpu_count        = 2
     memory_mb        = 8192
     disk_size_gb     = 40

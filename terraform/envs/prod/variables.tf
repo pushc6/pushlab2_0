@@ -29,6 +29,8 @@ variable "vms" {
     data_fs_type      = optional(string)
     # Optional override for vSphere network (defaults to root var.network)
     network = optional(string)
+    # Optional override for datastore (defaults to root var.datastore)
+    datastore = optional(string)
     # Optional desired hostname inside the guest (defaults to VM key)
     hostname = optional(string)
     # Optional safety brake: block destroy/recreate of this VM
